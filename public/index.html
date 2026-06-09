@@ -10,38 +10,57 @@
 
 <header>
   <h1>📷 Foto<span>App</span></h1>
-  <nav id="hoofdNav">
-    <button class="actief" onclick="toonPagina('dashboard')">Dashboard</button>
-    <button class="nav-fase1" onclick="toonPagina('bronnen')">Bronnen</button>
-    <button onclick="toonPagina('fotos', null)">Foto's</button>
-    <button class="nav-fase1" onclick="toonPagina('duplicaten')">Duplicaten</button>
-    <button class="nav-fase1" onclick="toonPagina('kaart')">🗺️ Kaart</button>
-    <button class="nav-fase1" onclick="toonPagina('gpsbulk')">📍 GPS toewijzen</button>
-    <button class="nav-fase2" style="display:none" onclick="toonPagina('negeren')">🚫 Negeren</button>
-    <button class="nav-fase2" style="display:none" onclick="toonPagina('genegeerd')">📋 Genegeerd</button>
-  </nav>
   <div class="scan-indicator" id="scanIndicator">Klaar</div>
 </header>
 
-<!-- STEPPER -->
-<div id="faseStepper" class="fase-stepper">
-  <div class="stap-container">
-    <div class="fase-stap" id="stapFase1" onclick="zetFase(1)">
-      <div class="stap-cirkel" id="cirkelFase1">1</div>
-      <span class="stap-label">Organiseren</span>
+<div class="app-layout">
+
+<!-- SIDEBAR -->
+<aside id="sideBar">
+  <div id="faseStepper" class="fase-stepper">
+
+    <!-- FASE 1 -->
+    <div class="fase-stap-groep" id="navGroep1">
+      <div class="fase-stap" id="stapFase1" onclick="handleFaseKlik(1)">
+        <div class="stap-cirkel" id="cirkelFase1">1</div>
+        <span class="stap-label">Organiseren</span>
+      </div>
+      <div class="nav-fase-items">
+        <button data-pagina="dashboard" class="nav-fase1" onclick="toonPagina('dashboard')">📊 Dashboard</button>
+        <button data-pagina="bronnen" class="nav-fase1" onclick="toonPagina('bronnen')">🗄️ Bronnen</button>
+        <button data-pagina="fotos" onclick="toonPagina('fotos', null)">🖼️ Foto's</button>
+        <button data-pagina="duplicaten" class="nav-fase1" onclick="toonPagina('duplicaten')">🔁 Duplicaten</button>
+        <button data-pagina="kaart" class="nav-fase1" onclick="toonPagina('kaart')">🗺️ Kaart</button>
+        <button data-pagina="gpsbulk" class="nav-fase1" onclick="toonPagina('gpsbulk')">📍 GPS toewijzen</button>
+      </div>
     </div>
+
     <div class="stap-lijn" id="lijnFase12"></div>
-    <div class="fase-stap" id="stapFase2" onclick="zetFase(2)">
-      <div class="stap-cirkel" id="cirkelFase2">2</div>
-      <span class="stap-label">Selecteren</span>
+
+    <!-- FASE 2 -->
+    <div class="fase-stap-groep" id="navGroep2">
+      <div class="fase-stap" id="stapFase2" onclick="handleFaseKlik(2)">
+        <div class="stap-cirkel" id="cirkelFase2">2</div>
+        <span class="stap-label">Selecteren</span>
+      </div>
+      <div class="nav-fase-items">
+        <button data-pagina="negeren" class="nav-fase2" onclick="toonPagina('negeren')">🚫 Negeren</button>
+        <button data-pagina="genegeerd" class="nav-fase2" onclick="toonPagina('genegeerd')">📋 Genegeerd</button>
+      </div>
     </div>
+
     <div class="stap-lijn" id="lijnFase23"></div>
-    <div class="fase-stap" id="stapFase3" onclick="zetFase(3)">
-      <div class="stap-cirkel" id="cirkelFase3">3</div>
-      <span class="stap-label">Exporteren</span>
+
+    <!-- FASE 3 -->
+    <div class="fase-stap-groep vergrendeld" id="navGroep3">
+      <div class="fase-stap" id="stapFase3">
+        <div class="stap-cirkel" id="cirkelFase3">3</div>
+        <span class="stap-label">Exporteren</span>
+      </div>
     </div>
+
   </div>
-</div>
+</aside>
 
 <main>
 
@@ -218,6 +237,8 @@
   </div>
 
 </main>
+
+</div><!-- /app-layout -->
 
 <!-- BEWERK BRON MODAL -->
 <div class="modal-overlay" id="bewerkOverlay" onclick="sluitBewerkModal(event)">
