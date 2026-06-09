@@ -476,7 +476,7 @@ function openBulkKaart(groepId) {
 
   // Init kaart (eenmalig)
   if (!bulkKaartInstantie) {
-    bulkKaartInstantie = L.map('bulkKaartContainer', { center: [20, 10], zoom: 3 });
+    bulkKaartInstantie = L.map('bulkKaartContainer', { center: [20, 10], zoom: 3, doubleClickZoom: false });
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '© CARTO © OpenStreetMap', subdomains: 'abcd', maxZoom: 19
     }).addTo(bulkKaartInstantie);

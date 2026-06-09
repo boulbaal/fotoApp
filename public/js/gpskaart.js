@@ -18,7 +18,7 @@ function initGpsKaart() {
     return;
   }
 
-  gpsKaart = L.map('gpsKaart').setView([20, 10], 2);
+  gpsKaart = L.map('gpsKaart', { doubleClickZoom: false }).setView([20, 10], 2);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap', maxZoom: 19
   }).addTo(gpsKaart);
