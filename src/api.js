@@ -511,6 +511,8 @@ router.get('/kaart/locaties', (req, res) => {
       MIN(id)            as voorbeeld_id
     FROM fotos
     WHERE gps_lat IS NOT NULL AND gps_lon IS NOT NULL
+      AND (duplicaat_groep IS NULL
+           OR id = (SELECT MIN(id) FROM fotos f2 WHERE f2.duplicaat_groep = fotos.duplicaat_groep))
     GROUP BY ROUND(gps_lat, 2), ROUND(gps_lon, 2)
     ORDER BY aantal DESC
   `).all();
