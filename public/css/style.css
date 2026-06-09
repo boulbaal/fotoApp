@@ -1039,7 +1039,7 @@ body { padding-bottom: 260px; }
 .pagina-kaart {
   position: fixed;
   top: 56px;
-  left: 0;
+  left: 184px;
   right: 0;
   bottom: var(--balk-h, 260px);
   display: none;
