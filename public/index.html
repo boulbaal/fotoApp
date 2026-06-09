@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FotoApp — Fase 1</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header>
+  <h1>📷 Foto<span>App</span></h1>
+  <nav>
+    <button class="actief" onclick="toonPagina('dashboard')">Dashboard</button>
+    <button onclick="toonPagina('bronnen')">Bronnen</button>
+    <button onclick="toonPagina('fotos', null)">Foto's</button>
+    <button onclick="toonPagina('duplicaten')">Duplicaten</button>
+    <button onclick="toonPagina('kaart')">🗺️ Kaart</button>
+    <button onclick="toonPagina('gpsbulk')">📍 GPS toewijzen</button>
+  </nav>
+  <div class="scan-indicator" id="scanIndicator">Klaar</div>
+</header>
+
+<main>
+
+  <!-- DASHBOARD -->
+  <div class="pagina actief" id="paginaDashboard">
+    <div class="stat-grid">
+      <div class="stat-kaart"><div class="getal" id="statTotaal">—</div><div class="label">Totaal foto's</div></div>
+      <div class="stat-kaart"><div class="getal" id="statDuplicaten">—</div><div class="label">Duplicaten</div></div>
+      <div class="stat-kaart"><div class="getal" id="statMetGps">—</div><div class="label">Met locatie</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { zonder_gps: true, _label: '📍 Zonder locatie' })" title="Klik om foto's zonder GPS te zien"><div class="getal" id="statZonderGps">—</div><div class="label">Zonder locatie</div></div>
+      <div class="stat-kaart"><div class="getal" id="statGrootte">—</div><div class="label">Totale grootte</div></div>
+    </div>
+    <div class="grafiek-grid">
+      <div class="grafiek-kaart"><h3>📅 Foto's per jaar</h3><div id="grafiekJaar"></div></div>
+      <div class="grafiek-kaart"><h3>📷 Camera's</h3><div id="grafiekCamera"></div></div>
+      <div class="grafiek-kaart"><h3>🌍 Landen</h3><div id="grafiekLand"></div></div>
+      <div class="grafiek-kaart"><h3>💾 Per bron</h3><div id="grafiekBron"></div></div>
+    </div>
+  </div>
+
+  <!-- BRONNEN -->
+  <div class="pagina" id="paginaBronnen">
+
+    <!-- Google Photos uitleg -->
+    <div class="bron-uitleg">
+      <div class="bron-uitleg-icoon">🌐</div>
+      <div class="bron-uitleg-type">Google Photos toevoegen</div>
+      <p>Google Photos kan niet rechtstreeks verbonden worden. Exporteer eerst je foto's via <strong>Google Takeout</strong>:</p>
+      <ol>
+        <li>Ga naar <strong>takeout.google.com</strong></li>
+        <li>Selecteer alleen <em>"Google Foto's"</em></li>
+        <li>Download de ZIP-bestanden (kan uren duren)</li>
+        <li>Pak alles uit in één map op je PC</li>
+        <li>Voeg die map hieronder toe als bron</li>
+      </ol>
+      <p style="margin-top:10px;">✅ De app leest automatisch de Google-metadata mee: datum, GPS-locatie, beschrijving en apparaat.</p>
+    </div>
+
+    <div class="formulier">
+      <h3>➕ Nieuwe bron toevoegen</h3>
+      <div class="veld-groep">
+        <div class="veld">
+          <label>Naam</label>
+          <input id="bronNaam" type="text" placeholder="bv. Linux PC, Oude GSM...">
+        </div>
+        <div class="veld">
+          <label>Type</label>
+          <select id="bronType">
+            <option value="pc">💻 PC / Laptop</option>
+            <option value="gsm">📱 Smartphone</option>
+            <option value="usb">💾 USB Stick</option>
+            <option value="extern">🗄️ Externe schijf</option>
+          </select>
+        </div>
+      </div>
+      <div class="veld" style="margin-bottom:16px;">
+        <label>Map om te scannen</label>
+        <div style="display:flex; gap:8px;">
+          <input id="bronPad" type="text" placeholder="bv. /home/one/Pictures" style="flex:1;">
+          <button class="btn btn-secundair" onclick="openMapKiezer()" type="button">📁 Bladeren</button>
+        </div>
+      </div>
+      <button class="btn btn-primair" onclick="voegBronToe()">Bron toevoegen</button>
+    </div>
+    <div class="bronnen-grid" id="bronnenGrid"></div>
+
+
+<div class="gevaar-zone">
+      <h3>⚠️ Gevaar zone</h3>
+      <p>Wist alle foto-records en scangeschiedenis. <strong>Bronnen blijven bewaard</strong> — je hoeft ze niet opnieuw in te geven. De echte foto's op schijf blijven onaangeroerd.</p>
+      <button id="wisDatabaseKnop" class="btn btn-gevaar" onclick="wisDatabase()">🗑️ Wis foto-records</button>
+    </div>
+  </div>
+
+  <!-- FOTO'S -->
+  <div class="pagina" id="paginaFotos">
+    <div class="filters">
+      <input type="text" id="zoekInput" placeholder="🔍 Zoeken op naam, stad, camera..." oninput="laadFotos(1)">
+      <select id="filterBron" onchange="laadFotos(1)">
+        <option value="">Alle bronnen</option>
+      </select>
+      <select id="filterJaar" onchange="laadFotos(1)">
+        <option value="">Alle jaren</option>
+      </select>
+      <div id="actieveFilters"></div>
+      <span id="fotosTeller" style="margin-left:auto; color:#888; font-size:13px;"></span>
+    </div>
+    <div class="foto-grid" id="fotoGrid"></div>
+    <div class="paginering" id="fotosPaginering"></div>
+  </div>
+
+  <!-- KAART -->
+  <div class="pagina pagina-kaart" id="paginaKaart">
+    <div class="kaart-toolbar">
+      <select id="kaartJaarFilter" onchange="filterKaart()">
+        <option value="">Alle jaren</option>
+      </select>
+      <select id="kaartLandFilter" onchange="filterKaart()">
+        <option value="">Alle landen</option>
+      </select>
+      <span id="kaartTeller" class="kaart-teller"></span>
+      <button class="btn btn-secundair" style="margin-left:auto;font-size:12px" onclick="resetKaartFilters()">✕ Wis filters</button>
+    </div>
+    <div id="kaartContainer"></div>
+    <!-- Popup overlay -->
+    <div id="kaartPanelOverlay" class="kp-overlay" onclick="sluitKaartPanel(event)">
+      <div class="kp-popup" onclick="event.stopPropagation()">
+        <div class="kp-header">
+          <div class="kp-header-info">
+            <div id="kaartPanelLocatie" class="kp-locatie"></div>
+            <div id="kaartPanelInfo" class="kp-meta"></div>
+          </div>
+          <div class="kp-header-acties">
+            <button class="kp-sluit" onclick="sluitKaartPanelDirect()">✕</button>
+          </div>
+        </div>
+        <div id="kaartPanelFotos" class="kp-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GPS BULK TOEWIJZEN -->
+  <div class="pagina" id="paginaGpsbulk">
+    <div class="gpsbulk-kop">
+      <h2>📍 GPS locaties groepsgewijs toewijzen</h2>
+      <p>Foto's zonder GPS worden gegroepeerd op tijdstip — meer dan 2 uur verschil = nieuwe groep. Wijs per groep één locatie toe.</p>
+      <div id="gpsBulkInfo" class="gpsbulk-info"></div>
+    </div>
+    <div id="gpsBulkGroepen"></div>
+  </div>
+
+  <!-- DUPLICATEN -->
+  <div class="pagina" id="paginaDuplicaten">
+    <div style="margin-bottom:16px; color:#888; font-size:14px;" id="dupInfo"></div>
+    <div id="duplicatenLijst"></div>
+    <div class="paginering" id="dupPaginering"></div>
+  </div>
+
+</main>
+
+<!-- BEWERK BRON MODAL -->
+<div class="modal-overlay" id="bewerkOverlay" onclick="sluitBewerkModal(event)">
+  <div class="modal" style="max-width:500px; flex-direction:column; padding:28px; gap:0;" onclick="event.stopPropagation()">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <strong style="font-size:16px;">✏️ Bron bewerken</strong>
+      <button class="sluit" onclick="sluitBewerkModal()">✕</button>
+    </div>
+    <input type="hidden" id="bewerkId">
+    <div class="veld" style="margin-bottom:14px;">
+      <label>Naam</label>
+      <input id="bewerkNaam" type="text" placeholder="Naam van de bron">
+    </div>
+    <div class="veld" style="margin-bottom:14px;">
+      <label>Type</label>
+      <select id="bewerkType">
+        <option value="pc">💻 PC / Laptop</option>
+        <option value="gsm">📱 Smartphone</option>
+        <option value="usb">💾 USB Stick</option>
+        <option value="extern">🗄️ Externe schijf</option>
+      </select>
+    </div>
+    <div class="veld" style="margin-bottom:20px;">
+      <label>Map om te scannen</label>
+      <div style="display:flex; gap:8px;">
+        <input id="bewerkPad" type="text" placeholder="/home/one/..." style="flex:1;">
+        <button class="btn btn-secundair" onclick="openMapKiezer('bewerkPad')" type="button">📁</button>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-primair" onclick="slaaBewerkingOp()" style="flex:1;">💾 Opslaan</button>
+      <button class="btn btn-secundair" onclick="sluitBewerkModal()">Annuleren</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="sluitModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-img" id="modalImg"></div>
+    <div class="modal-info">
+      <button class="sluit" onclick="sluitModal()">✕</button>
+      <h2 id="modalTitel"></h2>
+      <table class="meta-tabel" id="modalMeta"></table>
+      <div id="modalDuplicaten"></div>
+      <div id="modalBewerkFormulier"></div>
+    </div>
+  </div>
+</div>
+
+<!-- VASTE ONDERBALK: scanbalk + log -->
+<div id="onderBalk" style="position:fixed; bottom:0; left:0; right:0; z-index:300; height:260px;">
+
+<!-- SLEEP HANDLE — trek omhoog/omlaag -->
+<div id="balkResize" title="Sleep om te vergroten/verkleinen"></div>
+
+<!-- SCAN VOORTGANGSBALK (altijd zichtbaar) -->
+<div id="scanBalk" class="scan-balk klaar">
+  <div class="scan-balk-progress" id="scanBalkProgress">
+    <div id="scanBalkFill" style="width:0%"></div>
+    <span class="scan-camera" id="scanCamera">📷</span>
+  </div>
+  <div class="scan-balk-inhoud">
+    <div class="scan-balk-links">
+      <div id="scanBalkDot" class="scan-dot klaar"></div>
+      <div>
+        <div id="scanBalkTitel" class="scan-balk-titel">Klaar</div>
+        <div id="scanBalkBestand" class="scan-balk-bestand"></div>
+      </div>
+    </div>
+    <div id="scanBalkMidden" class="scan-balk-midden"></div>
+    <div class="scan-balk-rechts">
+      <div id="scanBalkTeller" class="scan-balk-teller"></div>
+      <div id="scanBalkTicker" class="scan-balk-ticker" style="display:none">↻ <span id="tickerSec">0</span>s</div>
+      <button id="scanBalkStop" class="scan-balk-stop" onclick="stopScan()" style="display:none">⏹ Stop</button>
+    </div>
+  </div>
+</div>
+
+<!-- GEOCODE STATUS BALK -->
+<div id="geocodeBalk" style="display:none; align-items:center; gap:8px; padding:4px 16px; background:#111827; border-top:1px solid #1f2937; font-size:13px;"></div>
+
+<!-- TWEE LOG-PANELEN NAAST ELKAAR -->
+<div class="log-panelen">
+
+  <!-- LINKS: CLIENT LOG (cyaan) -->
+  <div id="logPaneelClient" class="log-paneel open">
+    <div class="log-header" onclick="toggleLog('client')">
+      <span>📱 Client log</span>
+      <span id="logToggleIconClient">▼</span>
+      <span id="logBadgeClient" class="log-badge" style="display:none"></span>
+      <button class="log-wis" onclick="event.stopPropagation(); wisLog('client')">wis</button>
+    </div>
+    <div class="log-body" id="logBodyClient"></div>
+  </div>
+
+  <!-- RECHTS: SERVER LOG (groen) -->
+  <div id="logPaneelServer" class="log-paneel open">
+    <div class="log-header" onclick="toggleLog('server')">
+      <span>🖥 Server log</span>
+      <span id="logToggleIconServer">▼</span>
+      <span id="logBadgeServer" class="log-badge" style="display:none"></span>
+      <button class="log-wis" onclick="event.stopPropagation(); wisLog('server')">wis</button>
+    </div>
+    <div class="log-body" id="logBodyServer"></div>
+  </div>
+
+</div><!-- /log-panelen -->
+
+</div><!-- /onderBalk -->
+
+<!-- BULK THUMBNAIL PREVIEW -->
+<div id="bulkThumbPreview" style="display:none"></div>
+
+<!-- GPS BULK KAART MODAL -->
+<div class="modal-overlay" id="bulkKaartOverlay" onclick="sluitBulkKaart(event)" style="z-index:750">
+  <div class="bulk-kaart-modal" onclick="event.stopPropagation()">
+    <div class="bulk-kaart-header">
+      <strong>🗺️ Kies een locatie op de kaart</strong>
+      <button class="sluit" onclick="sluitBulkKaartDirect()">✕</button>
+    </div>
+    <div class="bulk-kaart-zoek">
+      <input type="text" id="bulkKaartZoek" placeholder="🔍 Zoek een plaats..." oninput="zoekBulkKaartLocatie()">
+      <div id="bulkKaartZoekResultaten" class="gps-zoek-resultaten"></div>
+    </div>
+    <div id="bulkKaartContainer" class="bulk-kaart-container"></div>
+    <div class="bulk-kaart-status" id="bulkKaartStatus">Klik op de kaart om een locatie te kiezen</div>
+    <div class="bulk-kaart-footer">
+      <div id="bulkKaartGekozenInfo" class="gps-gekozen-info"></div>
+      <button class="btn btn-primair" id="bulkKaartOpslaanKnop" onclick="bevestigBulkKaartLocatie()" disabled>📍 Gebruik deze locatie</button>
+    </div>
+  </div>
+</div>
+
+<!-- GPS KAART MODAL -->
+<div class="modal-overlay gps-kaart-overlay" id="gpsKaartOverlay">
+  <div class="gps-kaart-modal" onclick="event.stopPropagation()">
+    <div class="gps-kaart-header">
+      <strong>📍 GPS locatie kiezen</strong>
+      <button class="sluit" onclick="sluitGpsKaart()">✕</button>
+    </div>
+    <div class="gps-kaart-zoek">
+      <input type="text" id="gpsZoekInput" placeholder="🔍 Zoek een plaats..." oninput="zoekGpsLocatie()">
+      <div id="gpsZoekResultaten" class="gps-zoek-resultaten"></div>
+    </div>
+    <div id="gpsKaart" class="gps-kaart-container"></div>
+    <div class="gps-kaart-status" id="gpsKaartStatus">Klik op de kaart om een locatie te kiezen</div>
+    <div class="gps-kaart-footer">
+      <div id="gpsGekozenInfo" class="gps-gekozen-info"></div>
+      <button class="btn btn-primair" id="gpsOpslaanKnop" onclick="slaGpsOp()" disabled>📍 GPS opslaan</button>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<script src="/js/utils.js"></script>
+<script src="/js/dashboard.js"></script>
+<script src="/js/scanner.js"></script>
+<script src="/js/bronnen.js"></script>
+<script src="/js/fotos.js"></script>
+<script src="/js/duplicaten.js"></script>
+<script src="/js/mapkiezer.js"></script>
+<script src="/js/gpskaart.js"></script>
+<script src="/js/kaart.js"></script>
+<script src="/js/gpsbulk.js"></script>
+<script src="/js/app.js"></script>
+
+</body>
+</html>

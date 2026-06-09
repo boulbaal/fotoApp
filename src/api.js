@@ -1,0 +1,669 @@
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const { getDb } = require('./database');
+const { startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen, stopScan, verwijderUitWachtrij } = require('./scanner');
+
+const router = express.Router();
+
+// === BRONNEN ===
+
+router.get('/bronnen', (req, res) => {
+  const db = getDb();
+  const bronnen = db.prepare(`
+    SELECT b.*,
+      sl.gestart as scan_gestart,
+      sl.voltooid as scan_voltooid,
+      ROUND((JULIANDAY(sl.voltooid) - JULIANDAY(sl.gestart)) * 86400) as scan_duur_seconden
+    FROM bronnen b
+    LEFT JOIN scan_log sl ON sl.id = (
+      SELECT id FROM scan_log WHERE bron_id = b.id AND status = 'voltooid' ORDER BY id DESC LIMIT 1
+    )
+    ORDER BY b.aangemaakt_op DESC
+  `).all();
+  db.close();
+  res.json(bronnen);
+});
+
+router.post('/bronnen', (req, res) => {
+  const { naam, type, pad, icoon } = req.body;
+  if (!naam || !pad) return res.status(400).json({ fout: 'naam en pad zijn verplicht' });
+
+  const db = getDb();
+  const result = db.prepare(`
+    INSERT INTO bronnen (naam, type, pad, icoon) VALUES (?, ?, ?, ?)
+  `).run(naam, type || 'pc', pad, icoon || '💻');
+  const bron = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(result.lastInsertRowid);
+  db.close();
+  res.json(bron);
+});
+
+router.put('/bronnen/:id', (req, res) => {
+  const { naam, pad, type, icoon } = req.body;
+  const db = getDb();
+  db.prepare('UPDATE bronnen SET naam = ?, pad = ?, type = ?, icoon = ? WHERE id = ?')
+    .run(naam, pad, type, icoon, req.params.id);
+  const bron = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(req.params.id);
+  db.close();
+  res.json(bron);
+});
+
+router.delete('/bronnen/:id', (req, res) => {
+  const db = getDb();
+  db.prepare('DELETE FROM fotos WHERE bron_id = ?').run(req.params.id);
+  db.prepare('DELETE FROM bronnen WHERE id = ?').run(req.params.id);
+  db.close();
+  res.json({ ok: true });
+});
+
+// === SCAN ===
+
+router.post('/scan/:bronId', async (req, res) => {
+  try {
+    const status = await startScan(parseInt(req.params.bronId));
+    res.json(status);
+  } catch (e) {
+    res.status(400).json({ fout: e.message });
+  }
+});
+
+router.get('/scan/status', (req, res) => {
+  res.json(getScanStatus());
+});
+
+router.post('/scan/stop', (req, res) => {
+  stopScan(true); // leegt ook wachtrij
+  res.json({ ok: true });
+});
+
+router.delete('/scan/wachtrij/:bronId', (req, res) => {
+  verwijderUitWachtrij(parseInt(req.params.bronId));
+  res.json(getScanStatus());
+});
+
+router.get('/scan/geocode', (req, res) => {
+  res.json(getGeocodeStatus());
+});
+
+router.post('/scan/geocode', async (req, res) => {
+  startGeocodePass(); // start op achtergrond, return meteen
+  res.json({ ok: true, bericht: 'Geocode pass gestart' });
+});
+
+// === STATISTIEKEN ===
+
+router.get('/stats', (req, res) => {
+  const db = getDb();
+
+  const totaal     = db.prepare('SELECT COUNT(*) as n FROM fotos').get().n;
+  const metGps     = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE gps_lat IS NOT NULL AND gps_lat != 0').get().n;
+  const zonderGps  = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE gps_lat IS NULL OR gps_lat = 0').get().n;
+  const duplicaten = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE is_duplicaat = 1').get().n;
+  const duplicaatGroepen = db.prepare('SELECT COUNT(DISTINCT duplicaat_groep) as n FROM fotos WHERE duplicaat_groep IS NOT NULL').get().n;
+  const totalGrootte = db.prepare('SELECT SUM(bestandsgrootte) as n FROM fotos').get().n || 0;
+
+  const perBron = db.prepare(`
+    SELECT b.id as bron_id, b.naam, b.icoon, COUNT(f.id) as aantal, SUM(f.bestandsgrootte) as grootte
+    FROM bronnen b LEFT JOIN fotos f ON b.id = f.bron_id
+    GROUP BY b.id
+  `).all();
+
+  const perJaar = db.prepare(`
+    SELECT jaar, COUNT(*) as aantal FROM fotos
+    WHERE jaar IS NOT NULL GROUP BY jaar ORDER BY jaar
+  `).all();
+
+  const perCamera = db.prepare(`
+    SELECT camera_merk, camera_model, COUNT(*) as aantal FROM fotos
+    WHERE camera_merk IS NOT NULL
+    GROUP BY camera_merk, camera_model ORDER BY aantal DESC LIMIT 10
+  `).all();
+
+  const perLand = db.prepare(`
+    SELECT gps_land, MAX(gps_land_code) as gps_land_code, COUNT(*) as aantal FROM fotos
+    WHERE gps_land IS NOT NULL AND gps_land != ''
+    GROUP BY gps_land ORDER BY aantal DESC LIMIT 10
+  `).all();
+
+  db.close();
+
+  res.json({
+    totaal, metGps, zonderGps, duplicaten, duplicaatGroepen,
+    totalGrootte, perBron, perJaar, perCamera, perLand
+  });
+});
+
+// === FOTO'S ===
+
+router.get('/fotos', (req, res) => {
+  const db = getDb();
+  const { pagina = 1, per_pagina = 50, bron_id, jaar, zoek, zonder_thumbnail, land, camera_merk, camera_model, zonder_kopien, zonder_gps } = req.query;
+  const offset = (parseInt(pagina) - 1) * parseInt(per_pagina);
+
+  let waar = '1=1';
+  const params = [];
+
+  if (bron_id)      { waar += ' AND f.bron_id = ?';      params.push(bron_id); }
+  if (jaar)         { waar += ' AND f.jaar = ?';          params.push(jaar); }
+  if (land)         { waar += ' AND f.gps_land = ?';      params.push(land); }
+  if (camera_merk)  { waar += ' AND f.camera_merk = ?';   params.push(camera_merk); }
+  if (camera_model) { waar += ' AND f.camera_model = ?';  params.push(camera_model); }
+  if (zoek) { waar += ' AND (f.bestandsnaam LIKE ? OR f.gps_stad LIKE ? OR f.camera_model LIKE ?)'; params.push(`%${zoek}%`, `%${zoek}%`, `%${zoek}%`); }
+  if (zonder_gps === '1') { waar += ' AND (f.gps_lat IS NULL OR f.gps_lat = 0)'; }
+
+  // Verberg kopieën: toon het beste exemplaar per groep dat ook voldoet aan actieve filters
+  // Als land/camera filter actief is: kies de beste kopie MET dat land, zodat originelen zonder
+  // GPS-data de kopie met GPS-data niet blokkeren.
+  if (zonder_kopien === '1') {
+    const landSubquery   = land         ? ' AND f2.gps_land = ?'        : '';
+    const merkSubquery   = camera_merk  ? ' AND f2.camera_merk = ?'     : '';
+    const modelSubquery  = camera_model ? ' AND f2.camera_model = ?'    : '';
+
+    waar += ` AND (
+      f.is_duplicaat = 0
+      OR f.id = (
+        SELECT f2.id FROM fotos f2
+        JOIN bronnen b2 ON f2.bron_id = b2.id
+        WHERE f2.duplicaat_groep = f.duplicaat_groep${landSubquery}${merkSubquery}${modelSubquery}
+        ORDER BY CASE b2.type WHEN 'pc' THEN 1 WHEN 'gsm' THEN 2 WHEN 'usb' THEN 3 ELSE 4 END, f2.id ASC
+        LIMIT 1
+      )
+    )`;
+
+    if (land)         params.push(land);
+    if (camera_merk)  params.push(camera_merk);
+    if (camera_model) params.push(camera_model);
+  }
+
+  const kolommen = zonder_thumbnail === '1'
+    ? 'f.id, f.bestandsnaam, f.volledig_pad, f.bestandsgrootte, f.bestandstype, f.datum_foto, f.jaar, f.maand, f.dag, f.gps_lat, f.gps_lon, f.gps_stad, f.gps_land, f.camera_merk, f.camera_model, f.is_duplicaat, f.duplicaat_groep, b.naam as bron_naam, b.icoon as bron_icoon'
+    : 'f.*, b.naam as bron_naam, b.icoon as bron_icoon';
+
+  const fotos = db.prepare(`
+    SELECT ${kolommen} FROM fotos f
+    JOIN bronnen b ON f.bron_id = b.id
+    WHERE ${waar}
+    ORDER BY f.datum_foto DESC NULLS LAST, f.datum_bestand DESC
+    LIMIT ? OFFSET ?
+  `).all([...params, parseInt(per_pagina), offset]);
+
+  const totaal = db.prepare(`SELECT COUNT(*) as n FROM fotos f WHERE ${waar}`).get(params).n;
+
+  db.close();
+  res.json({ fotos, totaal, pagina: parseInt(pagina), per_pagina: parseInt(per_pagina) });
+});
+
+router.get('/fotos/:id', (req, res) => {
+  const db = getDb();
+  const foto = db.prepare(`
+    SELECT f.*, b.naam as bron_naam, b.icoon as bron_icoon
+    FROM fotos f JOIN bronnen b ON f.bron_id = b.id
+    WHERE f.id = ?
+  `).get(req.params.id);
+  if (!foto) { db.close(); return res.status(404).json({ fout: 'Foto niet gevonden' }); }
+
+  // Als duplicaat: alle exemplaren ophalen (inclusief huidige) om origineel te bepalen
+  let duplicaatLocaties = [];
+  let isOrigineel = false;
+
+  if (foto.duplicaat_groep) {
+    // Prioriteit: pc > gsm > usb > extern (lokale schijf = origineel)
+    const bronPrioriteit = { pc: 1, gsm: 2, usb: 3, extern: 4 };
+
+    const alleExemplaren = db.prepare(`
+      SELECT f.id, f.volledig_pad, f.bestandsgrootte, b.naam as bron_naam, b.icoon as bron_icoon, b.type as bron_type
+      FROM fotos f JOIN bronnen b ON f.bron_id = b.id
+      WHERE f.duplicaat_groep = ?
+      ORDER BY b.type = 'pc' DESC, b.type = 'gsm' DESC, f.volledig_pad ASC
+    `).all(foto.duplicaat_groep);
+
+    // Eerste exemplaar = origineel (laagste prioriteitsnummer)
+    const origineelId = alleExemplaren[0]?.id;
+    isOrigineel = foto.id === origineelId;
+
+    // Andere locaties = alle exemplaren behalve de huidige
+    duplicaatLocaties = alleExemplaren
+      .filter(e => e.id !== foto.id)
+      .map(e => ({ ...e, is_origineel: e.id === origineelId }));
+  }
+
+  db.close();
+  res.json({ ...foto, duplicaat_locaties: duplicaatLocaties, is_origineel: isOrigineel });
+});
+
+// Originele foto serveren
+router.get('/fotos/:id/bestand', (req, res) => {
+  const db = getDb();
+  const foto = db.prepare('SELECT volledig_pad FROM fotos WHERE id = ?').get(req.params.id);
+  db.close();
+  if (!foto || !fs.existsSync(foto.volledig_pad)) {
+    return res.status(404).json({ fout: 'Bestand niet gevonden' });
+  }
+  res.sendFile(foto.volledig_pad);
+});
+
+// === FOTO BEWERKEN ===
+
+router.put('/fotos/:id', (req, res) => {
+  const { gps_lat, gps_lon, gps_stad, gps_land, gps_land_code, gps_adres, datum_foto, google_description } = req.body;
+  const db = getDb();
+
+  const foto = db.prepare('SELECT * FROM fotos WHERE id = ?').get(req.params.id);
+  if (!foto) { db.close(); return res.status(404).json({ fout: 'Foto niet gevonden' }); }
+
+  // Datum parsing
+  let jaar = null, maand = null, dag = null;
+  if (datum_foto) {
+    const d = new Date(datum_foto);
+    if (!isNaN(d)) { jaar = d.getFullYear(); maand = d.getMonth() + 1; dag = d.getDate(); }
+  }
+
+  // Gebruik de gestuurde waarde als die aanwezig is (ook null = wis); anders houd de DB-waarde
+  const eindLat      = gps_lat       !== undefined ? gps_lat       : foto.gps_lat;
+  const eindLon      = gps_lon       !== undefined ? gps_lon       : foto.gps_lon;
+  const eindStad     = gps_stad      !== undefined ? gps_stad      : foto.gps_stad;
+  const eindLand     = gps_land      !== undefined ? gps_land      : foto.gps_land;
+  const eindLandCode = gps_land_code !== undefined ? gps_land_code : foto.gps_land_code;
+  const eindAdres    = gps_adres     !== undefined ? gps_adres     : foto.gps_adres;
+
+  db.prepare(`
+    UPDATE fotos SET
+      gps_lat = ?, gps_lon = ?, gps_stad = ?, gps_land = ?, gps_land_code = ?, gps_adres = ?,
+      datum_foto = ?, jaar = ?, maand = ?, dag = ?,
+      google_description = ?
+    WHERE id = ?
+  `).run(
+    eindLat, eindLon, eindStad, eindLand, eindLandCode, eindAdres,
+    datum_foto ?? foto.datum_foto,
+    jaar ?? foto.jaar,
+    maand ?? foto.maand,
+    dag ?? foto.dag,
+    google_description ?? foto.google_description,
+    req.params.id
+  );
+
+  // Propageer GPS-wijziging naar alle duplicaten in dezelfde groep
+  const heeftGpsUpdate = [gps_lat, gps_lon, gps_stad, gps_land, gps_land_code, gps_adres].some(v => v !== undefined);
+  if (heeftGpsUpdate && foto.duplicaat_groep) {
+    const dupUpdate = db.prepare(`
+      UPDATE fotos SET gps_lat = ?, gps_lon = ?, gps_stad = ?, gps_land = ?, gps_land_code = ?, gps_adres = ?
+      WHERE duplicaat_groep = ? AND id != ?
+    `);
+    dupUpdate.run(eindLat, eindLon, eindStad, eindLand, eindLandCode, eindAdres, foto.duplicaat_groep, req.params.id);
+  }
+
+  const bijgewerkt = db.prepare(`
+    SELECT f.*, b.naam as bron_naam, b.icoon as bron_icoon
+    FROM fotos f JOIN bronnen b ON f.bron_id = b.id WHERE f.id = ?
+  `).get(req.params.id);
+  db.close();
+  res.json(bijgewerkt);
+});
+
+// GPS toewijzen aan foto + alle duplicaten in zelfde groep
+router.post('/fotos/:id/gps', (req, res) => {
+  const { gps_lat, gps_lon, gps_stad, gps_land, gps_land_code, gps_adres } = req.body;
+  if (!gps_lat || !gps_lon) return res.status(400).json({ fout: 'gps_lat en gps_lon zijn verplicht' });
+
+  const db = getDb();
+  const foto = db.prepare('SELECT id, duplicaat_groep FROM fotos WHERE id = ?').get(req.params.id);
+  if (!foto) { db.close(); return res.status(404).json({ fout: 'Foto niet gevonden' }); }
+
+  const updateGps = db.prepare(`
+    UPDATE fotos SET gps_lat = ?, gps_lon = ?, gps_stad = ?, gps_land = ?, gps_land_code = ?, gps_adres = ?
+    WHERE id = ?
+  `);
+
+  let aantalBijgewerkt = 0;
+
+  if (foto.duplicaat_groep) {
+    // Wijs GPS toe aan alle duplicaten in dezelfde groep
+    const duplicaten = db.prepare('SELECT id FROM fotos WHERE duplicaat_groep = ?').all(foto.duplicaat_groep);
+    for (const dup of duplicaten) {
+      updateGps.run(gps_lat, gps_lon, gps_stad || null, gps_land || null, gps_land_code || null, gps_adres || null, dup.id);
+      aantalBijgewerkt++;
+    }
+  } else {
+    updateGps.run(gps_lat, gps_lon, gps_stad || null, gps_land || null, gps_land_code || null, gps_adres || null, foto.id);
+    aantalBijgewerkt = 1;
+  }
+
+  db.close();
+  res.json({ ok: true, bijgewerkt: aantalBijgewerkt });
+});
+
+// GPS propagatie via scanner functie (deelt ook naar originelen zonder gps_lat)
+router.post('/scan/gps-propageren', (req, res) => {
+  try {
+    const bijgewerkt = propageerGpsInGroepen();
+    res.json({ ok: true, bijgewerkt });
+  } catch (e) {
+    res.status(500).json({ ok: false, fout: e.message });
+  }
+});
+
+// GPS automatisch delen binnen alle duplicaatgroepen
+router.post('/duplicaten/gps-delen', (req, res) => {
+  const db = getDb();
+
+  // Vind alle groepen waar minstens één foto GPS heeft
+  const groepen = db.prepare(`
+    SELECT duplicaat_groep, MAX(gps_lat) as lat, MAX(gps_lon) as lon,
+           MAX(gps_stad) as stad, MAX(gps_land) as land,
+           MAX(gps_land_code) as land_code, MAX(gps_adres) as adres
+    FROM fotos
+    WHERE duplicaat_groep IS NOT NULL AND gps_lat IS NOT NULL
+      AND gps_land IS NOT NULL AND gps_land != ''
+    GROUP BY duplicaat_groep
+  `).all();
+
+  const update = db.prepare(`
+    UPDATE fotos SET gps_lat = ?, gps_lon = ?, gps_stad = ?, gps_land = ?,
+                     gps_land_code = ?, gps_adres = ?
+    WHERE duplicaat_groep = ? AND (gps_land IS NULL OR gps_land = '')
+  `);
+
+  let totaalBijgewerkt = 0;
+  for (const g of groepen) {
+    const info = update.run(g.lat, g.lon, g.stad, g.land, g.land_code, g.adres, g.duplicaat_groep);
+    totaalBijgewerkt += info.changes;
+  }
+
+  db.close();
+  console.log(`🌍 GPS gedeeld: ${totaalBijgewerkt} foto's bijgewerkt in ${groepen.length} groepen`);
+  res.json({ ok: true, bijgewerkt: totaalBijgewerkt, groepen: groepen.length });
+});
+
+// Datum herstellen voor foto's zonder datum — via bestandsnaam of bestandsaanmaakdatum
+router.post('/fotos/herstel-datum', (req, res) => {
+  const db = getDb();
+  const zonderDatum = db.prepare("SELECT id, bestandsnaam, volledig_pad FROM fotos WHERE datum_foto IS NULL").all();
+
+  let bijgewerkt = 0;
+  const update = db.prepare("UPDATE fotos SET datum_foto = ?, jaar = ?, maand = ?, dag = ? WHERE id = ?");
+
+  for (const foto of zonderDatum) {
+    // Stap 1: datum uit bestandsnaam
+    let datum = parseDatumUitBestandsnaam(foto.bestandsnaam);
+
+    // Stap 2: bestandsaanmaakdatum (birthtime of mtime)
+    if (!datum) {
+      try {
+        const stat = require('fs').statSync(foto.volledig_pad);
+        datum = (stat.birthtime || stat.mtime).toISOString();
+      } catch (_) {}
+    }
+
+    if (datum) {
+      const d = new Date(datum);
+      update.run(datum, d.getFullYear(), d.getMonth() + 1, d.getDate(), foto.id);
+      bijgewerkt++;
+    }
+  }
+
+  db.close();
+  console.log(`📅 Datum hersteld: ${bijgewerkt} / ${zonderDatum.length} foto's bijgewerkt`);
+  res.json({ ok: true, totaal: zonderDatum.length, bijgewerkt });
+});
+
+function parseDatumUitBestandsnaam(naam) {
+  const match = naam.match(/(\d{4})[_\-]?(\d{2})[_\-]?(\d{2})/);
+  if (!match) return null;
+  const [, jaar, maand, dag] = match.map(Number);
+  if (jaar < 1950 || jaar > 2100 || maand < 1 || maand > 12 || dag < 1 || dag > 31) return null;
+  return `${jaar}-${String(maand).padStart(2,'0')}-${String(dag).padStart(2,'0')}T00:00:00.000Z`;
+}
+
+// === DUPLICATEN ===
+
+router.get('/duplicaten', (req, res) => {
+  const db = getDb();
+  const { pagina = 1, per_pagina = 20 } = req.query;
+  const offset = (parseInt(pagina) - 1) * parseInt(per_pagina);
+
+  const groepen = db.prepare(`
+    SELECT duplicaat_groep, COUNT(*) as aantal,
+           MIN(datum_foto) as datum, MIN(bestandsnaam) as voorbeeld_naam
+    FROM fotos WHERE duplicaat_groep IS NOT NULL
+    GROUP BY duplicaat_groep
+    ORDER BY aantal DESC
+    LIMIT ? OFFSET ?
+  `).all(parseInt(per_pagina), offset);
+
+  const totaalGroepen = db.prepare(`
+    SELECT COUNT(DISTINCT duplicaat_groep) as n FROM fotos WHERE duplicaat_groep IS NOT NULL
+  `).get().n;
+
+  // Per groep de foto's ophalen
+  const result = groepen.map(groep => {
+    const fotos = db.prepare(`
+      SELECT f.id, f.bestandsnaam, f.volledig_pad, f.bestandsgrootte,
+             f.datum_foto, f.thumbnail, b.naam as bron_naam, b.icoon as bron_icoon
+      FROM fotos f JOIN bronnen b ON f.bron_id = b.id
+      WHERE f.duplicaat_groep = ?
+    `).all(groep.duplicaat_groep);
+    return { ...groep, fotos };
+  });
+
+  db.close();
+  res.json({ groepen: result, totaal_groepen: totaalGroepen, pagina: parseInt(pagina) });
+});
+
+// === DATABASE WIS ===
+
+router.post('/database/wis', (req, res) => {
+  const db = getDb();
+  db.exec(`
+    DELETE FROM fotos;
+    DELETE FROM scan_log;
+    UPDATE bronnen SET totaal_fotos = 0, laatste_scan = NULL;
+  `);
+  db.close();
+  console.log('🗑️  Database gewist door gebruiker (bronnen behouden)');
+  res.json({ ok: true });
+});
+
+// === MAP BROWSER ===
+
+router.get('/mappen', (req, res) => {
+  const pad = req.query.pad || require('os').homedir();
+  try {
+    const items = fs.readdirSync(pad, { withFileTypes: true });
+    const mappen = items
+      .filter(i => i.isDirectory() && !i.name.startsWith('.'))
+      .map(i => ({ naam: i.name, pad: path.join(pad, i.name) }))
+      .sort((a, b) => a.naam.localeCompare(b.naam));
+    const ouder = path.dirname(pad) !== pad ? path.dirname(pad) : null;
+    res.json({ huidig: pad, ouder, mappen });
+  } catch (e) {
+    res.status(400).json({ fout: e.message });
+  }
+});
+
+// === KAART DATA ===
+
+// Thumbnail als echte afbeelding serveren (browser cached dit)
+router.get('/fotos/:id/thumbnail', (req, res) => {
+  const db = getDb();
+  const foto = db.prepare('SELECT thumbnail FROM fotos WHERE id = ?').get(req.params.id);
+  db.close();
+  if (!foto?.thumbnail) return res.status(404).send('Geen thumbnail');
+  const [header, b64] = foto.thumbnail.split(',');
+  const mime = header.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
+  res.set('Content-Type', mime);
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.send(Buffer.from(b64, 'base64'));
+});
+
+// Locatie-clusters voor de kaart (gegroepeerd op ~1km raster)
+router.get('/kaart/locaties', (req, res) => {
+  const db = getDb();
+  const locaties = db.prepare(`
+    SELECT
+      ROUND(gps_lat, 2) as lat,
+      ROUND(gps_lon, 2) as lon,
+      MAX(gps_stad)      as gps_stad,
+      MAX(gps_land)      as gps_land,
+      MAX(gps_land_code) as gps_land_code,
+      MIN(jaar)          as jaar_min,
+      MAX(jaar)          as jaar_max,
+      COUNT(*)           as aantal,
+      MIN(id)            as voorbeeld_id
+    FROM fotos
+    WHERE gps_lat IS NOT NULL AND gps_lon IS NOT NULL
+    GROUP BY ROUND(gps_lat, 2), ROUND(gps_lon, 2)
+    ORDER BY aantal DESC
+  `).all();
+  db.close();
+  res.json(locaties);
+});
+
+// Foto's op een specifieke locatie (voor het slide-up panel)
+router.get('/kaart/fotos', (req, res) => {
+  const { lat, lon, limit = 40, zonder_kopien = '1' } = req.query;
+  if (!lat || !lon) return res.status(400).json({ fout: 'lat en lon vereist' });
+  const db = getDb();
+
+  let kopienFilter = '';
+  if (zonder_kopien === '1') {
+    kopienFilter = `AND (
+      f.is_duplicaat = 0
+      OR f.id = (
+        SELECT f2.id FROM fotos f2
+        JOIN bronnen b2 ON f2.bron_id = b2.id
+        WHERE f2.duplicaat_groep = f.duplicaat_groep
+        ORDER BY CASE b2.type WHEN 'pc' THEN 1 WHEN 'gsm' THEN 2 WHEN 'usb' THEN 3 ELSE 4 END, f2.id ASC
+        LIMIT 1
+      )
+    )`;
+  }
+
+  const fotos = db.prepare(`
+    SELECT f.id, f.bestandsnaam, f.datum_foto, f.gps_stad, f.gps_land, f.gps_land_code,
+           f.is_duplicaat,
+           CASE WHEN f.duplicaat_groep IS NOT NULL AND f.id = (
+             SELECT f2.id FROM fotos f2 JOIN bronnen b2 ON f2.bron_id = b2.id
+             WHERE f2.duplicaat_groep = f.duplicaat_groep
+             ORDER BY CASE b2.type WHEN 'pc' THEN 1 WHEN 'gsm' THEN 2 WHEN 'usb' THEN 3 ELSE 4 END, f2.id ASC
+             LIMIT 1
+           ) THEN 1 ELSE 0 END as is_origineel,
+           f.camera_model, b.naam as bron_naam, b.icoon as bron_icoon, b.type as bron_type
+    FROM fotos f JOIN bronnen b ON f.bron_id = b.id
+    WHERE ROUND(f.gps_lat, 2) = ROUND(?, 2)
+      AND ROUND(f.gps_lon, 2) = ROUND(?, 2)
+      ${kopienFilter}
+    ORDER BY f.datum_foto ASC NULLS LAST
+    LIMIT ?
+  `).all(parseFloat(lat), parseFloat(lon), parseInt(limit));
+  db.close();
+  res.json(fotos);
+});
+
+// === GPS BULK TOEWIJZEN ===
+
+// GET /api/gps/groepen — groepeer foto's zonder GPS op tijdblok (2u gap = nieuwe groep)
+router.get('/gps/groepen', (req, res) => {
+  const db = getDb();
+
+  // Alleen originelen tonen — kopieën worden via GPS propagatie meegewijzigd
+  const origineelFilter = `
+    AND (f.duplicaat_groep IS NULL
+      OR f.id = (SELECT MIN(id) FROM fotos WHERE duplicaat_groep = f.duplicaat_groep))
+  `;
+
+  const metDatum = db.prepare(`
+    SELECT f.id, f.datum_foto, f.thumbnail IS NOT NULL as heeft_thumb
+    FROM fotos f
+    WHERE (f.gps_lat IS NULL OR f.gps_lat = 0)
+      AND f.datum_foto IS NOT NULL AND f.datum_foto != ''
+      ${origineelFilter}
+    ORDER BY f.datum_foto ASC
+  `).all();
+
+  const zonderDatum = db.prepare(`
+    SELECT f.id, f.thumbnail IS NOT NULL as heeft_thumb
+    FROM fotos f
+    WHERE (f.gps_lat IS NULL OR f.gps_lat = 0)
+      AND (f.datum_foto IS NULL OR f.datum_foto = '')
+      ${origineelFilter}
+    ORDER BY f.id ASC
+  `).all();
+
+  db.close();
+
+  const GAP_MS = 2 * 60 * 60 * 1000; // 2 uur
+  const groepen = [];
+  let huidigeGroep = null;
+
+  for (const foto of metDatum) {
+    const ts = new Date(foto.datum_foto).getTime();
+    if (isNaN(ts)) continue;
+    if (!huidigeGroep || ts - huidigeGroep.lastTs > GAP_MS) {
+      huidigeGroep = { datumStart: foto.datum_foto, datumEind: foto.datum_foto, lastTs: ts, ids: [], voorbeelden: [] };
+      groepen.push(huidigeGroep);
+    }
+    huidigeGroep.datumEind = foto.datum_foto;
+    huidigeGroep.lastTs = ts;
+    huidigeGroep.ids.push(foto.id);
+    if (huidigeGroep.voorbeelden.length < 6 && foto.heeft_thumb) huidigeGroep.voorbeelden.push(foto.id);
+  }
+
+  const result = groepen.map((g, i) => ({
+    groep_id: i,
+    datum_start: g.datumStart,
+    datum_eind: g.datumEind,
+    aantal: g.ids.length,
+    ids: g.ids,
+    voorbeelden: g.voorbeelden
+  }));
+
+  if (zonderDatum.length > 0) {
+    result.push({
+      groep_id: result.length,
+      datum_start: null,
+      datum_eind: null,
+      aantal: zonderDatum.length,
+      ids: zonderDatum.map(f => f.id),
+      voorbeelden: zonderDatum.filter(f => f.heeft_thumb).slice(0, 6).map(f => f.id)
+    });
+  }
+
+  res.json(result);
+});
+
+// POST /api/gps/bulk-toewijzen — wijs locatie toe aan meerdere foto's + hun duplicaten
+router.post('/gps/bulk-toewijzen', (req, res) => {
+  const { ids, gps_stad, gps_land, gps_lat, gps_lon, gps_land_code, gps_adres } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ fout: 'ids verplicht' });
+  }
+  const db = getDb();
+
+  // Verzamel alle duplicaat_groep waarden van de opgegeven foto's
+  const placeholders = ids.map(() => '?').join(',');
+  const groepen = db.prepare(
+    `SELECT DISTINCT duplicaat_groep FROM fotos WHERE id IN (${placeholders}) AND duplicaat_groep IS NOT NULL`
+  ).all(...ids).map(r => r.duplicaat_groep);
+
+  const gpsVelden = [gps_stad || null, gps_land || null, gps_lat || null, gps_lon || null, gps_land_code || null, gps_adres || null];
+
+  const updateById = db.prepare('UPDATE fotos SET gps_stad=?, gps_land=?, gps_lat=?, gps_lon=?, gps_land_code=?, gps_adres=? WHERE id=?');
+  const updateDuplicaten = groepen.length > 0
+    ? db.prepare(`UPDATE fotos SET gps_stad=?, gps_land=?, gps_lat=?, gps_lon=?, gps_land_code=?, gps_adres=? WHERE duplicaat_groep IN (${groepen.map(() => '?').join(',')})`)
+    : null;
+
+  const updateAll = db.transaction(() => {
+    // Wijs toe aan opgegeven foto's
+    for (const id of ids) updateById.run(...gpsVelden, id);
+    // Propageer naar alle duplicaten in dezelfde groepen
+    if (updateDuplicaten) updateDuplicaten.run(...gpsVelden, ...groepen);
+  });
+
+  updateAll();
+  // Tel totaal bijgewerkte records (directe + duplicaten)
+  const totaal = db.prepare(`SELECT COUNT(*) as n FROM fotos WHERE id IN (${placeholders})${groepen.length ? ` OR duplicaat_groep IN (${groepen.map(() => '?').join(',')})` : ''}`).get(...ids, ...groepen).n;
+  db.close();
+  res.json({ bijgewerkt: totaal, duplicaten_bijgewerkt: groepen.length > 0 });
+});
+
+module.exports = router;
