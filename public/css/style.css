@@ -50,6 +50,100 @@ nav button.actief { background: #7c6af7; color: #fff; }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; animation: pulse 1s infinite; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
+/* FASE STEPPER */
+.fase-stepper {
+  background: #13131a;
+  border-bottom: 1px solid #2a2a3a;
+  padding: 10px 24px;
+  position: sticky;
+  top: 56px;
+  z-index: 90;
+}
+.stap-container {
+  display: flex;
+  align-items: center;
+  max-width: 400px;
+  margin: 0 auto;
+}
+.fase-stap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+.fase-stap.actief { opacity: 1; }
+.fase-stap.klaar { opacity: 0.8; }
+.fase-stap:hover { opacity: 1; }
+.stap-cirkel {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #2a2a3a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.fase-stap.actief .stap-cirkel { background: #7c6af7; color: #fff; }
+.fase-stap.klaar .stap-cirkel { background: #166534; color: #4ade80; }
+.stap-label {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+}
+.fase-stap.actief .stap-label { color: #e0e0e0; }
+.fase-stap.klaar .stap-label { color: #4ade80; }
+.stap-lijn {
+  flex: 1;
+  height: 1px;
+  background: #2a2a3a;
+  margin: 0 10px;
+  transition: background 0.3s;
+}
+.stap-lijn.klaar { background: #166534; }
+
+/* FASE TODO CHECKLIST */
+.fase-todo {
+  background: #13131a;
+  border: 1px solid #2a2a3a;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+.todo-kop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.todo-titel { font-size: 14px; font-weight: 600; color: #e0e0e0; }
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #1e1e2a;
+  font-size: 13px;
+}
+.todo-item:last-child { border-bottom: none; }
+.todo-item.klaar { color: #4ade80; }
+.todo-item.open { color: #f59e0b; }
+.todo-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.todo-item.klaar .todo-dot { background: #4ade80; }
+.todo-item.open .todo-dot { background: #f59e0b; }
+.todo-acties { margin-left: auto; display: flex; gap: 6px; }
+
+/* FASE 2 */
+.fase2-kop { margin-bottom: 20px; }
+.fase2-kop h2 { font-size: 20px; margin-bottom: 6px; }
+.fase2-kop p { color: #888; font-size: 14px; }
+
 /* MAIN */
 main { padding: 24px; max-width: 1400px; margin: 0 auto; }
 
@@ -259,6 +353,24 @@ main { padding: 24px; max-width: 1400px; margin: 0 auto; }
   background: rgba(0,0,0,0.7);
   font-size: 14px; padding: 2px 4px; border-radius: 4px;
 }
+
+/* NEGEREN */
+.foto-item .negeer-knop {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(239,68,68,0.85);
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  padding: 5px;
+  cursor: pointer;
+  display: none;
+  transition: background 0.15s;
+}
+.foto-item .negeer-knop.hersteld { background: rgba(34,197,94,0.85); }
+.foto-item:hover .negeer-knop { display: block; }
+.foto-genegeerd { opacity: 0.45; }
+.foto-genegeerd:hover { opacity: 0.7; }
 
 /* DUPLICATEN */
 .dup-groep {

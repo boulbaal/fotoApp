@@ -137,7 +137,7 @@ router.get('/stats', (req, res) => {
 
 router.get('/fotos', (req, res) => {
   const db = getDb();
-  const { pagina = 1, per_pagina = 50, bron_id, jaar, zoek, zonder_thumbnail, land, camera_merk, camera_model, zonder_kopien, zonder_gps } = req.query;
+  const { pagina = 1, per_pagina = 50, bron_id, jaar, zoek, zonder_thumbnail, land, camera_merk, camera_model, zonder_kopien, zonder_gps, genegeerd } = req.query;
   const offset = (parseInt(pagina) - 1) * parseInt(per_pagina);
 
   let waar = '1=1';
@@ -150,6 +150,8 @@ router.get('/fotos', (req, res) => {
   if (camera_model) { waar += ' AND f.camera_model = ?';  params.push(camera_model); }
   if (zoek) { waar += ' AND (f.bestandsnaam LIKE ? OR f.gps_stad LIKE ? OR f.camera_model LIKE ?)'; params.push(`%${zoek}%`, `%${zoek}%`, `%${zoek}%`); }
   if (zonder_gps === '1') { waar += ' AND (f.gps_lat IS NULL OR f.gps_lat = 0)'; }
+  if (genegeerd === '1')  { waar += ' AND f.genegeerd = 1'; }
+  if (genegeerd === '0')  { waar += ' AND (f.genegeerd IS NULL OR f.genegeerd = 0)'; }
 
   // Verberg kopieën: toon het beste exemplaar per groep dat ook voldoet aan actieve filters
   // Als land/camera filter actief is: kies de beste kopie MET dat land, zodat originelen zonder
@@ -666,6 +668,61 @@ router.post('/gps/bulk-toewijzen', (req, res) => {
   const totaal = db.prepare(`SELECT COUNT(*) as n FROM fotos WHERE id IN (${placeholders})${groepen.length ? ` OR duplicaat_groep IN (${groepen.map(() => '?').join(',')})` : ''}`).get(...ids, ...groepen).n;
   db.close();
   res.json({ bijgewerkt: totaal, duplicaten_bijgewerkt: groepen.length > 0 });
+});
+
+// === FASE ===
+
+router.get('/fase', (req, res) => {
+  const db = getDb();
+  const rij = db.prepare("SELECT waarde FROM instellingen WHERE sleutel = 'fase'").get();
+  db.close();
+  res.json({ fase: parseInt(rij?.waarde || '1') });
+});
+
+router.post('/fase', (req, res) => {
+  const { fase } = req.body;
+  if (![1, 2, 3].includes(fase)) return res.status(400).json({ fout: 'fase moet 1, 2 of 3 zijn' });
+  const db = getDb();
+  db.prepare("INSERT OR REPLACE INTO instellingen (sleutel, waarde) VALUES ('fase', ?)").run(String(fase));
+  db.close();
+  res.json({ fase });
+});
+
+// Markeer foto als "locatie onbekend" (en propageer naar duplicaten)
+router.post('/fotos/:id/locatie-onbekend', (req, res) => {
+  const db = getDb();
+  const foto = db.prepare('SELECT * FROM fotos WHERE id = ?').get(req.params.id);
+  if (!foto) { db.close(); return res.status(404).json({ fout: 'niet gevonden' }); }
+  db.prepare('UPDATE fotos SET locatie_onbekend = 1 WHERE id = ?').run(foto.id);
+  if (foto.duplicaat_groep) {
+    db.prepare('UPDATE fotos SET locatie_onbekend = 1 WHERE duplicaat_groep = ?').run(foto.duplicaat_groep);
+  }
+  db.close();
+  res.json({ ok: true });
+});
+
+// Markeer foto als genegeerd (fase 2)
+router.post('/fotos/:id/negeer', (req, res) => {
+  const db = getDb();
+  const foto = db.prepare('SELECT * FROM fotos WHERE id = ?').get(req.params.id);
+  if (!foto) { db.close(); return res.status(404).json({ fout: 'niet gevonden' }); }
+  const waarde = req.body.genegeerd !== false ? 1 : 0;
+  db.prepare('UPDATE fotos SET genegeerd = ? WHERE id = ?').run(waarde, foto.id);
+  db.close();
+  res.json({ ok: true, genegeerd: waarde === 1 });
+});
+
+// Stats voor fase 1 todo
+router.get('/fase1/todo', (req, res) => {
+  const db = getDb();
+  const zonderLocatie = db.prepare(`
+    SELECT COUNT(*) as n FROM fotos
+    WHERE gps_lat IS NULL AND gps_stad IS NULL
+      AND (locatie_onbekend IS NULL OR locatie_onbekend = 0)
+      AND (duplicaat_groep IS NULL OR id = (SELECT MIN(id) FROM fotos f2 WHERE f2.duplicaat_groep = fotos.duplicaat_groep))
+  `).get().n;
+  db.close();
+  res.json({ zonderLocatie });
 });
 
 module.exports = router;

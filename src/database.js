@@ -91,6 +91,11 @@ function initDb() {
       status TEXT DEFAULT 'bezig'
     );
 
+    CREATE TABLE IF NOT EXISTS instellingen (
+      sleutel TEXT PRIMARY KEY,
+      waarde TEXT
+    );
+
     CREATE INDEX IF NOT EXISTS idx_fotos_hash ON fotos(hash);
     CREATE INDEX IF NOT EXISTS idx_fotos_bron ON fotos(bron_id);
     CREATE INDEX IF NOT EXISTS idx_fotos_datum ON fotos(datum_foto);
@@ -115,6 +120,17 @@ function initDb() {
     db.exec("ALTER TABLE fotos ADD COLUMN datum_bron TEXT");
     console.log('✅ Migratie: datum_bron kolom toegevoegd');
   }
+  if (!kolommen.includes('locatie_onbekend')) {
+    db.exec("ALTER TABLE fotos ADD COLUMN locatie_onbekend INTEGER DEFAULT 0");
+    console.log('✅ Migratie: locatie_onbekend kolom toegevoegd');
+  }
+  if (!kolommen.includes('genegeerd')) {
+    db.exec("ALTER TABLE fotos ADD COLUMN genegeerd INTEGER DEFAULT 0");
+    console.log('✅ Migratie: genegeerd kolom toegevoegd');
+  }
+
+  // Standaard fase instellen
+  db.prepare("INSERT OR IGNORE INTO instellingen (sleutel, waarde) VALUES ('fase', '1')").run();
 
   db.close();
   console.log('✅ Database geïnitialiseerd:', getDbPath());

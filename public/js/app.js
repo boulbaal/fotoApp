@@ -1,18 +1,110 @@
+// === FASE BEHEER ===
+
+let huidigeFase = 1;
+
+async function laadFase() {
+  const data = await fetch('/api/fase').then(r => r.json());
+  huidigeFase = data.fase;
+  updateStepperUI(huidigeFase);
+  updateNavFase(huidigeFase);
+}
+
+function updateStepperUI(fase) {
+  [1, 2, 3].forEach(f => {
+    const stap = document.getElementById('stapFase' + f);
+    const cirkel = document.getElementById('cirkelFase' + f);
+    stap.classList.remove('actief', 'klaar');
+    if (f < fase) {
+      stap.classList.add('klaar');
+      cirkel.textContent = '✓';
+    } else if (f === fase) {
+      stap.classList.add('actief');
+      cirkel.textContent = String(f);
+    } else {
+      cirkel.textContent = String(f);
+    }
+  });
+  const lijn12 = document.getElementById('lijnFase12');
+  const lijn23 = document.getElementById('lijnFase23');
+  if (lijn12) lijn12.classList.toggle('klaar', fase > 1);
+  if (lijn23) lijn23.classList.toggle('klaar', fase > 2);
+}
+
+function updateNavFase(fase) {
+  document.querySelectorAll('.nav-fase1').forEach(el => {
+    el.style.display = fase === 1 ? '' : 'none';
+  });
+  document.querySelectorAll('.nav-fase2').forEach(el => {
+    el.style.display = fase === 2 ? '' : 'none';
+  });
+}
+
+async function zetFase(fase) {
+  await fetch('/api/fase', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fase })
+  });
+  huidigeFase = fase;
+  updateStepperUI(fase);
+  updateNavFase(fase);
+  toonPagina('dashboard');
+}
+
+async function gaaNaarFase(fase) {
+  if (!confirm(`Wil je overgaan naar fase ${fase}? Je kunt altijd terugkeren door op de stap te klikken.`)) return;
+  await zetFase(fase);
+}
+
+async function laadFase1Todo() {
+  const data = await fetch('/api/fase1/todo').then(r => r.json());
+  const el = document.getElementById('fase1Todo');
+  const items = document.getElementById('todoItems');
+  if (!el || !items) return;
+
+  if (huidigeFase !== 1) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+
+  const zonderLoc = data.zonderLocatie;
+  const klaar = zonderLoc === 0;
+
+  items.innerHTML = `
+    <div class="todo-item ${klaar ? 'klaar' : 'open'}">
+      <div class="todo-dot"></div>
+      <span>${klaar
+        ? 'Alle foto\'s hebben een locatie of zijn gemarkeerd als onbekend ✓'
+        : `${zonderLoc.toLocaleString()} foto${zonderLoc !== 1 ? '\'s' : ''} zonder locatie`
+      }</span>
+      ${!klaar ? `<div class="todo-acties">
+        <button class="btn btn-secundair" style="font-size:11px;padding:3px 10px" onclick="toonPagina('gpsbulk')">📍 GPS toewijzen</button>
+        <button class="btn btn-secundair" style="font-size:11px;padding:3px 10px" onclick="toonPagina('fotos', { zonder_gps: true, _label: '📍 Zonder locatie' })">Bekijken</button>
+      </div>` : ''}
+    </div>
+  `;
+}
+
+// === PAGINA NAVIGATIE ===
+
 function toonPagina(naam, extraFilter) {
   document.querySelectorAll('.pagina').forEach(p => p.classList.remove('actief'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('actief'));
   document.getElementById('pagina' + naam.charAt(0).toUpperCase() + naam.slice(1)).classList.add('actief');
-  const namen = ['dashboard', 'bronnen', 'fotos', 'duplicaten', 'kaart', 'gpsbulk'];
-  const idx = namen.indexOf(naam);
-  if (idx >= 0) document.querySelectorAll('nav button')[idx].classList.add('actief');
 
-  if (naam === 'dashboard')   laadStats();
-  if (naam === 'bronnen')     laadBronnen();
-  if (naam === 'kaart')       laadKaart();
-  if (naam === 'gpsbulk')    laadGpsBulk();
+  const namen1 = ['dashboard', 'bronnen', 'fotos', 'duplicaten', 'kaart', 'gpsbulk'];
+  const namen2 = ['dashboard', 'fotos', 'negeren', 'genegeerd'];
+  const namenActief = huidigeFase === 2 ? namen2 : namen1;
+  const navKnoppen = [...document.querySelectorAll('nav button')].filter(b => b.style.display !== 'none');
+  const idx = namenActief.indexOf(naam);
+  if (idx >= 0 && navKnoppen[idx]) navKnoppen[idx].classList.add('actief');
+
+  if (naam === 'dashboard')  { laadStats(); laadFase1Todo(); }
+  if (naam === 'bronnen')    laadBronnen();
+  if (naam === 'kaart')      laadKaart();
+  if (naam === 'gpsbulk')   laadGpsBulk();
+  if (naam === 'negeren')   laadNegeren(1);
+  if (naam === 'genegeerd') laadGenegeerd(1);
   if (naam === 'fotos') {
     laadBronnenFilter().then(() => {
-      // Reset alle filters
       document.getElementById('filterJaar').value = '';
       document.getElementById('filterBron').value = '';
       setActieveFilter(null);
@@ -37,11 +129,11 @@ function toonPagina(naam, extraFilter) {
       laadFotos(1);
     });
   }
-  if (naam === 'duplicaten')  laadDuplicaten(1);
+  if (naam === 'duplicaten') laadDuplicaten(1);
 }
 
 // Init
-laadStats();
+laadFase().then(() => laadStats());
 
 // === RESIZE ONDERBALK ===
 (function() {

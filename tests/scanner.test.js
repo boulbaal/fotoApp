@@ -798,5 +798,98 @@ module.exports = async function testScanner() {
     }
   });
 
+  // Fase navigatie tests
+  test('DB: instellingen tabel aanwezig in database.js', () => {
+    const dbCode = fs.readFileSync(path.join(__dirname, '../src/database.js'), 'utf8');
+    if (!dbCode.includes('instellingen')) throw new Error('instellingen tabel ontbreekt in database.js');
+    if (!dbCode.includes("'fase'")) throw new Error('standaard fase instelling ontbreekt');
+  });
+
+  test('DB: locatie_onbekend kolom migratie aanwezig', () => {
+    const dbCode = fs.readFileSync(path.join(__dirname, '../src/database.js'), 'utf8');
+    if (!dbCode.includes('locatie_onbekend')) throw new Error('locatie_onbekend migratie ontbreekt');
+  });
+
+  test('DB: genegeerd kolom migratie aanwezig', () => {
+    const dbCode = fs.readFileSync(path.join(__dirname, '../src/database.js'), 'utf8');
+    if (!dbCode.includes('genegeerd')) throw new Error('genegeerd migratie ontbreekt');
+  });
+
+  test('API: GET /fase endpoint aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("'/fase'")) throw new Error('GET /fase endpoint ontbreekt');
+  });
+
+  test('API: POST /fase endpoint aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("'POST', '/fase'") && !apiCode.includes("router.post('/fase'")) throw new Error('POST /fase endpoint ontbreekt');
+  });
+
+  test('API: POST /fotos/:id/locatie-onbekend endpoint aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes('locatie-onbekend')) throw new Error('locatie-onbekend endpoint ontbreekt');
+  });
+
+  test('API: POST /fotos/:id/negeer endpoint aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes('/negeer')) throw new Error('negeer endpoint ontbreekt');
+  });
+
+  test('API: GET /fase1/todo endpoint aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes('fase1/todo')) throw new Error('fase1/todo endpoint ontbreekt');
+  });
+
+  test('API: genegeerd filter aanwezig in GET /fotos', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("genegeerd === '1'")) throw new Error('genegeerd filter ontbreekt in GET /fotos');
+  });
+
+  test('HTML: fase stepper aanwezig', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('faseStepper')) throw new Error('faseStepper element ontbreekt');
+    if (!html.includes('stapFase1')) throw new Error('stapFase1 ontbreekt');
+  });
+
+  test('HTML: fase 2 paginas aanwezig (negeren, genegeerd)', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('paginaNegeren')) throw new Error('paginaNegeren ontbreekt');
+    if (!html.includes('paginaGenegeerd')) throw new Error('paginaGenegeerd ontbreekt');
+  });
+
+  test('HTML: fase1Todo checklist aanwezig op dashboard', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('fase1Todo')) throw new Error('fase1Todo checklist ontbreekt');
+  });
+
+  test('App JS: laadFase() functie aanwezig', () => {
+    const appCode = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+    if (!appCode.includes('laadFase')) throw new Error('laadFase() ontbreekt in app.js');
+  });
+
+  test('App JS: zetFase() en gaaNaarFase() aanwezig', () => {
+    const appCode = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+    if (!appCode.includes('zetFase')) throw new Error('zetFase() ontbreekt');
+    if (!appCode.includes('gaaNaarFase')) throw new Error('gaaNaarFase() ontbreekt');
+  });
+
+  test('App JS: updateNavFase() past nav-fase1 en nav-fase2 aan', () => {
+    const appCode = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+    if (!appCode.includes('nav-fase1')) throw new Error('nav-fase1 toggle ontbreekt');
+    if (!appCode.includes('nav-fase2')) throw new Error('nav-fase2 toggle ontbreekt');
+  });
+
+  test('Negeren JS: laadNegeren() en toggleNegeer() aanwezig', () => {
+    const negerenCode = fs.readFileSync(path.join(__dirname, '../public/js/negeren.js'), 'utf8');
+    if (!negerenCode.includes('laadNegeren')) throw new Error('laadNegeren() ontbreekt');
+    if (!negerenCode.includes('toggleNegeer')) throw new Error('toggleNegeer() ontbreekt');
+  });
+
+  test('CSS: fase-stepper stijlen aanwezig', () => {
+    const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
+    if (!css.includes('fase-stepper')) throw new Error('fase-stepper CSS ontbreekt');
+    if (!css.includes('stap-cirkel')) throw new Error('stap-cirkel CSS ontbreekt');
+  });
+
   return resultaten;
 };

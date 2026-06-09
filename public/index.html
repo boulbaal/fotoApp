@@ -10,21 +10,51 @@
 
 <header>
   <h1>📷 Foto<span>App</span></h1>
-  <nav>
+  <nav id="hoofdNav">
     <button class="actief" onclick="toonPagina('dashboard')">Dashboard</button>
-    <button onclick="toonPagina('bronnen')">Bronnen</button>
+    <button class="nav-fase1" onclick="toonPagina('bronnen')">Bronnen</button>
     <button onclick="toonPagina('fotos', null)">Foto's</button>
-    <button onclick="toonPagina('duplicaten')">Duplicaten</button>
-    <button onclick="toonPagina('kaart')">🗺️ Kaart</button>
-    <button onclick="toonPagina('gpsbulk')">📍 GPS toewijzen</button>
+    <button class="nav-fase1" onclick="toonPagina('duplicaten')">Duplicaten</button>
+    <button class="nav-fase1" onclick="toonPagina('kaart')">🗺️ Kaart</button>
+    <button class="nav-fase1" onclick="toonPagina('gpsbulk')">📍 GPS toewijzen</button>
+    <button class="nav-fase2" style="display:none" onclick="toonPagina('negeren')">🚫 Negeren</button>
+    <button class="nav-fase2" style="display:none" onclick="toonPagina('genegeerd')">📋 Genegeerd</button>
   </nav>
   <div class="scan-indicator" id="scanIndicator">Klaar</div>
 </header>
+
+<!-- STEPPER -->
+<div id="faseStepper" class="fase-stepper">
+  <div class="stap-container">
+    <div class="fase-stap" id="stapFase1" onclick="zetFase(1)">
+      <div class="stap-cirkel" id="cirkelFase1">1</div>
+      <span class="stap-label">Organiseren</span>
+    </div>
+    <div class="stap-lijn" id="lijnFase12"></div>
+    <div class="fase-stap" id="stapFase2" onclick="zetFase(2)">
+      <div class="stap-cirkel" id="cirkelFase2">2</div>
+      <span class="stap-label">Selecteren</span>
+    </div>
+    <div class="stap-lijn" id="lijnFase23"></div>
+    <div class="fase-stap" id="stapFase3" onclick="zetFase(3)">
+      <div class="stap-cirkel" id="cirkelFase3">3</div>
+      <span class="stap-label">Exporteren</span>
+    </div>
+  </div>
+</div>
 
 <main>
 
   <!-- DASHBOARD -->
   <div class="pagina actief" id="paginaDashboard">
+    <!-- Fase 1 todo -->
+    <div id="fase1Todo" class="fase-todo" style="display:none">
+      <div class="todo-kop">
+        <span class="todo-titel">📋 Checklist fase 1</span>
+        <button class="btn btn-primair" style="font-size:12px;padding:5px 14px" onclick="gaaNaarFase(2)">Fase 1 afronden → Fase 2</button>
+      </div>
+      <div id="todoItems"></div>
+    </div>
     <div class="stat-grid">
       <div class="stat-kaart"><div class="getal" id="statTotaal">—</div><div class="label">Totaal foto's</div></div>
       <div class="stat-kaart"><div class="getal" id="statDuplicaten">—</div><div class="label">Duplicaten</div></div>
@@ -156,6 +186,35 @@
     <div style="margin-bottom:16px; color:#888; font-size:14px;" id="dupInfo"></div>
     <div id="duplicatenLijst"></div>
     <div class="paginering" id="dupPaginering"></div>
+  </div>
+
+  <!-- FASE 2: NEGEREN -->
+  <div class="pagina" id="paginaNegeren">
+    <div class="fase2-kop">
+      <h2>🚫 Foto's negeren</h2>
+      <p>Kies welke foto's je <strong>niet</strong> wil meenemen naar je nieuwe schijf. Originelen en duplicaten worden apart getoond. Genegeerde foto's worden overgeslagen bij de export.</p>
+    </div>
+    <div class="filters">
+      <input type="text" id="negerenZoek" placeholder="🔍 Zoeken..." oninput="laadNegeren(1)">
+      <select id="negerenFilter" onchange="laadNegeren(1)">
+        <option value="alle">Alle foto's</option>
+        <option value="nog-niet">Nog te beoordelen</option>
+      </select>
+      <span id="negerenTeller" style="margin-left:auto; color:#888; font-size:13px;"></span>
+    </div>
+    <div class="foto-grid" id="negerenGrid"></div>
+    <div class="paginering" id="negerenPaginering"></div>
+  </div>
+
+  <!-- FASE 2: GENEGEERD -->
+  <div class="pagina" id="paginaGenegeerd">
+    <div class="fase2-kop">
+      <h2>📋 Genegeerde foto's</h2>
+      <p>Overzicht van foto's die je hebt uitgesloten van de export. Klik op een foto om de keuze ongedaan te maken.</p>
+    </div>
+    <div class="foto-grid" id="genegeerGrid"></div>
+    <div class="paginering" id="genegeerPaginering"></div>
+    <div id="genegeerLeeg" style="display:none; color:#888; font-size:14px; padding:40px; text-align:center;">Nog geen foto's genegeerd.</div>
   </div>
 
 </main>
@@ -328,6 +387,7 @@
 <script src="/js/gpskaart.js"></script>
 <script src="/js/kaart.js"></script>
 <script src="/js/gpsbulk.js"></script>
+<script src="/js/negeren.js"></script>
 <script src="/js/app.js"></script>
 
 </body>
