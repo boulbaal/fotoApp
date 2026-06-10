@@ -701,15 +701,27 @@ router.post('/fotos/:id/locatie-onbekend', (req, res) => {
   res.json({ ok: true });
 });
 
-// Markeer foto als genegeerd (fase 2)
+// Markeer foto als genegeerd (fase 2) — cascadeert naar alle duplicaten in dezelfde groep
 router.post('/fotos/:id/negeer', (req, res) => {
   const db = getDb();
   const foto = db.prepare('SELECT * FROM fotos WHERE id = ?').get(req.params.id);
   if (!foto) { db.close(); return res.status(404).json({ fout: 'niet gevonden' }); }
   const waarde = req.body.genegeerd !== false ? 1 : 0;
+
+  // Zet altijd de aangeklikte foto
   db.prepare('UPDATE fotos SET genegeerd = ? WHERE id = ?').run(waarde, foto.id);
+
+  // Als de foto deel uitmaakt van een duplicaatgroep: cascade naar alle groepsleden
+  let aantalGewijzigd = 1;
+  if (foto.duplicaat_groep) {
+    const result = db.prepare(
+      'UPDATE fotos SET genegeerd = ? WHERE duplicaat_groep = ? AND id != ?'
+    ).run(waarde, foto.duplicaat_groep, foto.id);
+    aantalGewijzigd += result.changes;
+  }
+
   db.close();
-  res.json({ ok: true, genegeerd: waarde === 1 });
+  res.json({ ok: true, genegeerd: waarde === 1, aantalGewijzigd });
 });
 
 // Stats voor fase 1 todo

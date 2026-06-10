@@ -47,17 +47,43 @@ OVERGESLAGEN als:
   OF is_duplicaat = 1              → kopie, automatisch overgeslagen
 ```
 
-**Randgeval:** origineel is genegeerd maar kopie niet
-→ die foto gaat NIET mee (geen fallback naar kopie)
-→ dit wordt getoond in het exportoverzicht zodat de gebruiker het kan corrigeren vóór de export
+**Noot:** Als een foto op NEGEREN wordt gezet, worden automatisch alle duplicaten in dezelfde groep ook op NEGEREN gezet. Er kunnen dus geen situaties meer ontstaan waarbij het origineel genegeerd is maar een kopie niet.
 
 ---
 
-## 2. Doelmap en mappenstructuur
+## 2. Bestandsnaamconventie
+
+### Nieuwe naam bij export
+
+De bestanden krijgen een nieuwe naam op basis van locatie en datum:
+
+```
+locatieLand_locatieStad_dd_mm_yyyy.jpg
+```
+
+**Voorbeelden:**
+
+| Situatie | Bestandsnaam |
+|---|---|
+| GPS aanwezig | `France_Paris_15_07_2023.jpg` |
+| Alleen land, geen stad | `Belgium__14_03_2021.jpg` |
+| Geen GPS | `onbekend__22_11_2020.jpg` |
+| Geen datum | `France_Paris_onbekend.jpg` |
+
+**Naamconflicten** (twee foto's met dezelfde naam):
+- Eerste: `France_Paris_15_07_2023.jpg`
+- Tweede: `France_Paris_15_07_2023_2.jpg`
+- Derde: `France_Paris_15_07_2023_3.jpg`
+
+Nooit overschrijven, altijd suffix toevoegen.
+
+---
+
+## 3. Doelmap en mappenstructuur
 
 ### Doelmap kiezen
-De gebruiker kiest een lege map via de mapkiezer (zenity, zoals bij bronnen toevoegen).
-Aanbeveling: een nieuwe lege map op de nieuwe schijf, bv. `/media/nieuwebijf/FotoArchief/`
+De gebruiker kiest een lege map via de mapkiezer (zenity).
+Aanbeveling: een nieuwe lege map op de nieuwe schijf, bv. `/media/nieuweschijf/FotoArchief/`
 
 ### Hoe worden de bestanden georganiseerd?
 
@@ -68,31 +94,18 @@ FotoArchief/
 ├── 2019/
 │   ├── 01/
 │   ├── 07/
-│   │   └── PXL_20190715_vakantie.jpg
+│   │   └── Belgium_Gent_15_07_2019.jpg
 │   └── 12/
 ├── 2020/
 ├── 2023/
 │   └── 07/
-│       └── PXL_20230715_093042.jpg   ← ons voorbeeld
-└── onbekend/                          ← foto's zonder datum
+│       └── France_Paris_15_07_2023.jpg   ← ons voorbeeld
+└── onbekend/                              ← foto's zonder datum
 ```
-
-Waarom jaar/maand?
-- Makkelijk te bladeren in bestandsbeheer
-- Geen te grote mappen (maand = max ~100-200 foto's per periode)
-- Standaard die werkt met alle foto-apps
-
-### Naamconflicten
-
-Als twee originelen toevallig dezelfde bestandsnaam hebben:
-- Eerste kopie: `PXL_20230715_093042.jpg`
-- Tweede kopie: `PXL_20230715_093042_2.jpg`
-
-Nooit overschrijven, altijd suffix toevoegen.
 
 ---
 
-## 3. Schijfruimte berekening
+## 4. Schijfruimte berekening
 
 **Vóór de export wordt automatisch berekend:**
 
@@ -123,10 +136,6 @@ Vrije ruimte op doelschijf:
 │  Doelmap:  /media/nieuweschijf/FotoArchief  │
 │  Vrije ruimte:    234 GB  ✅                │
 │                                              │
-│  ⚠ 23 foto's: origineel genegeerd,          │
-│    kopie bestaat nog — worden overgeslagen   │
-│    [Bekijken]                                │
-│                                              │
 │  [Annuleren]          [▶ Export starten]    │
 └─────────────────────────────────────────────┘
 ```
@@ -139,16 +148,16 @@ Als er **niet genoeg ruimte** is:
 
 ---
 
-## 4. Tijdens de export
+## 5. Tijdens de export
 
-**Voortgangsbalk:**
+**Voortgangsbalk met tekstinfo:**
 ```
 Kopiëren... 4.821 / 18.432  (26%)
 ████████░░░░░░░░░░░░░░░░░░░░░░
-Huidig bestand: PXL_20230715_093042.jpg
+Bezig met: France_Paris_15_07_2023.jpg
 ```
 
-- Kan gepauzeerd worden (Stop-knop)
+- Kan gestopt worden (Stop-knop)
 - Bij stroomuitval of stop: hervatten mogelijk (exportstatus per foto bijgehouden)
 - Fouten worden gelogd maar stoppen de export niet
 
@@ -156,8 +165,7 @@ Huidig bestand: PXL_20230715_093042.jpg
 ```
 ✅ Export voltooid
 
-  Gekopieerd:    18.409 foto's  (87,2 GB)
-  Overgeslagen:     23 foto's  (naam conflict opgelost)
+  Gekopieerd:    18.432 foto's  (87,4 GB)
   Fouten:            0
 
   Locatie: /media/nieuweschijf/FotoArchief/
@@ -166,7 +174,7 @@ Huidig bestand: PXL_20230715_093042.jpg
 
 ---
 
-## 5. Wat wordt NIET gekopieerd
+## 6. Wat wordt NIET gekopieerd
 
 | Wat | Reden |
 |---|---|
@@ -177,13 +185,14 @@ Huidig bestand: PXL_20230715_093042.jpg
 
 ---
 
-## 6. Samenvatting
+## 7. Samenvatting
 
 ```
 Origineel bestand op schijf
         │
         │  genegeerd = 0?          JA → kopiëren naar doelmap/jaar/maand/
-        │  is_duplicaat = 0?       NEE → overslaan
+        │  is_duplicaat = 0?            nieuwe naam: Land_Stad_dd_mm_yyyy.jpg
+        │                          NEE → overslaan
         │
         └──────────────────────────────────────────────────
                                    origineel blijft onaangeroerd
