@@ -93,6 +93,32 @@ async function laadFase1Todo() {
   `;
 }
 
+async function laadFase2LocatieTip() {
+  const el = document.getElementById('fase2LocatieTip');
+  if (!el) return;
+  if (huidigeFase !== 2) { el.style.display = 'none'; return; }
+
+  const data = await fetch('/api/fase1/todo').then(r => r.json());
+  const n = data.zonderLocatie;
+
+  if (n === 0) { el.style.display = 'none'; return; }
+
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div class="fase2-tip">
+      <span class="fase2-tip-icoon">💡</span>
+      <div class="fase2-tip-tekst">
+        <strong>${n.toLocaleString()} foto${n !== 1 ? "'s" : ""} zonder locatie</strong>
+        — geen probleem voor de export, maar je archief wordt vollediger als je ze invult.
+        Je kunt dit nu doen via
+        <button class="link-knop" onclick="zetFase(1); setTimeout(() => toonPagina('gpsbulk'), 100)">GPS toewijzen</button>
+        of gewoon doorgaan naar fase 3.
+      </div>
+      <button class="fase2-tip-sluit" onclick="document.getElementById('fase2LocatieTip').style.display='none'" title="Verberg">✕</button>
+    </div>
+  `;
+}
+
 // === PAGINA NAVIGATIE ===
 
 function toonPagina(naam, extraFilter) {
@@ -103,7 +129,7 @@ function toonPagina(naam, extraFilter) {
   const actieveKnop = document.querySelector(`#sideBar button[data-pagina="${naam}"]`);
   if (actieveKnop) actieveKnop.classList.add('actief');
 
-  if (naam === 'dashboard')  { laadStats(); laadFase1Todo(); }
+  if (naam === 'dashboard')  { laadStats(); laadFase1Todo(); laadFase2LocatieTip(); }
   if (naam === 'bronnen')    laadBronnen();
   if (naam === 'kaart')      laadKaart();
   if (naam === 'gpsbulk')   laadGpsBulk();

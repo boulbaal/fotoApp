@@ -192,6 +192,36 @@ nav button.actief { background: #7c6af7; color: #fff; }
 .todo-item.open .todo-dot { background: #f59e0b; }
 .todo-acties { margin-left: auto; display: flex; gap: 6px; }
 
+/* FASE 2 TIP */
+.fase2-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #111827;
+  border: 1px solid #1e3a5f;
+  border-left: 3px solid #378ADD;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: #9ca3af;
+  line-height: 1.5;
+}
+.fase2-tip-icoon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.fase2-tip-tekst { flex: 1; }
+.fase2-tip-tekst strong { color: #e0e0e0; }
+.fase2-tip-sluit {
+  background: none; border: none; color: #555; cursor: pointer;
+  font-size: 14px; padding: 0 2px; flex-shrink: 0;
+}
+.fase2-tip-sluit:hover { color: #aaa; }
+.link-knop {
+  background: none; border: none; color: #378ADD;
+  cursor: pointer; font-size: 13px; padding: 0;
+  text-decoration: underline;
+}
+.link-knop:hover { color: #85B7EB; }
+
 /* FASE 2 */
 .fase2-kop { margin-bottom: 20px; }
 .fase2-kop h2 { font-size: 20px; margin-bottom: 6px; }
