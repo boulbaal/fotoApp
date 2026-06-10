@@ -53,9 +53,12 @@
 
     <!-- FASE 3 -->
     <div class="fase-stap-groep vergrendeld" id="navGroep3">
-      <div class="fase-stap" id="stapFase3">
+      <div class="fase-stap" id="stapFase3" onclick="handleFaseKlik(3)">
         <div class="stap-cirkel" id="cirkelFase3">3</div>
         <span class="stap-label">Exporteren</span>
+      </div>
+      <div class="nav-fase-items">
+        <button data-pagina="export" class="nav-fase3" onclick="toonPagina('export')">📦 Export</button>
       </div>
     </div>
 
@@ -238,6 +241,90 @@
     <div id="genegeerLeeg" style="display:none; color:#888; font-size:14px; padding:40px; text-align:center;">Nog geen foto's genegeerd.</div>
   </div>
 
+  <!-- FASE 3: EXPORT -->
+  <div class="pagina" id="paginaExport">
+    <div class="fase2-kop">
+      <h2>📦 Export</h2>
+      <p>Kopieer je geselecteerde foto's naar een nieuw archief. Originelen blijven altijd onaangeroerd.</p>
+    </div>
+
+    <!-- Stap 1: doelmap kiezen + preview -->
+    <div id="exportSetup">
+      <div class="export-sectie">
+        <label class="export-label">Bestemmingsmap</label>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+          <input type="text" id="exportDoelmap" placeholder="/media/nieuweschijf/FotoArchief" style="flex:1; background:#1a1a2e; border:1px solid #2e2e44; color:#e0e0e0; padding:8px 12px; border-radius:6px; font-size:14px;">
+          <button class="btn btn-secundair" onclick="openMapKiezer('exportDoelmap')" type="button">📁 Kiezen</button>
+          <button class="btn btn-secundair" onclick="laadExportPreview()" type="button">🔍 Berekenen</button>
+        </div>
+      </div>
+
+      <div id="exportPreview" style="display:none; margin-top:20px;">
+        <div class="export-preview-kaart">
+          <div class="export-preview-rij">
+            <span class="export-preview-label">Te exporteren</span>
+            <span class="export-preview-waarde" id="prevFotos">—</span>
+          </div>
+          <div class="export-preview-rij">
+            <span class="export-preview-label">Totale grootte</span>
+            <span class="export-preview-waarde" id="prevGrootte">—</span>
+          </div>
+          <div class="export-preview-rij">
+            <span class="export-preview-label">Vrije ruimte</span>
+            <span class="export-preview-waarde" id="prevRuimte">—</span>
+          </div>
+          <div class="export-preview-rij" id="prevAlDoneRij" style="display:none">
+            <span class="export-preview-label">Al geëxporteerd</span>
+            <span class="export-preview-waarde" id="prevAlDone">—</span>
+          </div>
+        </div>
+        <div id="prevWaarschuwing" style="display:none; margin-top:12px;"></div>
+        <div style="margin-top:20px;">
+          <button class="btn btn-primair" id="exportStartKnop" onclick="startExport()" disabled>▶ Export starten</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stap 2: voortgang -->
+    <div id="exportVoortgang" style="display:none; margin-top:24px;">
+      <div class="export-sectie">
+        <div class="export-voortgang-tekst" id="exportVoortgangTekst">Kopiëren...</div>
+        <div class="export-balk-container">
+          <div class="export-balk-vulling" id="exportBalk" style="width:0%"></div>
+        </div>
+        <div class="export-huidig-bestand" id="exportHuidigBestand"></div>
+        <div style="margin-top:16px; display:flex; gap:10px; align-items:center;">
+          <button class="btn btn-secundair" onclick="stopExport()">⏹ Stoppen</button>
+          <span id="exportFoutenTekst" style="color:#f87171; font-size:13px; display:none;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stap 3: klaar -->
+    <div id="exportKlaar" style="display:none; margin-top:24px;">
+      <div class="export-sectie export-klaar-kaart">
+        <div style="font-size:32px; margin-bottom:8px;">✅</div>
+        <div style="font-size:18px; font-weight:600; margin-bottom:16px;">Export voltooid</div>
+        <div class="export-preview-kaart" style="max-width:400px;">
+          <div class="export-preview-rij">
+            <span class="export-preview-label">Gekopieerd</span>
+            <span class="export-preview-waarde" id="klaarGedaan">—</span>
+          </div>
+          <div class="export-preview-rij">
+            <span class="export-preview-label">Fouten</span>
+            <span class="export-preview-waarde" id="klaarFouten">—</span>
+          </div>
+          <div class="export-preview-rij">
+            <span class="export-preview-label">Locatie</span>
+            <span class="export-preview-waarde" id="klaarLocatie" style="font-size:12px; word-break:break-all;">—</span>
+          </div>
+        </div>
+        <div id="klaarFoutLog" style="display:none; margin-top:16px; max-height:200px; overflow-y:auto; font-size:12px; color:#f87171;"></div>
+        <button class="btn btn-secundair" style="margin-top:20px;" onclick="resetExportUI()">↩ Nieuw export</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 </div><!-- /app-layout -->
@@ -411,6 +498,7 @@
 <script src="/js/kaart.js"></script>
 <script src="/js/gpsbulk.js"></script>
 <script src="/js/negeren.js"></script>
+<script src="/js/export.js"></script>
 <script src="/js/app.js"></script>
 
 </body>

@@ -162,6 +162,7 @@ function toonPagina(naam, extraFilter) {
     });
   }
   if (naam === 'duplicaten') laadDuplicaten(1);
+  if (naam === 'export')    controleerExportStatus();
 }
 
 // Init

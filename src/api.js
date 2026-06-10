@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { getDb } = require('./database');
 const { startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen, stopScan, verwijderUitWachtrij } = require('./scanner');
+const { berekenPreview, startExport, stopExport, getStatus: getExportStatus, resetExport } = require('./export');
 
 const router = express.Router();
 
@@ -735,6 +736,47 @@ router.get('/fase1/todo', (req, res) => {
   `).get().n;
   db.close();
   res.json({ zonderLocatie });
+});
+
+// === FASE 3: EXPORT ===
+
+// Bereken wat er geëxporteerd gaat worden (preview)
+router.get('/export/preview', (req, res) => {
+  const doelmap = req.query.doelmap || '';
+  try {
+    const preview = berekenPreview(doelmap || null);
+    res.json(preview);
+  } catch (err) {
+    res.status(500).json({ fout: err.message });
+  }
+});
+
+// Start de export
+router.post('/export/start', async (req, res) => {
+  const { doelmap } = req.body;
+  if (!doelmap) return res.status(400).json({ fout: 'doelmap is verplicht' });
+  try {
+    const result = await startExport(doelmap);
+    if (result.fout) return res.status(409).json(result);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ fout: err.message });
+  }
+});
+
+// Exportstatus opvragen (polling)
+router.get('/export/status', (req, res) => {
+  res.json(getExportStatus());
+});
+
+// Export stoppen
+router.post('/export/stop', (req, res) => {
+  res.json(stopExport());
+});
+
+// Export resetten (na afloop of fout)
+router.post('/export/reset', (req, res) => {
+  res.json(resetExport());
 });
 
 module.exports = router;

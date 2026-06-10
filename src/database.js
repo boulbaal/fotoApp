@@ -128,6 +128,10 @@ function initDb() {
     db.exec("ALTER TABLE fotos ADD COLUMN genegeerd INTEGER DEFAULT 0");
     console.log('✅ Migratie: genegeerd kolom toegevoegd');
   }
+  if (!kolommen.includes('geexporteerd')) {
+    db.exec("ALTER TABLE fotos ADD COLUMN geexporteerd INTEGER DEFAULT 0");
+    console.log('✅ Migratie: geexporteerd kolom toegevoegd');
+  }
 
   // Standaard fase instellen
   db.prepare("INSERT OR IGNORE INTO instellingen (sleutel, waarde) VALUES ('fase', '1')").run();
