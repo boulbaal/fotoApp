@@ -55,7 +55,8 @@ Ali heeft ~27.000+ foto's verspreid over meerdere locaties (Linux PC, externe SS
 | `index.js` | HTTP server + WebSocket (folder picker + live logs) |
 | `src/database.js` | SQLite schema: bronnen, fotos, scan_log + automatische migraties |
 | `src/scanner.js` | Recursief scannen, EXIF, GPS (EN), MD5 hash, thumbnails (sharp+exiftool), duplicaatdetectie, wachtrij, stop-vlag, **post-scan geocode pass** |
-| `src/api.js` | REST API: bronnen CRUD, fotos paginering, scan beheer, stats, duplicaten, mapbrowser |
+| `src/api.js` | REST API: bronnen CRUD, fotos paginering, scan beheer, stats, duplicaten, mapbrowser, **export endpoints** |
+| `src/export.js` | Export logica: selectie, bestandsnaam generatie, kopiëren, schijfruimte check, hervatten |
 
 ### Frontend
 | Bestand | Wat het doet |
@@ -71,6 +72,7 @@ Ali heeft ~27.000+ foto's verspreid over meerdere locaties (Linux PC, externe SS
 | `public/js/mapkiezer.js` | WebSocket client: folder picker + twee log-panelen (client/server) |
 | `public/js/gpskaart.js` | Leaflet kaart voor handmatig GPS toewijzen (Nominatim reverse geocoding) |
 | `public/js/utils.js` | Hulpfuncties: formatGrootte, formatDatum, landVlag(), landVlagVanNaam(), LAND_CODES |
+| `public/js/export.js` | Export UI: preview, voortgangsbalk, stop, klaar-scherm, hervatten |
 
 ### UI Functies
 - **Dashboard**: statistieken kaarten + klikbare balkgrafieken (jaar, camera, landen met 🏳️ vlag, per bron)
@@ -134,11 +136,21 @@ Ali heeft ~27.000+ foto's verspreid over meerdere locaties (Linux PC, externe SS
 - gps_land_code opgeslagen in DB ✅
 - Filmstrip scan voortgangsbalk ✅
 
-### 🚀 Fase 3 — Uitbreiding (gepland)
-- Kaart/map view met geotagged foto's
+### ✅ Fase 3 — Export (voltooid)
+- Kaart/map view met geotagged foto's ✅
+- Negeren-pagina: klik=toggle, hover-preview, DUP/NEGEREN/MEENEMEN badges ✅
+- Negeer cascade: alle duplicaten in groep mee-negeren ✅
+- Export functionaliteit volledig geïmplementeerd ✅
+  - Selectie: genegeerd=0, is_duplicaat=0
+  - Bestandsnaam: `Land_Stad_dd_mm_yyyy.jpg`
+  - Mapstructuur: jaar/maand
+  - Schijfruimte check vóór start
+  - Voortgangsbalk met huidig bestand
+  - Hervatten na onderbreking (geexporteerd per foto bijgehouden)
+
+### 🔮 Toekomstige uitbreiding (niet gepland)
 - Foto detail lightbox (volledige EXIF weergave)
-- Batchbewerkingen (meerdere foto's verwijderen/verplaatsen)
-- Export/backup functionaliteit
+- Batchbewerkingen
 - Geplande auto-scan (cron)
 - Tekstzoekfunctie
 - Mobiel-vriendelijke layout
@@ -282,3 +294,5 @@ App draait op: **http://localhost:3000**
 - Post-scan geocode pass geïmplementeerd (7 juni 2026) — fix-landen.js is nu overbodig voor nieuwe scans ✅
 - Ali wist de DB regelmatig opnieuw en herscant alles — het systeem is ontworpen om dit te ondersteunen
 - Geocode pass: ~505 unieke locaties in de DB, ~9 minuten bij 1.1s/locatie (Nominatim policy)
+- Fase 3 export geïmplementeerd (10 juni 2026): negeer-cascade, Land_Stad_dd_mm_yyyy.jpg naamgeving, jaar/maand mappen, schijfruimte check, hervatten ✅
+- Sidebar layout: fase-stepper zit in aside#sideBar, main is flex:1, .pagina-kaart heeft left:184px
