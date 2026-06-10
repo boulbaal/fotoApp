@@ -407,6 +407,46 @@ main { flex: 1; min-width: 0; padding: 24px; max-width: 1216px; }
   font-size: 14px; padding: 2px 4px; border-radius: 4px;
 }
 
+/* STATUS BADGES (negeren-pagina) */
+.status-badge {
+  position: absolute;
+  z-index: 4;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 7px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+.badge-dup {
+  top: 6px; right: 6px;
+  background: rgba(124,106,247,0.92);
+  color: #fff;
+}
+.badge-negeren {
+  bottom: 34px; left: 0; right: 0;
+  text-align: center;
+  border-radius: 0;
+  background: rgba(220,38,38,0.88);
+  color: #fff;
+  padding: 4px 0;
+  font-size: 11px;
+}
+.badge-meenemen {
+  bottom: 34px; left: 0; right: 0;
+  text-align: center;
+  border-radius: 0;
+  background: rgba(22,101,52,0.82);
+  color: #4ade80;
+  padding: 4px 0;
+  font-size: 11px;
+}
+.negeer-item { cursor: pointer; }
+.negeer-item:hover { outline: 2px solid #7c6af7; outline-offset: -2px; }
+.negeer-item.foto-genegeerd:hover { outline-color: #dc2626; }
+.foto-genegeerd { opacity: 0.5; }
+.foto-genegeerd:hover { opacity: 0.75; }
+
 /* NEGEREN */
 .foto-item .negeer-knop {
   position: absolute;

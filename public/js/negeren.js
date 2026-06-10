@@ -24,8 +24,13 @@ async function laadNegeren(pagina = 1) {
   }
 
   grid.innerHTML = data.fotos.map(f => `
-    <div class="foto-item ${f.genegeerd ? 'foto-genegeerd' : ''}" onclick="toonDetail(${f.id})">
-      ${f.is_duplicaat ? '<div class="dup-badge">DUP</div>' : ''}
+    <div class="foto-item negeer-item ${f.genegeerd ? 'foto-genegeerd' : ''}"
+         data-foto="${f.id}"
+         onclick="toggleNegeerItem(${f.id}, this)">
+      ${f.is_duplicaat ? '<div class="status-badge badge-dup">DUP</div>' : ''}
+      <div class="status-badge ${f.genegeerd ? 'badge-negeren' : 'badge-meenemen'}">
+        ${f.genegeerd ? 'NEGEREN' : 'MEENEMEN'}
+      </div>
       <div class="bron-badge">${f.bron_icoon || '💻'}</div>
       ${f.thumbnail
         ? `<img src="${f.thumbnail}" loading="lazy" alt="${f.bestandsnaam}">`
@@ -34,12 +39,10 @@ async function laadNegeren(pagina = 1) {
         <div class="naam">${f.bestandsnaam}</div>
         <div class="datum">${formatDatum(f.datum_foto)}${f.gps_stad ? ' · ' + f.gps_stad : ''}</div>
       </div>
-      <button class="negeer-knop ${f.genegeerd ? 'hersteld' : ''}"
-        onclick="event.stopPropagation(); toggleNegeer(${f.id}, this)">
-        ${f.genegeerd ? '↩ Herstellen' : '🚫 Negeren'}
-      </button>
     </div>
   `).join('');
+
+  bindNegerenHoverPreview();
 
   const totaalPaginas = Math.ceil(data.totaal / 200);
   const pag = document.getElementById('negerenPaginering');
@@ -63,6 +66,27 @@ async function laadNegeren(pagina = 1) {
   }
 }
 
+async function toggleNegeerItem(id, el) {
+  const isNuGenegeerd = el.classList.contains('foto-genegeerd');
+  const nieuwGenegeerd = !isNuGenegeerd;
+
+  const r = await fetch(`/api/fotos/${id}/negeer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ genegeerd: nieuwGenegeerd })
+  });
+
+  if (r.ok) {
+    el.classList.toggle('foto-genegeerd', nieuwGenegeerd);
+    const badge = el.querySelector('.badge-negeren, .badge-meenemen');
+    if (badge) {
+      badge.className = `status-badge ${nieuwGenegeerd ? 'badge-negeren' : 'badge-meenemen'}`;
+      badge.textContent = nieuwGenegeerd ? 'NEGEREN' : 'MEENEMEN';
+    }
+  }
+}
+
+// Bewaar toggleNegeer voor achterwaartse compatibiliteit (genegeerd-pagina)
 async function toggleNegeer(id, knop) {
   const isNuGenegeerd = knop.classList.contains('hersteld');
   const r = await fetch(`/api/fotos/${id}/negeer`, {
@@ -100,7 +124,9 @@ async function laadGenegeerd(pagina = 1) {
   if (leeg) leeg.style.display = 'none';
 
   grid.innerHTML = data.fotos.map(f => `
-    <div class="foto-item foto-genegeerd" onclick="toonDetail(${f.id})">
+    <div class="foto-item negeer-item foto-genegeerd" data-foto="${f.id}">
+      ${f.is_duplicaat ? '<div class="status-badge badge-dup">DUP</div>' : ''}
+      <div class="status-badge badge-negeren">NEGEREN</div>
       <div class="bron-badge">${f.bron_icoon || '💻'}</div>
       ${f.thumbnail
         ? `<img src="${f.thumbnail}" loading="lazy" alt="${f.bestandsnaam}">`
@@ -115,4 +141,50 @@ async function laadGenegeerd(pagina = 1) {
       </button>
     </div>
   `).join('');
+
+  bindNegerenHoverPreview();
+}
+
+// === HOVER PREVIEW ===
+
+let negerenPreviewTimer = null;
+
+function bindNegerenHoverPreview() {
+  document.querySelectorAll('.negeer-item').forEach(el => {
+    el.addEventListener('mouseenter', onNegerenHoverIn);
+    el.addEventListener('mouseleave', onNegerenHoverUit);
+  });
+}
+
+function onNegerenHoverIn(e) {
+  const el = e.currentTarget;
+  clearTimeout(negerenPreviewTimer);
+  negerenPreviewTimer = setTimeout(() => toonNegerenPreview(el), 400);
+}
+
+function onNegerenHoverUit() {
+  clearTimeout(negerenPreviewTimer);
+  const preview = document.getElementById('bulkThumbPreview');
+  if (preview) preview.style.display = 'none';
+}
+
+function toonNegerenPreview(el) {
+  const fotoId = el.dataset.foto;
+  const preview = document.getElementById('bulkThumbPreview');
+  if (!preview) return;
+
+  preview.innerHTML = `<img src="/api/fotos/${fotoId}/thumbnail" alt="" style="width:100%;height:100%;object-fit:contain;">`;
+  preview.style.display = 'block';
+
+  const rect = el.getBoundingClientRect();
+  const pw = 480, ph = 360;
+  let left = rect.left + rect.width / 2 - pw / 2;
+  let top  = rect.top - ph - 10 + window.scrollY;
+
+  if (left < 8) left = 8;
+  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+  if (top < window.scrollY + 8) top = rect.bottom + 10 + window.scrollY;
+
+  preview.style.left = left + 'px';
+  preview.style.top  = top + 'px';
 }
