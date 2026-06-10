@@ -148,18 +148,27 @@ async function laadGenegeerd(pagina = 1) {
 // === HOVER PREVIEW ===
 
 let negerenPreviewTimer = null;
+let negerenMusX = 0, negerenMusY = 0;
 
 function bindNegerenHoverPreview() {
   document.querySelectorAll('.negeer-item').forEach(el => {
     el.addEventListener('mouseenter', onNegerenHoverIn);
+    el.addEventListener('mousemove',  onNegerenMusBeweeg);
     el.addEventListener('mouseleave', onNegerenHoverUit);
   });
 }
 
 function onNegerenHoverIn(e) {
+  negerenMusX = e.clientX;
+  negerenMusY = e.clientY;
   const el = e.currentTarget;
   clearTimeout(negerenPreviewTimer);
   negerenPreviewTimer = setTimeout(() => toonNegerenPreview(el), 400);
+}
+
+function onNegerenMusBeweeg(e) {
+  negerenMusX = e.clientX;
+  negerenMusY = e.clientY;
 }
 
 function onNegerenHoverUit() {
@@ -176,15 +185,39 @@ function toonNegerenPreview(el) {
   preview.innerHTML = `<img src="/api/fotos/${fotoId}/thumbnail" alt="" style="width:100%;height:100%;object-fit:contain;">`;
   preview.style.display = 'block';
 
-  const rect = el.getBoundingClientRect();
   const pw = 480, ph = 360;
-  let left = rect.left + rect.width / 2 - pw / 2;
-  let top  = rect.top - ph - 10 + window.scrollY;
+  const gap = 20;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const sx = window.scrollY;
+  const mx = negerenMusX, my = negerenMusY;
 
-  if (left < 8) left = 8;
-  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
-  if (top < window.scrollY + 8) top = rect.bottom + 10 + window.scrollY;
+  let left, top;
+
+  // Kies de zijde met de meeste ruimte, nooit over de muis
+  const ruimteRechts = vw - mx - gap;
+  const ruimteLinks  = mx - gap;
+  const ruimteBoven  = my - gap;
+  const ruimteOnder  = vh - my - gap;
+
+  if (ruimteRechts >= pw) {
+    // rechts van muis
+    left = mx + gap;
+    top  = Math.max(sx + 8, Math.min(my - ph / 2 + sx, sx + vh - ph - 8));
+  } else if (ruimteLinks >= pw) {
+    // links van muis
+    left = mx - gap - pw;
+    top  = Math.max(sx + 8, Math.min(my - ph / 2 + sx, sx + vh - ph - 8));
+  } else if (ruimteBoven >= ph) {
+    // boven muis
+    top  = my - gap - ph + sx;
+    left = Math.max(8, Math.min(mx - pw / 2, vw - pw - 8));
+  } else {
+    // onder muis
+    top  = my + gap + sx;
+    left = Math.max(8, Math.min(mx - pw / 2, vw - pw - 8));
+  }
 
   preview.style.left = left + 'px';
-  preview.style.top  = top + 'px';
+  preview.style.top  = top  + 'px';
 }
