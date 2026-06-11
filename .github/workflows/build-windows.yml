@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-2022   # windows-latest gebruikt VS 2026 die node-gyp niet herkent
 
     steps:
       - name: Code ophalen
@@ -28,6 +28,7 @@ jobs:
         run: npm install
         env:
           npm_config_python: python
+          npm_config_msvs_version: '2022'
 
       - name: Windows installer bouwen
         run: npm run build:win
