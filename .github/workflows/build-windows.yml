@@ -3,8 +3,8 @@ name: Build Windows installer
 on:
   push:
     tags:
-      - 'v*'          # Bouw automatisch bij: git tag v1.0.0 && git push --tags
-  workflow_dispatch:   # Of handmatig starten via GitHub → Actions tab
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   build-windows:
@@ -18,10 +18,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+
+      - name: Python instellen (nodig voor native modules)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Dependencies installeren
-        run: npm ci
+        run: npm install
+        env:
+          npm_config_python: python
+          GYP_MSVS_VERSION: '2022'
+
+      - name: Native modules herbouwen voor Electron
+        run: npx @electron/rebuild --force --types prod
 
       - name: Windows installer bouwen
         run: npm run build:win
