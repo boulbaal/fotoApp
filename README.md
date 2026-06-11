@@ -1,156 +1,133 @@
-# 📷 FotoApp
+# FotoApp — Lokale foto- en videobeheer
 
-> **Jouw foto's. Jouw computer. Jouw controle.**
-> Gratis, open source, zonder cloud, zonder abonnement.
+[![Build Windows](https://github.com/boulbaal/fotoApp/actions/workflows/build-windows.yml/badge.svg)](https://github.com/boulbaal/fotoApp/actions/workflows/build-windows.yml)
+[![Release](https://img.shields.io/github/v/release/boulbaal/fotoApp)](https://github.com/boulbaal/fotoApp/releases/latest)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
 
-<div align="center">
+> **Gratis, privé, lokaal.** Geen cloud, geen abonnement, geen gedoe.
 
-[![GitHub Stars](https://img.shields.io/github/stars/boulbaal/fotoApp?style=social)](https://github.com/boulbaal/fotoApp/stargazers)
-[![License: Non-Commercial](https://img.shields.io/badge/license-Non--Commercial-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20Mac-lightgrey)](https://github.com/boulbaal/fotoApp/releases)
-
-### ❤️ Vind je dit project waardevol? Steun het met een donatie.
-
-[![Doneer via PayPal](https://img.shields.io/badge/Doneer-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen)
-[![Supporter Edition](https://img.shields.io/badge/Supporter_Edition-€19_eenmalig-FF6B35?style=for-the-badge)](mailto:aboulbahaiem@gmail.com?subject=Supporter%20Edition)
-
-*Elke donatie, hoe klein ook, helpt dit project levend te houden.*
-
-</div>
+**[⬇️ Download voor Windows](https://github.com/boulbaal/fotoApp/releases/latest)** | **[🌐 Website](https://boulbaal.github.io/fotoApp/)**
 
 ---
 
-## 📢 Waarom bestaat FotoApp?
+## Wat is FotoApp?
 
-Je kent het verhaal. Duizenden foto's op Google Photos. Op iCloud. Op OneDrive.
-En elke maand betaal je meer om ze daar te houden — of ze worden gebruikt om AI te trainen.
+FotoApp is een **gratis desktopapplicatie** voor het organiseren van duizenden foto's en video's op je eigen computer. Gebouwd voor mensen die:
 
-**Ze zijn van jou. Maar voelen ze nog zo?**
+- Foto's hebben verspreid over meerdere schijven, USB-sticks en mappen
+- Geen cloudabonnement willen voor hun privéfoto's
+- Duplicaten willen opsporen en verwijderen
+- GPS-locaties willen zien op een kaart
+- RAW-bestanden en Google Takeout exports willen verwerken
 
-In 2024–2025 veranderde Google Photos zijn voorwaarden opnieuw. Apple verhoogde opslagprijzen. Microsoft gebruikt je OneDrive-inhoud voor AI-training. Miljoenen mensen hangen met hun meest persoonlijke herinneringen aan systemen die ze niet controleren — en waarvan ze de echte prijs niet kennen.
-
-FotoApp is het antwoord op die vraag: **wat als je je foto's gewoon op je eigen computer beheert?**
-
-Geen account. Geen abonnement. Geen server van ons. Geen AI die je gezicht leert kennen.
-Je foto's blijven op jouw harde schijf — en nergens anders.
+**Ondersteunde formaten:** JPG, PNG, HEIC, RAW (CR2, CR3, NEF, ARW), MP4, MOV, AVI en meer.
 
 ---
 
-## ✨ Wat doet FotoApp?
+## Functies
 
-FotoApp helpt je in drie stappen:
-
-### 1️⃣ Organiseren
-- Scan meerdere bronnen tegelijk: je pc, externe harde schijf, USB-stick, smartphone-backup
-- Detecteert automatisch dubbele foto's (ook al staan ze op verschillende schijven)
-- Haalt datum, camera en GPS-locatie op uit de foto's zelf
-- Toont alles op een kaart — zie meteen waar en wanneer je hebt gefotografeerd
-- Werkt ook met Google Takeout exports en RAW-bestanden
-
-### 2️⃣ Selecteren
-- Bekijk al je foto's en markeer wat je wil bewaren of weggooien
-- Grote hover-preview zodat je goed kunt beoordelen
-- Duplicaten worden automatisch gegroepeerd — jij kiest welke je houdt
-
-### 3️⃣ Exporteren
-- Kopiëert je foto's naar een nieuwe schijf of map
-- Automatische naamgeving: `Frankrijk_Parijs_15_07_2023.jpg`
-- Gesorteerd op jaar en maand
-- **Originelen worden nooit verwijderd** — je kunt altijd terugkeren
-- GPS-data wordt teruggeschreven naar de foto's zelf
+| Functie | Beschrijving |
+|---------|-------------|
+| **Duplicaatdetectie** | Vindt exact dubbele bestanden op basis van MD5-hash |
+| **GPS-kaart** | Interactieve kaart met fotolocaties (Leaflet + OpenStreetMap) |
+| **Geocoding** | Automatisch stad en land ophalen uit GPS-coördinaten (Nominatim) |
+| **EXIF-data** | Datum, camera, lens, belichting, ISO — alles leesbaar |
+| **RAW-support** | Thumbnails via exiftool (Canon, Nikon, Sony, Fuji, enz.) |
+| **Google Takeout** | JSON-bestanden inlezen voor datum en GPS-fallback |
+| **Dashboard** | Statistieken per jaar, camera, land — voor foto's én video's |
+| **Slimme export** | Bestandsnamen: `Nederland_Amsterdam_15_06_2023.jpg`, geordend per jaar/maand |
+| **Video-support** | Aparte statistieken en grafieken voor video's |
+| **Negeren** | Foto's markeren als te negeren, duplicaten cascade-negeren |
 
 ---
 
-## 🔒 Privacy — geen compromissen
+## Download & Installatie
 
-| Wat | FotoApp | Google Photos | iCloud |
-|---|---|---|---|
-| Draait lokaal | ✅ | ❌ | ❌ |
-| Geen account nodig | ✅ | ❌ | ❌ |
-| Geen abonnement | ✅ | ❌ | ❌ |
-| Data blijft op jouw machine | ✅ | ❌ | ❌ |
-| Open source (controleerbaar) | ✅ | ❌ | ❌ |
-| Gebruikt je foto's voor AI | ❌ | ✅ | ✅ |
+### Windows (installer)
 
----
+1. Download **[FotoApp-Setup-1.0.0.exe](https://github.com/boulbaal/fotoApp/releases/latest)** (~95 MB)
+2. Dubbelklik op het bestand
+3. Bij SmartScreen-waarschuwing: klik **"Meer informatie"** → **"Toch uitvoeren"** *(app is niet gesigneerd)*
+4. Open FotoApp via het startmenu
 
-## 💻 Download & Installeren
-
-> ⚠️ **Let op:** FotoApp vereist momenteel Node.js. Een klik-en-klaar installer voor Windows, Mac en Linux is in ontwikkeling.
+### Mac & Linux (zelf bouwen)
 
 ```bash
-# Vereisten: Node.js 18+ en Git
 git clone https://github.com/boulbaal/fotoApp.git
 cd fotoApp
 npm install
-sh start.sh
+npm run electron        # Dev-modus
+npm run build:mac       # macOS DMG bouwen
+npm run build:linux     # Linux AppImage + deb bouwen
 ```
 
-Ga naar **http://localhost:3000** in je browser.
+Zie [ELECTRON.md](ELECTRON.md) voor meer details.
 
 ---
 
-## ❤️ Steun dit project
+## Lokaal draaien (zonder Electron)
 
-FotoApp is en blijft gratis. Geen betaalwal, geen premium features achter een slot.
+```bash
+npm install
+sh start.sh             # Tests uitvoeren + app starten
+# Open http://localhost:3000 in je browser
+```
 
-Maar software onderhouden kost tijd. Als FotoApp jou uren werk heeft bespaard, of als je gewoon gelooft in het idee dat mensen hun eigen foto's moeten kunnen beheren zonder een techbedrijf daarvoor te betalen — dan kun je dit project steunen.
+**Optionele extra's (sterk aanbevolen):**
+```bash
+# Windows (Chocolatey):
+choco install exiftool ffmpeg
 
-### 💳 Doneer via PayPal
-Elk bedrag helpt, ook €2 of €5.
+# macOS (Homebrew):
+brew install exiftool ffmpeg
 
-**[➡️ Doneer via PayPal](https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen)**
-
-Of stuur rechtstreeks naar: `aboulbahaiem@gmail.com` via PayPal.
-
-### 🌟 Supporter Edition — €19 eenmalig
-Wil je iets meer doen? Stuur een mail naar [aboulbahaiem@gmail.com](mailto:aboulbahaiem@gmail.com?subject=Supporter%20Edition) en word vermeld als officiële supporter in de app en in de credits. Exact dezelfde software — maar met de warme wetenschap dat je dit project mee mogelijk maakt.
-
-### ⭐ Gratis steunen
-- Geef een **ster op GitHub** — dat helpt anderen het project vinden
-- Deel FotoApp met iemand die het nodig heeft
-- Meld bugs of stel verbeteringen voor via [GitHub Issues](https://github.com/boulbaal/fotoApp/issues)
-
----
-
-## 🤝 Bijdragen aan de code
-
-FotoApp is open source en verwelkomt bijdragen. Of je nu een developer bent die een feature wil toevoegen, of iemand die een vertaling wil maken — alles helpt.
-
-Lees [CONTRIBUTING.md](CONTRIBUTING.md) voor hoe je kunt bijdragen.
+# Linux:
+sudo apt install libimage-exiftool-perl ffmpeg
+```
 
 ---
 
-## 📋 Licentie
+## Privacybeleid
 
-FotoApp is **gratis voor persoonlijk gebruik en non-profitorganisaties**.
-Commercieel gebruik door bedrijven is niet toegestaan zonder toestemming.
-
-Zie [LICENSE](LICENSE) voor de volledige voorwaarden.
-
-Commerciële licentie nodig? Mail naar [aboulbahaiem@gmail.com](mailto:aboulbahaiem@gmail.com).
+- Geen data wordt verstuurd naar externe servers
+- GPS-coördinaten worden via Nominatim omgezet naar adressen (alleen coördinaten, geen foto's)
+- Alle data blijft lokaal op jouw machine
 
 ---
 
-## 🏗️ Technologie
+## Technische details
 
-| Component | Technologie |
-|---|---|
-| Backend | Node.js + Express |
-| Database | SQLite (lokaal, geen server) |
-| Frontend | Vanilla JavaScript |
-| Kaarten | Leaflet + OpenStreetMap |
-| Geocoding | Nominatim (privacy-first, geen API key) |
-| EXIF | exifr + exiftool |
-| Thumbnails | sharp |
+- **Frontend:** Vanilla JavaScript, HTML, CSS (geen framework)
+- **Backend:** Node.js + Express
+- **Database:** SQLite via `better-sqlite3`
+- **Thumbnails:** `sharp` + `exiftool`
+- **Desktop:** Electron
+- **Build:** electron-builder (NSIS voor Windows, DMG voor Mac, AppImage voor Linux)
 
 ---
 
-<div align="center">
+## English
 
-**Gemaakt door [Ali Boulbahaiem](mailto:aboulbahaiem@gmail.com)**
-*Van de mens, voor de mens.*
+**FotoApp** is a free, open-source desktop application for managing photos and videos locally. No cloud, no subscription.
 
-[![Doneer via PayPal](https://img.shields.io/badge/Doneer-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen)
+**Key features:** duplicate detection, GPS map, EXIF viewer, RAW support (Canon/Nikon/Sony), Google Takeout import, smart export with automatic file naming, dashboard with statistics per year/camera/country.
 
-</div>
+**Download:** [GitHub Releases](https://github.com/boulbaal/fotoApp/releases/latest)  
+**Website:** [boulbaal.github.io/fotoApp](https://boulbaal.github.io/fotoApp/)
+
+*Search terms: free photo organizer, duplicate photo finder, local photo management, offline photo software, EXIF viewer, GPS photo map, RAW photo browser, Google Takeout import, photo backup Windows*
+
+---
+
+## Tests
+
+```bash
+node tests/run-tests.js          # Unit tests (148 tests)
+node tests/run-tests.js --api    # Inclusief API tests (server moet draaien)
+```
+
+Huidig testresultaat: **148/148 geslaagd**
+
+---
+
+Gemaakt door Ali · [aboulbahaiem@gmail.com](mailto:aboulbahaiem@gmail.com)

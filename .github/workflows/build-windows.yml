@@ -30,12 +30,12 @@ jobs:
           npm_config_python: python
           npm_config_msvs_version: '2022'
 
-      - name: Windows installer bouwen
-        run: npm run build:win
+      - name: Windows installer bouwen en publiceren
+        run: npm run build:win:publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Installer uploaden als artifact
+      - name: Installer uploaden als artifact (backup)
         uses: actions/upload-artifact@v4
         with:
           name: FotoApp-Windows

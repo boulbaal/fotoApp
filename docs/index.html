@@ -3,138 +3,158 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FotoApp — Jouw foto's terug in eigen beheer</title>
-  <meta name="description" content="Organiseer, sorteer en archiveer al je foto's lokaal op je eigen computer. Geen cloud, geen abonnement, geen surveillance. Gratis en open source.">
-  <meta property="og:title" content="FotoApp — Jouw foto's terug in eigen beheer">
-  <meta property="og:description" content="Gratis tool om duizenden foto's te organiseren op je eigen computer. Geen Google, geen iCloud, geen maandelijkse kosten.">
+  <title>FotoApp – Gratis lokale foto- en videobeheer voor Windows, Mac en Linux</title>
+  <meta name="description" content="FotoApp is een gratis, privacyvriendelijke desktopapplicatie voor het beheren van foto's en video's. Geen cloud, geen abonnement. Duplicaatdetectie, GPS-kaart, EXIF-data, RAW-ondersteuning. Download gratis voor Windows.">
+  <meta name="keywords" content="fotobeheer, foto organiseren, foto software gratis, duplicaten verwijderen fotos, EXIF viewer, GPS fotos kaart, RAW fotos beheren, lokale foto applicatie, photo management software free, photo organizer desktop, duplicate photo finder, offline photo manager, FotoApp download, foto backup software">
+  <meta name="author" content="Ali">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://boulbaal.github.io/fotoApp/">
+  <meta property="og:title" content="FotoApp – Gratis lokale foto- en videobeheer">
+  <meta property="og:description" content="Beheer al je foto's en video's lokaal op je eigen computer. Geen cloud, geen abonnement. Duplicaatdetectie, GPS-kaart, EXIF-data, RAW-ondersteuning.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://boulbaal.github.io/fotoApp/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="FotoApp – Gratis lokale foto- en videobeheer">
+  <meta name="twitter:description" content="Beheer duizenden foto's lokaal op je eigen PC. Geen cloud. Duplicaatdetectie, GPS, EXIF, RAW-support.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "FotoApp",
+    "operatingSystem": "Windows, macOS, Linux",
+    "applicationCategory": "MultimediaApplication",
+    "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"},
+    "description": "FotoApp is a free, privacy-first desktop application for managing photos and videos locally. No cloud, no subscription. Duplicate detection, GPS map, EXIF data, RAW support.",
+    "downloadUrl": "https://github.com/boulbaal/fotoApp/releases/latest",
+    "softwareVersion": "1.0.0",
+    "author": {"@type": "Person", "name": "Ali"},
+    "featureList": ["Duplicate photo detection using MD5 hash","GPS map with photo locations","EXIF data viewer","RAW photo support via exiftool","Google Takeout JSON import","Privacy-first: no cloud, no internet required","Dashboard with statistics per year, camera and country","Smart export with country/city/date filename"]
+  }
+  </script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a14; color: #e0e0e0; line-height: 1.6; }
-    a { color: #a78bfa; }
-
-    /* HERO */
-    .hero { text-align: center; padding: 80px 24px 60px; max-width: 760px; margin: 0 auto; }
-    .hero-badge { display: inline-block; background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.4); color: #a78bfa; border-radius: 20px; padding: 4px 14px; font-size: 13px; margin-bottom: 24px; }
-    .hero h1 { font-size: clamp(28px, 5vw, 52px); font-weight: 800; line-height: 1.15; margin-bottom: 20px; }
-    .hero h1 span { background: linear-gradient(135deg, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .hero p { font-size: 18px; color: #888; max-width: 560px; margin: 0 auto 36px; }
-    .hero-knoppen { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-    .btn-hero-primair { background: linear-gradient(135deg, #7c3aed, #db2777); color: #fff; border: none; border-radius: 8px; padding: 14px 28px; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; transition: opacity 0.2s; }
-    .btn-hero-primair:hover { opacity: 0.85; }
-    .btn-hero-sec { background: transparent; border: 1px solid #3e3e5e; color: #c0c0e0; border-radius: 8px; padding: 14px 28px; font-size: 16px; cursor: pointer; text-decoration: none; transition: border-color 0.2s; }
-    .btn-hero-sec:hover { border-color: #a78bfa; }
-
-    /* PROBLEEM */
-    .probleem { background: #0d0d1a; padding: 60px 24px; text-align: center; }
-    .probleem h2 { font-size: 28px; margin-bottom: 16px; }
-    .probleem p { max-width: 640px; margin: 0 auto; color: #888; font-size: 16px; }
-    .probleem strong { color: #e0d0f8; }
-
-    /* VERGELIJKING */
-    .vergelijk { padding: 60px 24px; max-width: 800px; margin: 0 auto; }
-    .vergelijk h2 { text-align: center; font-size: 28px; margin-bottom: 32px; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th { padding: 12px 16px; text-align: left; background: #13131f; color: #888; font-weight: 500; }
-    td { padding: 12px 16px; border-bottom: 1px solid #1e1e2a; }
-    tr:last-child td { border-bottom: none; }
-    .ja { color: #4ade80; font-weight: 600; }
-    .nee { color: #f87171; }
-    .fotoapp-col { background: rgba(124,58,237,0.08); }
-    .fotoapp-col td { color: #e0d0f8; }
-
-    /* FEATURES */
-    .features { background: #0d0d1a; padding: 60px 24px; }
-    .features h2 { text-align: center; font-size: 28px; margin-bottom: 40px; }
-    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; max-width: 900px; margin: 0 auto; }
-    .feature-kaart { background: #13131f; border: 1px solid #2e2e44; border-radius: 10px; padding: 20px; }
-    .feature-icoon { font-size: 24px; margin-bottom: 10px; }
-    .feature-kaart h3 { font-size: 15px; margin-bottom: 6px; color: #e0e0f0; }
-    .feature-kaart p { font-size: 13px; color: #666; }
-
-    /* DONEER */
-    .doneer { padding: 60px 24px; text-align: center; max-width: 600px; margin: 0 auto; }
-    .doneer h2 { font-size: 28px; margin-bottom: 12px; }
-    .doneer p { color: #888; margin-bottom: 28px; }
-    .doneer-knoppen { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .btn-paypal { background: #0070ba; color: #fff; border: none; border-radius: 8px; padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none; }
-    .btn-github { background: #1e1e2e; border: 1px solid #3e3e5e; color: #c0c0e0; border-radius: 8px; padding: 12px 24px; font-size: 15px; cursor: pointer; text-decoration: none; }
-
-    /* FOOTER */
-    footer { border-top: 1px solid #1e1e2a; padding: 28px 24px; text-align: center; font-size: 13px; color: #444; }
-    footer a { color: #666; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f13;color:#e8e8f0;line-height:1.6}
+    a{color:#60a5fa;text-decoration:none}a:hover{text-decoration:underline}
+    .hero{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding:80px 24px 60px;text-align:center;border-bottom:1px solid #2a2a4a}
+    .hero-badge{display:inline-block;background:#1e3a5f;border:1px solid #3b82f6;color:#93c5fd;font-size:13px;padding:4px 14px;border-radius:20px;margin-bottom:24px;letter-spacing:.04em}
+    .hero h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;color:#fff;margin-bottom:16px;letter-spacing:-.02em}
+    .hero h1 span{color:#60a5fa}
+    .hero p{font-size:1.15rem;color:#94a3b8;max-width:600px;margin:0 auto 36px}
+    .btn-download{display:inline-flex;align-items:center;gap:10px;background:#2563eb;color:#fff;font-size:1.05rem;font-weight:600;padding:14px 32px;border-radius:10px;transition:background .2s,transform .1s;box-shadow:0 4px 20px rgba(37,99,235,.4)}
+    .btn-download:hover{background:#1d4ed8;transform:translateY(-1px);text-decoration:none}
+    .btn-secondary{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid #334155;color:#94a3b8;font-size:.95rem;padding:12px 24px;border-radius:10px;margin-left:12px;transition:border-color .2s,color .2s}
+    .btn-secondary:hover{border-color:#60a5fa;color:#60a5fa;text-decoration:none}
+    .hero-meta{margin-top:20px;font-size:13px;color:#475569}
+    .section{max-width:1000px;margin:0 auto;padding:64px 24px}
+    .section-title{text-align:center;font-size:1.8rem;font-weight:700;color:#f1f5f9;margin-bottom:8px}
+    .section-sub{text-align:center;color:#64748b;margin-bottom:48px;font-size:1rem}
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+    .feature{background:#1a1a2a;border:1px solid #2a2a40;border-radius:12px;padding:24px;transition:border-color .2s}
+    .feature:hover{border-color:#3b82f6}
+    .feature-icon{font-size:2rem;margin-bottom:12px}
+    .feature h3{font-size:1rem;font-weight:600;color:#f1f5f9;margin-bottom:6px}
+    .feature p{font-size:.9rem;color:#64748b}
+    .why{background:#131320;border-top:1px solid #1e1e30;border-bottom:1px solid #1e1e30}
+    .why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}
+    .why-item{text-align:center}
+    .why-item .icon{font-size:2.5rem;margin-bottom:12px}
+    .why-item h3{font-size:.95rem;font-weight:600;color:#e2e8f0;margin-bottom:4px}
+    .why-item p{font-size:.85rem;color:#475569}
+    .steps{counter-reset:step}
+    .step{display:flex;gap:20px;margin-bottom:28px;align-items:flex-start}
+    .step-num{flex-shrink:0;width:36px;height:36px;background:#1e3a5f;border:2px solid #3b82f6;color:#60a5fa;font-weight:700;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+    .step-content h3{font-size:.95rem;font-weight:600;color:#e2e8f0;margin-bottom:4px}
+    .step-content p{font-size:.875rem;color:#64748b}
+    .step-content code{background:#1e1e2e;color:#93c5fd;padding:2px 8px;border-radius:4px;font-size:.85rem}
+    .cta{background:linear-gradient(135deg,#1e3a5f,#0f3460);border-top:1px solid #2a3f5f;text-align:center;padding:64px 24px}
+    .cta h2{font-size:2rem;font-weight:700;color:#fff;margin-bottom:12px}
+    .cta p{color:#94a3b8;margin-bottom:32px}
+    footer{background:#0a0a0f;border-top:1px solid #1a1a25;text-align:center;padding:32px 24px;font-size:13px;color:#334155}
+    footer a{color:#475569}
+    .en-section{background:#0e0e1a;border-top:1px solid #1a1a28}
+    .en-box{max-width:800px;margin:0 auto;padding:48px 24px;text-align:center}
+    .en-box h2{font-size:1.5rem;font-weight:700;color:#e2e8f0;margin-bottom:12px}
+    .en-box p{color:#64748b;font-size:.95rem;margin-bottom:8px}
+    .en-tags{margin-top:20px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+    .en-tag{background:#1a1a2a;border:1px solid #2a2a40;color:#64748b;font-size:12px;padding:4px 12px;border-radius:20px}
   </style>
 </head>
 <body>
 
 <section class="hero">
-  <div class="hero-badge">📷 Gratis &amp; Open Source</div>
-  <h1>Jouw foto's terug<br><span>in eigen beheer</span></h1>
-  <p>Stop met betalen voor clouddiensten die jouw herinneringen gebruiken. Organiseer al je foto's lokaal — veilig, privé en voor altijd van jou.</p>
-  <div class="hero-knoppen">
-    <a href="https://github.com/boulbaal/fotoApp/releases" class="btn-hero-primair">⬇️ Gratis downloaden</a>
-    <a href="https://github.com/boulbaal/fotoApp" class="btn-hero-sec">⭐ Bekijk op GitHub</a>
+  <div class="hero-badge">&#10024; Versie 1.0.0 — Gratis &amp; Open Source</div>
+  <h1>Beheer al je foto's<br><span>lokaal, privé, gratis</span></h1>
+  <p>FotoApp is een desktopapplicatie voor het organiseren van duizenden foto's en video's — zonder cloud, zonder abonnement, zonder gedoe.</p>
+  <div>
+    <a href="https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe" class="btn-download">
+      &#11015;&#65039; Download voor Windows
+    </a>
+    <a href="https://github.com/boulbaal/fotoApp" class="btn-secondary">GitHub &rarr;</a>
   </div>
+  <div class="hero-meta">Windows 10/11 &middot; 64-bit &middot; ~95 MB &middot; Versie 1.0.0</div>
 </section>
 
-<section class="probleem">
-  <h2>Het probleem met Google Photos, iCloud en OneDrive</h2>
-  <p>
-    Je hebt duizenden foto's gemaakt. Van vakanties, verjaardagen, van je kinderen die opgroeien.
-    Ze staan nu op een server ergens in Amerika — en je betaalt elke maand om ze daar te houden.<br><br>
-    <strong>In 2024–2025 veranderden Google en Microsoft hun voorwaarden opnieuw.</strong>
-    Jouw foto's worden gebruikt om AI te trainen. Abonnementen worden duurder.
-    En als je stopt met betalen? Dan raken je herinneringen mogelijk verloren.<br><br>
-    Er is een beter alternatief.
-  </p>
-</section>
-
-<section class="vergelijk">
-  <h2>FotoApp vs. de rest</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Eigenschap</th>
-        <th>Google Photos</th>
-        <th>iCloud</th>
-        <th class="fotoapp-col">FotoApp ✦</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Lokaal — geen internet vereist</td><td class="nee">✗</td><td class="nee">✗</td><td class="ja fotoapp-col">✓</td></tr>
-      <tr><td>Geen account nodig</td><td class="nee">✗</td><td class="nee">✗</td><td class="ja fotoapp-col">✓</td></tr>
-      <tr><td>Geen maandelijkse kosten</td><td class="nee">✗</td><td class="nee">✗</td><td class="ja fotoapp-col">✓</td></tr>
-      <tr><td>Open source (controleerbaar)</td><td class="nee">✗</td><td class="nee">✗</td><td class="ja fotoapp-col">✓</td></tr>
-      <tr><td>Gebruikt foto's voor AI</td><td class="nee">✓</td><td class="nee">✓</td><td class="ja fotoapp-col">✗ Nooit</td></tr>
-      <tr><td>Duplicaten opsporen</td><td class="ja">✓</td><td class="nee">✗</td><td class="ja fotoapp-col">✓</td></tr>
-      <tr><td>Export met locatienaam</td><td class="nee">✗</td><td class="nee">✗</td><td class="ja fotoapp-col">✓ Uniek</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<section class="features">
-  <h2>Wat doet FotoApp?</h2>
-  <div class="features-grid">
-    <div class="feature-kaart"><div class="feature-icoon">🔍</div><h3>Duplicaten opsporen</h3><p>Vindt automatisch alle dubbele foto's, ook over verschillende schijven heen.</p></div>
-    <div class="feature-kaart"><div class="feature-icoon">🗺️</div><h3>Foto's op de kaart</h3><p>Zie meteen waar en wanneer je hebt gefotografeerd op een interactieve kaart.</p></div>
-    <div class="feature-kaart"><div class="feature-icoon">📦</div><h3>Slim exporteren</h3><p>Kopieert naar <code>Belgie_Gent_14_06_2023.jpg</code> in jaar/maand mappen. Originelen blijven onaangeroerd.</p></div>
-    <div class="feature-kaart"><div class="feature-icoon">📱</div><h3>Meerdere bronnen</h3><p>Scan tegelijk je pc, externe schijf, USB-stick en smartphone-backup.</p></div>
-    <div class="feature-kaart"><div class="feature-icoon">🌍</div><h3>GPS privacy-first</h3><p>Locaties ophalen via OpenStreetMap — geen Google, geen API-sleutel nodig.</p></div>
-    <div class="feature-kaart"><div class="feature-icoon">🔒</div><h3>100% lokaal</h3><p>Geen server van ons, geen account, geen upload. Alles blijft op jouw machine.</p></div>
+<div class="section">
+  <h2 class="section-title">Alles wat je nodig hebt</h2>
+  <p class="section-sub">Gebouwd voor mensen met duizenden foto's verspreid over meerdere locaties.</p>
+  <div class="features">
+    <div class="feature"><div class="feature-icon">&#128269;</div><h3>Duplicaatdetectie</h3><p>Vindt exact dubbele foto's op basis van MD5-hash, ook als de bestandsnaam verschilt.</p></div>
+    <div class="feature"><div class="feature-icon">&#128506;&#65039;</div><h3>GPS-kaart</h3><p>Bekijk welke foto's waar zijn genomen op een interactieve kaart. Handmatig GPS toewijzen ook mogelijk.</p></div>
+    <div class="feature"><div class="feature-icon">&#128202;</div><h3>Dashboard &amp; statistieken</h3><p>Statistieken per jaar, camera, land — voor zowel foto's als video's afzonderlijk.</p></div>
+    <div class="feature"><div class="feature-icon">&#128247;</div><h3>RAW-ondersteuning</h3><p>Thumbnails van RAW-bestanden via exiftool (Canon CR2/CR3, Nikon NEF, Sony ARW, enz.).</p></div>
+    <div class="feature"><div class="feature-icon">&#128228;</div><h3>Slimme export</h3><p>Exporteer met automatische bestandsnamen: <code>Nederland_Amsterdam_15_06_2023.jpg</code> geordend per jaar/maand.</p></div>
+    <div class="feature"><div class="feature-icon">&#127987;&#65039;</div><h3>Google Takeout</h3><p>Importeer je Google Foto's export inclusief datum en GPS-data uit de JSON-bestanden.</p></div>
+    <div class="feature"><div class="feature-icon">&#127758;</div><h3>Automatische geocoding</h3><p>GPS-coördinaten worden automatisch omgezet naar stad en land via Nominatim (geen API-sleutel nodig).</p></div>
+    <div class="feature"><div class="feature-icon">&#9889;</div><h3>Snel &amp; responsief</h3><p>Duizenden foto's pagineren zonder vertraging. Thumbnails worden gecached in de database.</p></div>
+    <div class="feature"><div class="feature-icon">&#127916;</div><h3>Video-ondersteuning</h3><p>MP4, MOV, AVI en meer. Aparte statistieken en grafieken voor foto's en video's.</p></div>
   </div>
-</section>
+</div>
 
-<section class="doneer">
-  <h2>❤️ Steun dit project</h2>
-  <p>FotoApp is gratis en blijft gratis. Als het jou geholpen heeft, overweeg dan een kleine bijdrage om de ontwikkeling te steunen.</p>
-  <div class="doneer-knoppen">
-    <a href="https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen" class="btn-paypal">💳 Doneer via PayPal</a>
-    <a href="https://github.com/boulbaal/fotoApp" class="btn-github">⭐ Ster op GitHub</a>
+<div class="why">
+  <div class="section">
+    <h2 class="section-title">Waarom lokaal?</h2>
+    <p class="section-sub">Jouw foto's zijn van jou — niet van een clouddienst.</p>
+    <div class="why-grid">
+      <div class="why-item"><div class="icon">&#128274;</div><h3>Privé</h3><p>Geen uploads. Geen servers. Alles blijft op jouw machine.</p></div>
+      <div class="why-item"><div class="icon">&#128176;</div><h3>Gratis voor altijd</h3><p>Geen abonnement, geen "premium" versie. Volledig open source.</p></div>
+      <div class="why-item"><div class="icon">&#128246;</div><h3>Offline</h3><p>Werkt volledig zonder internet (na installatie). Geen afhankelijkheid van externe servers.</p></div>
+      <div class="why-item"><div class="icon">&#128640;</div><h3>Snel</h3><p>SQLite lokale database. Geen netwerkvertraging. Directe resultaten.</p></div>
+    </div>
   </div>
-</section>
+</div>
+
+<div class="section">
+  <h2 class="section-title">Installeren in 3 stappen</h2>
+  <p class="section-sub">Windows 10 of hoger vereist.</p>
+  <div style="max-width:540px;margin:0 auto" class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><h3>Download de installer</h3><p>Klik op de downloadknop. Het bestand heet <code>FotoApp-Setup-1.0.0.exe</code> (~95 MB).</p></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><h3>Installeer de app</h3><p>Dubbelklik op het bestand. Bij een SmartScreen-waarschuwing: klik <strong>"Meer informatie"</strong> &rarr; <strong>"Toch uitvoeren"</strong>.</p></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><h3>Open FotoApp &amp; voeg een map toe</h3><p>Start via het startmenu. Ga naar <strong>Bronnen</strong> &rarr; kies een map met foto's &rarr; klik <strong>Scannen</strong>.</p></div></div>
+  </div>
+</div>
+
+<div class="en-section">
+  <div class="en-box">
+    <h2>Free local photo management software</h2>
+    <p>FotoApp is a free, open-source desktop application for organizing photos and videos without cloud dependency.</p>
+    <p>Features include duplicate detection, GPS map, EXIF viewer, RAW support, Google Takeout import, and smart export with automatic file naming.</p>
+    <p>Available for Windows. Source code available on GitHub for Mac and Linux builds.</p>
+    <p style="margin-top:12px;color:#334155;font-size:.85rem">Keywords: free photo organizer, duplicate photo finder, local photo management, offline photo software, EXIF viewer desktop, GPS photo map, RAW photo browser, Google Takeout import tool, photo backup software Windows</p>
+    <div class="en-tags">
+      <span class="en-tag">photo organizer</span><span class="en-tag">duplicate finder</span><span class="en-tag">EXIF viewer</span><span class="en-tag">GPS map</span><span class="en-tag">RAW support</span><span class="en-tag">Google Takeout</span><span class="en-tag">offline / no cloud</span><span class="en-tag">free &amp; open source</span><span class="en-tag">Windows desktop app</span>
+    </div>
+  </div>
+</div>
+
+<div class="cta">
+  <h2>Klaar om te beginnen?</h2>
+  <p>Download gratis. Geen account. Geen cloud. Geen limiet.</p>
+  <a href="https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe" class="btn-download">&#11015;&#65039; Download FotoApp voor Windows</a>
+</div>
 
 <footer>
-  <p>Gemaakt door <a href="mailto:aboulbahaiem@gmail.com">Ali Boulbahaiem</a> — Van de mens, voor de mens.<br>
-  <a href="https://github.com/boulbaal/fotoApp">GitHub</a> · <a href="https://github.com/boulbaal/fotoApp/blob/main/LICENSE">Licentie</a> · <a href="mailto:aboulbahaiem@gmail.com">Contact</a></p>
+  <p>FotoApp is open source — <a href="https://github.com/boulbaal/fotoApp">github.com/boulbaal/fotoApp</a></p>
+  <p style="margin-top:8px">Gemaakt door Ali &middot; Versie 1.0.0 &middot; <a href="https://github.com/boulbaal/fotoApp/releases">Alle releases</a></p>
 </footer>
 
 </body>

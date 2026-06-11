@@ -12,8 +12,11 @@
     "electron:dev": "ELECTRON_RUN=1 electron .",
     "build": "electron-builder --publish never",
     "build:win": "electron-builder --win --publish never",
+    "build:win:publish": "electron-builder --win --publish always",
     "build:mac": "electron-builder --mac --publish never",
+    "build:mac:publish": "electron-builder --mac --publish always",
     "build:linux": "electron-builder --linux --publish never",
+    "build:linux:publish": "electron-builder --linux --publish always",
     "rebuild": "electron-rebuild",
     "test": "node tests/run-tests.js"
   },
@@ -71,6 +74,11 @@
       ],
       "icon": "build/icon.png",
       "category": "Graphics"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "boulbaal",
+      "repo": "fotoApp"
     },
     "nsis": {
       "oneClick": false,
