@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-windows:
-    runs-on: windows-2022   # windows-latest gebruikt VS 2026 die node-gyp niet herkent
+    runs-on: windows-2022
 
     steps:
       - name: Code ophalen
@@ -19,10 +19,10 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Python instellen (nodig voor native modules)
+      - name: Python instellen
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'   # 3.12 heeft geen distutils meer; 3.11 wel
 
       - name: Dependencies installeren
         run: npm install
