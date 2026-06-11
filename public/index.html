@@ -29,6 +29,7 @@
         <button data-pagina="dashboard" class="nav-fase1" onclick="toonPagina('dashboard')">📊 Dashboard</button>
         <button data-pagina="bronnen" class="nav-fase1" onclick="toonPagina('bronnen')">🗄️ Bronnen</button>
         <button data-pagina="fotos" onclick="toonPagina('fotos', null)">🖼️ Foto's</button>
+        <button data-pagina="videos" onclick="toonPagina('videos')">🎬 Video's</button>
         <button data-pagina="duplicaten" class="nav-fase1" onclick="toonPagina('duplicaten')">🔁 Duplicaten</button>
         <button data-pagina="kaart" class="nav-fase1" onclick="toonPagina('kaart')">🗺️ Kaart</button>
         <button data-pagina="gpsbulk" class="nav-fase1" onclick="toonPagina('gpsbulk')">📍 GPS toewijzen</button>
@@ -63,12 +64,28 @@
     </div>
 
   </div>
+
+  <!-- DONEER KNOP — onderaan sidebar, altijd zichtbaar -->
+  <div class="sidebar-doneer">
+    <button data-pagina="doneer" onclick="toonPagina('doneer')" class="doneer-sidebar-knop">
+      ❤️ Steun dit project
+    </button>
+  </div>
+
 </aside>
 
 <main>
 
   <!-- DASHBOARD -->
   <div class="pagina actief" id="paginaDashboard">
+    <!-- Manifest banner -->
+    <div class="manifest-banner">
+      <div class="manifest-banner-tekst">
+        <strong>📷 Jouw foto's. Jouw computer. Jouw controle.</strong>
+        <span>Google, Apple en Microsoft bewaren jouw herinneringen — en worden er rijker van. FotoApp geeft ze terug aan jou. Geen cloud, geen abonnement, geen surveillance.</span>
+      </div>
+      <button class="manifest-banner-sluit" onclick="this.closest('.manifest-banner').style.display='none'" title="Verberg">✕</button>
+    </div>
     <!-- Fase 2 locatie tip -->
     <div id="fase2LocatieTip" style="display:none"></div>
     <!-- Fase 1 todo -->
@@ -79,17 +96,32 @@
       </div>
       <div id="todoItems"></div>
     </div>
+    <div class="stat-sectie-label">📷 Foto's</div>
     <div class="stat-grid">
-      <div class="stat-kaart"><div class="getal" id="statTotaal">—</div><div class="label">Totaal foto's</div></div>
-      <div class="stat-kaart"><div class="getal" id="statDuplicaten">—</div><div class="label">Duplicaten</div></div>
-      <div class="stat-kaart"><div class="getal" id="statMetGps">—</div><div class="label">Met locatie</div></div>
-      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { zonder_gps: true, _label: '📍 Zonder locatie' })" title="Klik om foto's zonder GPS te zien"><div class="getal" id="statZonderGps">—</div><div class="label">Zonder locatie</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos')" title="Bekijk alle foto's"><div class="getal" id="statTotaal">—</div><div class="label">Totaal</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { zonder_kopien: true, _label: '📷 Unieke foto\'s' })" title="Unieke foto's (excl. duplicaten)"><div class="getal" id="statFotosUniek">—</div><div class="label">Uniek</div></div>
+      <div class="stat-kaart"><div class="getal" id="statFotosDubbel">—</div><div class="label">Dubbel</div></div>
+      <div class="stat-kaart"><div class="getal" id="statFotosMetGps">—</div><div class="label">Met locatie</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { zonder_gps: true, _label: '📍 Foto\'s zonder locatie' })" title="Foto's zonder GPS"><div class="getal" id="statFotosZonderGps">—</div><div class="label">Zonder locatie</div></div>
+    </div>
+    <div class="stat-sectie-label">🎬 Video's</div>
+    <div class="stat-grid">
+      <div class="stat-kaart klikbaar" onclick="toonPagina('videos')" title="Bekijk alle video's"><div class="getal" id="statVideos">—</div><div class="label">Totaal</div></div>
+      <div class="stat-kaart"><div class="getal" id="statVideosUniek">—</div><div class="label">Uniek</div></div>
+      <div class="stat-kaart"><div class="getal" id="statVideosDubbel">—</div><div class="label">Dubbel</div></div>
+      <div class="stat-kaart"><div class="getal" id="statVideosMetGps">—</div><div class="label">Met locatie</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('videos', { zonder_gps: true, _label: '📍 Video\'s zonder locatie' })" title="Video's zonder GPS"><div class="getal" id="statVideosZonderGps">—</div><div class="label">Zonder locatie</div></div>
+    </div>
+    <div class="stat-grid stat-grid-enkel">
       <div class="stat-kaart"><div class="getal" id="statGrootte">—</div><div class="label">Totale grootte</div></div>
     </div>
     <div class="grafiek-grid">
       <div class="grafiek-kaart"><h3>📅 Foto's per jaar</h3><div id="grafiekJaar"></div></div>
-      <div class="grafiek-kaart"><h3>📷 Camera's</h3><div id="grafiekCamera"></div></div>
-      <div class="grafiek-kaart"><h3>🌍 Landen</h3><div id="grafiekLand"></div></div>
+      <div class="grafiek-kaart"><h3>🎬 Video's per jaar</h3><div id="grafiekJaarVideo"></div></div>
+      <div class="grafiek-kaart"><h3>📷 Camera's (foto's)</h3><div id="grafiekCamera"></div></div>
+      <div class="grafiek-kaart"><h3>🎬 Camera's (video's)</h3><div id="grafiekCameraVideo"></div></div>
+      <div class="grafiek-kaart"><h3>🌍 Landen (foto's)</h3><div id="grafiekLand"></div></div>
+      <div class="grafiek-kaart"><h3>🌍 Landen (video's)</h3><div id="grafiekLandVideo"></div></div>
       <div class="grafiek-kaart"><h3>💾 Per bron</h3><div id="grafiekBron"></div></div>
     </div>
   </div>
@@ -165,9 +197,39 @@
     <div class="paginering" id="fotosPaginering"></div>
   </div>
 
+  <!-- VIDEO'S -->
+  <div class="pagina" id="paginaVideos">
+    <div class="filters">
+      <input type="text" id="zoekInputVideo" placeholder="🔍 Zoeken op naam, stad..." oninput="laadVideos(1)">
+      <select id="filterBronVideo" onchange="laadVideos(1)">
+        <option value="">Alle bronnen</option>
+      </select>
+      <select id="filterJaarVideo" onchange="laadVideos(1)">
+        <option value="">Alle jaren</option>
+      </select>
+      <span id="videosTeller" style="margin-left:auto; color:#888; font-size:13px;"></span>
+    </div>
+    <!-- Thumbnails achtergrond banner -->
+    <div id="videoThumbBanner" style="display:none; background:#111827; border:1px solid #1f2937; border-radius:8px; padding:12px 18px; margin-bottom:16px; align-items:center; gap:14px; flex-wrap:wrap;">
+      <span style="font-size:13px; color:#a78bfa;">🎬</span>
+      <span id="videoThumbTeller" style="font-size:13px; color:#888;"></span>
+      <div id="videoThumbVoortgang" style="display:none; font-size:12px; color:#6b7280;"></div>
+      <button class="btn btn-secundair" style="font-size:12px; padding:5px 12px; margin-left:auto;" onclick="startVideoThumbnails()" id="videoThumbKnop">
+        🖼️ Start nu
+      </button>
+    </div>
+    <div class="foto-grid" id="videoGrid"></div>
+    <div class="paginering" id="videosPaginering"></div>
+  </div>
+
   <!-- KAART -->
   <div class="pagina pagina-kaart" id="paginaKaart">
     <div class="kaart-toolbar">
+      <div class="kaart-type-groep">
+        <button id="kaartTypeAlles"  class="kaart-type-btn actief" onclick="setKaartTypeFilter('')">Alles</button>
+        <button id="kaartTypeFotos"  class="kaart-type-btn"        onclick="setKaartTypeFilter('0')">📷 Foto's</button>
+        <button id="kaartTypeVideos" class="kaart-type-btn"        onclick="setKaartTypeFilter('1')">🎬 Video's</button>
+      </div>
       <select id="kaartJaarFilter" onchange="filterKaart()">
         <option value="">Alle jaren</option>
       </select>
@@ -199,7 +261,7 @@
   <div class="pagina" id="paginaGpsbulk">
     <div class="gpsbulk-kop">
       <h2>📍 GPS locaties groepsgewijs toewijzen</h2>
-      <p>Foto's zonder GPS worden gegroepeerd op tijdstip — meer dan 2 uur verschil = nieuwe groep. Wijs per groep één locatie toe.</p>
+      <p>Foto's en video's zonder GPS worden gegroepeerd op tijdstip — meer dan 2 uur verschil = nieuwe groep. Wijs per groep één locatie toe.</p>
       <div id="gpsBulkInfo" class="gpsbulk-info"></div>
     </div>
     <div id="gpsBulkGroepen"></div>
@@ -321,7 +383,98 @@
         </div>
         <div id="klaarFoutLog" style="display:none; margin-top:16px; max-height:200px; overflow-y:auto; font-size:12px; color:#f87171;"></div>
         <button class="btn btn-secundair" style="margin-top:20px;" onclick="resetExportUI()">↩ Nieuw export</button>
+
+        <!-- Donatie-prompt na export -->
+        <div class="export-doneer-prompt">
+          <div class="export-doneer-tekst">
+            <span class="export-doneer-hart">❤️</span>
+            <div>
+              <strong>FotoApp heeft jouw foto's veilig gearchiveerd.</strong><br>
+              <span>Dit project is gratis en blijft gratis. Als het jou geholpen heeft, overweeg dan een kleine bijdrage.</span>
+            </div>
+          </div>
+          <div class="export-doneer-knoppen">
+            <a href="https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen" target="_blank" class="btn-doneer-paypal">💳 Doneer via PayPal</a>
+            <button class="btn btn-secundair" style="font-size:12px;" onclick="toonPagina('doneer')">Meer info</button>
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
+
+  <!-- DONEER PAGINA -->
+  <div class="pagina" id="paginaDoneer">
+    <div class="doneer-hero">
+      <div class="doneer-hero-tekst">
+        <h2>❤️ Steun FotoApp</h2>
+        <p class="doneer-subtitel">Van de mens, voor de mens. Gratis en open source — voor altijd.</p>
+      </div>
+    </div>
+
+    <div class="doneer-manifest">
+      <p>
+        In 2024–2025 veranderden Google, Apple en Microsoft opnieuw hun voorwaarden.
+        Foto's worden gebruikt om AI te trainen. Abonnementen worden duurder.
+        Miljoenen mensen hangen met hun meest persoonlijke herinneringen aan systemen die ze niet controleren.
+      </p>
+      <p>
+        <strong>FotoApp is het antwoord.</strong> Jouw foto's, op jouw computer, zonder cloud, zonder abonnement, zonder surveillance.
+        Dit project is en blijft gratis — voor iedereen.
+      </p>
+      <p>
+        Maar software onderhouden kost tijd. Als FotoApp jou geholpen heeft — of als je gewoon gelooft in het idee —
+        dan kun je het steunen. Elk bedrag, hoe klein ook, maakt een verschil.
+      </p>
+    </div>
+
+    <div class="doneer-opties">
+
+      <!-- PayPal donatie -->
+      <div class="doneer-kaart doneer-kaart-featured">
+        <div class="doneer-kaart-icoon">💳</div>
+        <h3>Doneer via PayPal</h3>
+        <p>Kies zelf hoeveel je geeft. Eenmalig, geen verplichtingen.</p>
+        <div class="doneer-bedragen">
+          <a href="https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&amount=5&item_name=FotoApp+ondersteunen" target="_blank" class="doneer-bedrag-knop">€5</a>
+          <a href="https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&amount=10&item_name=FotoApp+ondersteunen" target="_blank" class="doneer-bedrag-knop">€10</a>
+          <a href="https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&amount=19&item_name=FotoApp+ondersteunen" target="_blank" class="doneer-bedrag-knop doneer-populair">€19 ★</a>
+          <a href="https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&amount=50&item_name=FotoApp+ondersteunen" target="_blank" class="doneer-bedrag-knop">€50</a>
+        </div>
+        <a href="https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen" target="_blank" class="btn-doneer-paypal" style="margin-top:16px; display:inline-block;">Ander bedrag kiezen</a>
+      </div>
+
+      <!-- Supporter Edition -->
+      <div class="doneer-kaart">
+        <div class="doneer-kaart-icoon">🌟</div>
+        <h3>Supporter Edition</h3>
+        <p>Doneer €19 en word vermeld als officiële supporter in de app en op GitHub.</p>
+        <ul class="doneer-lijst">
+          <li>✓ Naam in de credits van de app</li>
+          <li>✓ Supporter-badge in de "Over" pagina</li>
+          <li>✓ Exacte dezelfde software — geen extra's nodig</li>
+          <li>✓ De warme wetenschap dat je dit project draaiende houdt</li>
+        </ul>
+        <a href="mailto:aboulbahaiem@gmail.com?subject=Supporter%20Edition%20FotoApp&body=Hallo%20Ali%2C%0A%0AIk%20wil%20graag%20Supporter%20worden%20van%20FotoApp.%0A%0ANaam%20voor%20in%20de%20credits%3A%20" class="btn-supporter">📧 Word Supporter — €19</a>
+      </div>
+
+      <!-- Gratis steunen -->
+      <div class="doneer-kaart">
+        <div class="doneer-kaart-icoon">⭐</div>
+        <h3>Gratis steunen</h3>
+        <p>Geen geld, maar toch bijdragen? Dit helpt net zo goed:</p>
+        <ul class="doneer-lijst">
+          <li>⭐ <a href="https://github.com/boulbaal/fotoApp" target="_blank">Geef een ster op GitHub</a></li>
+          <li>🔗 Deel FotoApp met vrienden en familie</li>
+          <li>🐛 <a href="https://github.com/boulbaal/fotoApp/issues" target="_blank">Meld een bug of idee</a></li>
+          <li>🛠️ <a href="https://github.com/boulbaal/fotoApp" target="_blank">Draag code bij</a></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="doneer-footer">
+      <p>Vragen of wil je contact? <a href="mailto:aboulbahaiem@gmail.com">aboulbahaiem@gmail.com</a></p>
+      <p style="font-size:12px; color:#555; margin-top:8px;">FotoApp is niet-commercieel en wordt gebouwd in vrije tijd. Donaties worden direct gebruikt voor verdere ontwikkeling.</p>
     </div>
   </div>
 
@@ -492,6 +645,7 @@
 <script src="/js/scanner.js"></script>
 <script src="/js/bronnen.js"></script>
 <script src="/js/fotos.js"></script>
+<script src="/js/videos.js"></script>
 <script src="/js/duplicaten.js"></script>
 <script src="/js/mapkiezer.js"></script>
 <script src="/js/gpskaart.js"></script>

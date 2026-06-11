@@ -40,19 +40,32 @@ wss.on('connection', (ws) => {
     try { msg = JSON.parse(raw); } catch { return; }
 
     if (msg.type === 'kies_map') {
-      const startPad = msg.startPad || process.env.HOME || '/home';
-      execFile('zenity', [
-        '--file-selection',
-        '--directory',
-        '--title=Kies een map om te scannen',
-        `--filename=${startPad}/`
-      ], (err, stdout) => {
-        if (err || !stdout.trim()) {
-          ws.send(JSON.stringify({ type: 'map_fout', fout: 'Geen map gekozen' }));
-        } else {
-          ws.send(JSON.stringify({ type: 'map_gekozen', pad: stdout.trim() }));
-        }
-      });
+      const startPad = msg.startPad || process.env.HOME || process.env.USERPROFILE || '/home';
+
+      if (global.electronPickFolder) {
+        // Electron: gebruik native dialog (werkt op Windows, Mac én Linux)
+        global.electronPickFolder(startPad).then(pad => {
+          if (!pad) {
+            ws.send(JSON.stringify({ type: 'map_fout', fout: 'Geen map gekozen' }));
+          } else {
+            ws.send(JSON.stringify({ type: 'map_gekozen', pad }));
+          }
+        });
+      } else {
+        // Standalone op Linux: gebruik zenity
+        execFile('zenity', [
+          '--file-selection',
+          '--directory',
+          '--title=Kies een map om te scannen',
+          `--filename=${startPad}/`
+        ], (err, stdout) => {
+          if (err || !stdout.trim()) {
+            ws.send(JSON.stringify({ type: 'map_fout', fout: 'Geen map gekozen' }));
+          } else {
+            ws.send(JSON.stringify({ type: 'map_gekozen', pad: stdout.trim() }));
+          }
+        });
+      }
     }
   });
 });

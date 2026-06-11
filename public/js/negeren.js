@@ -28,13 +28,15 @@ async function laadNegeren(pagina = 1) {
          data-foto="${f.id}"
          onclick="toggleNegeerItem(${f.id}, this)">
       ${f.is_duplicaat ? '<div class="status-badge badge-dup">DUP</div>' : ''}
+      ${f.geexporteerd ? '<div class="export-badge">✓</div>' : ''}
       <div class="status-badge ${f.genegeerd ? 'badge-negeren' : 'badge-meenemen'}">
         ${f.genegeerd ? 'NEGEREN' : 'MEENEMEN'}
       </div>
       <div class="bron-badge">${f.bron_icoon || '💻'}</div>
       ${f.thumbnail
         ? `<img src="${f.thumbnail}" loading="lazy" alt="${f.bestandsnaam}">`
-        : `<div class="no-img">🖼️</div>`}
+        : `<div class="no-img">${f.is_video ? '🎬' : '🖼️'}</div>`}
+      ${f.is_video ? `<div class="video-badge">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>` : ''}
       <div class="info">
         <div class="naam">${f.bestandsnaam}</div>
         <div class="datum">${formatDatum(f.datum_foto)}${f.gps_stad ? ' · ' + f.gps_stad : ''}</div>
@@ -130,7 +132,8 @@ async function laadGenegeerd(pagina = 1) {
       <div class="bron-badge">${f.bron_icoon || '💻'}</div>
       ${f.thumbnail
         ? `<img src="${f.thumbnail}" loading="lazy" alt="${f.bestandsnaam}">`
-        : `<div class="no-img">🖼️</div>`}
+        : `<div class="no-img">${f.is_video ? '🎬' : '🖼️'}</div>`}
+      ${f.is_video ? `<div class="video-badge">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>` : ''}
       <div class="info">
         <div class="naam">${f.bestandsnaam}</div>
         <div class="datum">${formatDatum(f.datum_foto)}${f.gps_stad ? ' · ' + f.gps_stad : ''}</div>

@@ -1,15 +1,22 @@
 {
   "name": "fotoapp",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
+  "description": "Lokale foto- en videobeheer applicatie",
+  "main": "electron/main.js",
+  "author": "Ali <aboulbahaiem@gmail.com>",
   "license": "ISC",
   "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "electron": "electron .",
+    "electron:dev": "ELECTRON_RUN=1 electron .",
+    "build": "electron-builder --publish never",
+    "build:win": "electron-builder --win --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:linux": "electron-builder --linux --publish never",
+    "rebuild": "electron-rebuild",
+    "test": "node tests/run-tests.js"
+  },
   "dependencies": {
     "better-sqlite3": "^12.10.0",
     "chokidar": "^5.0.0",
@@ -18,5 +25,60 @@
     "node-cron": "^4.2.1",
     "sharp": "^0.34.5",
     "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.6.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.ali.fotoapp",
+    "productName": "FotoApp",
+    "copyright": "Copyright © 2025 Ali",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**",
+      "src/**",
+      "public/**",
+      "index.js",
+      "package.json"
+    ],
+    "extraResources": [],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**",
+      "node_modules/sharp/**"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.photography"
+    },
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] },
+        { "target": "deb", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png",
+      "category": "Graphics"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

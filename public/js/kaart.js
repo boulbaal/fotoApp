@@ -2,13 +2,14 @@ let kaartInstantie   = null;
 let alleLocaties     = [];
 let markerGroep      = null;
 let actieveLocatie   = null;
+let kaartTypeFilter  = ''; // '' = alles, '0' = foto's, '1' = video's
 
 // ─── INITIALISATIE ────────────────────────────────────────────────────────────
 
 async function laadKaart() {
   if (kaartInstantie) {
     kaartInstantie.invalidateSize();
-    await herlaadLocaties(); // altijd data herladen bij navigatie naar kaart
+    await herlaadLocaties();
     return;
   }
 
@@ -18,14 +19,12 @@ async function laadKaart() {
     zoomControl: true,
   });
 
-  // Dark tile layer (past bij het donkere thema)
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://openstreetmap.org">OpenStreetMap</a>',
     subdomains: 'abcd',
     maxZoom: 19
   }).addTo(kaartInstantie);
 
-  // Sluit panel bij klik op de kaart
   kaartInstantie.on('click', () => sluitKaartPanelDirect());
 
   await herlaadLocaties();
@@ -34,7 +33,8 @@ async function laadKaart() {
 // ─── DATA LADEN ───────────────────────────────────────────────────────────────
 
 async function herlaadLocaties() {
-  alleLocaties = await fetch('/api/kaart/locaties').then(r => r.json());
+  const params = kaartTypeFilter !== '' ? `?is_video=${kaartTypeFilter}` : '';
+  alleLocaties = await fetch('/api/kaart/locaties' + params).then(r => r.json());
   vulJaarFilter();
   vulLandFilter();
   tekenMarkers(alleLocaties);
@@ -72,6 +72,17 @@ function vulLandFilter() {
 
 // ─── FILTERS ──────────────────────────────────────────────────────────────────
 
+function setKaartTypeFilter(type) {
+  kaartTypeFilter = type;
+  // Update knop-stijlen
+  document.querySelectorAll('.kaart-type-btn').forEach(b => b.classList.remove('actief'));
+  const actief = document.getElementById(
+    type === '0' ? 'kaartTypeFotos' : type === '1' ? 'kaartTypeVideos' : 'kaartTypeAlles'
+  );
+  if (actief) actief.classList.add('actief');
+  herlaadLocaties();
+}
+
 function filterKaart() {
   const jaar = document.getElementById('kaartJaarFilter').value;
   const land = document.getElementById('kaartLandFilter').value;
@@ -89,7 +100,7 @@ function filterKaart() {
 function resetKaartFilters() {
   document.getElementById('kaartJaarFilter').value = '';
   document.getElementById('kaartLandFilter').value = '';
-  filterKaart();
+  setKaartTypeFilter('');
 }
 
 // ─── MARKERS TEKENEN ──────────────────────────────────────────────────────────
@@ -98,8 +109,18 @@ function tekenMarkers(locaties) {
   if (markerGroep) kaartInstantie.removeLayer(markerGroep);
 
   const totaal = locaties.reduce((s, l) => s + l.aantal, 0);
-  document.getElementById('kaartTeller').textContent =
-    `${locaties.length.toLocaleString()} locaties · ${totaal.toLocaleString()} foto's`;
+  const totaalVideos = locaties.reduce((s, l) => s + (l.aantal_videos || 0), 0);
+  const totaalFotos  = totaal - totaalVideos;
+
+  let tellerTekst;
+  if (kaartTypeFilter === '1') {
+    tellerTekst = `${locaties.length.toLocaleString()} locaties · ${totaal.toLocaleString()} video's`;
+  } else if (kaartTypeFilter === '0') {
+    tellerTekst = `${locaties.length.toLocaleString()} locaties · ${totaal.toLocaleString()} foto's`;
+  } else {
+    tellerTekst = `${locaties.length.toLocaleString()} locaties · ${totaalFotos.toLocaleString()} foto's · ${totaalVideos.toLocaleString()} video's`;
+  }
+  document.getElementById('kaartTeller').textContent = tellerTekst;
 
   markerGroep = L.markerClusterGroup({
     maxClusterRadius: 60,
@@ -125,12 +146,17 @@ function maakFotoIcon(loc) {
   const badge = loc.aantal > 1
     ? `<div class="km-badge">${loc.aantal > 99 ? '99+' : loc.aantal}</div>`
     : '';
+  const alleVideos = loc.aantal_videos > 0 && loc.aantal_videos === loc.aantal;
+  const gemengd    = loc.aantal_videos > 0 && loc.aantal_videos < loc.aantal;
+  const videoBadge = alleVideos ? '<div class="km-video-badge">▶</div>'
+                   : gemengd   ? '<div class="km-video-badge km-gemengd">▶/📷</div>'
+                   : '';
 
   return L.divIcon({
     className: '',
     html: `<div class="km-marker ${heeftThumbnail ? 'km-heeft-thumb' : ''}"
                 style="${heeftThumbnail ? `background-image:url('/api/fotos/${loc.voorbeeld_id}/thumbnail')` : ''}">
-             ${badge}
+             ${badge}${videoBadge}
            </div>`,
     iconSize: [52, 52],
     iconAnchor: [26, 26],
@@ -162,10 +188,10 @@ async function toonLocatiePanel(loc) {
     ? loc.jaar_min || ''
     : `${loc.jaar_min}–${loc.jaar_max}`;
   document.getElementById('kaartPanelInfo').textContent =
-    `📷 ${loc.aantal.toLocaleString()} foto${loc.aantal !== 1 ? "'s" : ''} · ${jaarTekst}`;
+    `📷 ${loc.aantal.toLocaleString()} item${loc.aantal !== 1 ? 's' : ''} · ${jaarTekst}`;
 
   document.getElementById('kaartPanelFotos').innerHTML =
-    '<div class="kp-laden">Foto\'s laden...</div>';
+    '<div class="kp-laden">Laden...</div>';
   document.getElementById('kaartPanelOverlay').classList.add('open');
 
   await laadPanelFotos();
@@ -174,22 +200,32 @@ async function toonLocatiePanel(loc) {
 async function laadPanelFotos() {
   if (!actieveLocatie) return;
   const loc    = actieveLocatie;
-  const zonder = '1'; // altijd alleen originelen
+  const zonder = '1';
+  const typeParam = kaartTypeFilter !== '' ? `&is_video=${kaartTypeFilter}` : '';
 
   const fotos = await fetch(
-    `/api/kaart/fotos?lat=${loc.lat}&lon=${loc.lon}&limit=60&zonder_kopien=${zonder}`
+    `/api/kaart/fotos?lat=${loc.lat}&lon=${loc.lon}&limit=60&zonder_kopien=${zonder}${typeParam}`
   ).then(r => r.json());
 
-  // Panelkop bijwerken met werkelijk aantal (kan afwijken na GPS-wijziging)
+  const aantalVideos = fotos.filter(f => f.is_video).length;
+  const aantalFotos  = fotos.length - aantalVideos;
   const jaarTekst = actieveLocatie.jaar_min === actieveLocatie.jaar_max
     ? actieveLocatie.jaar_min || ''
     : `${actieveLocatie.jaar_min}–${actieveLocatie.jaar_max}`;
-  document.getElementById('kaartPanelInfo').textContent =
-    `📷 ${fotos.length.toLocaleString()} foto${fotos.length !== 1 ? "'s" : ''} · ${jaarTekst}`;
+
+  let infoTekst = '';
+  if (aantalFotos > 0 && aantalVideos > 0) {
+    infoTekst = `📷 ${aantalFotos} foto${aantalFotos !== 1 ? "'s" : ''} · 🎬 ${aantalVideos} video${aantalVideos !== 1 ? "'s" : ''} · ${jaarTekst}`;
+  } else if (aantalVideos > 0) {
+    infoTekst = `🎬 ${aantalVideos} video${aantalVideos !== 1 ? "'s" : ''} · ${jaarTekst}`;
+  } else {
+    infoTekst = `📷 ${fotos.length.toLocaleString()} foto${fotos.length !== 1 ? "'s" : ''} · ${jaarTekst}`;
+  }
+  document.getElementById('kaartPanelInfo').textContent = infoTekst;
 
   const grid = document.getElementById('kaartPanelFotos');
   if (!fotos.length) {
-    grid.innerHTML = '<div class="kp-laden">Geen foto\'s meer op deze locatie</div>';
+    grid.innerHTML = '<div class="kp-laden">Geen items op deze locatie</div>';
     return;
   }
 
@@ -199,13 +235,18 @@ async function laadPanelFotos() {
     const badge  = isDup && isOrig  ? '<div class="kp-badge kp-badge-orig">Orig</div>'
                  : isDup && !isOrig ? '<div class="kp-badge kp-badge-dup">Kopie</div>'
                  : '';
+    const videoBadge = f.is_video
+      ? `<div class="video-badge" style="top:auto;bottom:22px;">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>`
+      : '';
+    const geenThumb = f.is_video ? '🎬' : '🖼️';
+    const onclick = f.is_video ? `toonVideoDetail(${f.id})` : `toonDetail(${f.id})`;
     return `
-    <div class="kp-foto" onclick="toonDetail(${f.id})" title="${f.bestandsnaam}">
+    <div class="kp-foto" onclick="${onclick}" title="${f.bestandsnaam}">
       <img src="/api/fotos/${f.id}/thumbnail" loading="lazy"
            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
            alt="${f.bestandsnaam}">
-      <div class="kp-foto-geen-thumb" style="display:none">🖼️</div>
-      ${badge}
+      <div class="kp-foto-geen-thumb" style="display:none">${geenThumb}</div>
+      ${badge}${videoBadge}
       <div class="kp-foto-info">
         <div class="kp-foto-datum">${formatDatum(f.datum_foto)}</div>
         <div class="kp-foto-bron">${f.bron_icoon || '💻'}</div>
@@ -216,7 +257,6 @@ async function laadPanelFotos() {
 
 
 function sluitKaartPanel(e) {
-  // Alleen sluiten als op de overlay zelf geklikt werd (niet op de popup)
   if (e && e.target !== document.getElementById('kaartPanelOverlay')) return;
   sluitKaartPanelDirect();
 }
@@ -230,8 +270,12 @@ function bekijkLocatieInFotos() {
   if (!actieveLocatie) return;
   const loc = actieveLocatie;
   const label = [loc.gps_stad, loc.gps_land].filter(Boolean).join(', ');
-  toonPagina('fotos', {
-    land: loc.gps_land,
-    _label: (loc.gps_land_code ? landVlag(loc.gps_land_code) + ' ' : '') + label
-  });
+  const vlagLabel = (loc.gps_land_code ? landVlag(loc.gps_land_code) + ' ' : '') + label;
+
+  // Navigeer naar de juiste pagina op basis van het actieve type filter
+  if (kaartTypeFilter === '1') {
+    toonPagina('videos', { land: loc.gps_land, _label: vlagLabel });
+  } else {
+    toonPagina('fotos', { land: loc.gps_land, _label: vlagLabel });
+  }
 }

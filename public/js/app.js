@@ -161,8 +161,20 @@ function toonPagina(naam, extraFilter) {
       laadFotos(1);
     });
   }
+  if (naam === 'videos') {
+    laadBronnenFilterVideo().then(() => {
+      if (extraFilter?.jaar) {
+        const sel = document.getElementById('filterJaarVideo');
+        if (sel) { sel.value = extraFilter.jaar; sel.dataset.gevuld = ''; }
+      }
+      if (extraFilter?.zonder_gps) setVideoZonderGps(true);
+      laadVideos(1);
+    });
+    controleerVideoThumbBanner();
+  }
   if (naam === 'duplicaten') laadDuplicaten(1);
   if (naam === 'export')    controleerExportStatus();
+  // doneer heeft geen laad-functie nodig
 }
 
 // Init

@@ -2,7 +2,7 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 const { getDb } = require('./database');
 
 // Export-status (in geheugen — herstart = nieuwe status)
@@ -75,13 +75,44 @@ function vrijevRuimte(map) {
   }
 }
 
+// ─── GPS terugschrijven via exiftool ─────────────────────
+
+function schrijfGpsNaarBestand(doelPad, foto) {
+  if (!foto.gps_lat || !foto.gps_lon) return; // geen GPS, niets te doen
+
+  const lat    = Math.abs(foto.gps_lat);
+  const lon    = Math.abs(foto.gps_lon);
+  const latRef = foto.gps_lat >= 0 ? 'N' : 'S';
+  const lonRef = foto.gps_lon >= 0 ? 'E' : 'W';
+
+  const args = [
+    `-GPSLatitude=${lat}`,
+    `-GPSLatitudeRef=${latRef}`,
+    `-GPSLongitude=${lon}`,
+    `-GPSLongitudeRef=${lonRef}`,
+    '-overwrite_original'
+  ];
+
+  // Voeg stad en land toe als XMP als die beschikbaar zijn
+  if (foto.gps_stad)  args.push(`-XMP:City=${foto.gps_stad}`);
+  if (foto.gps_land)  args.push(`-XMP:Country=${foto.gps_land}`);
+
+  args.push(doelPad);
+
+  try {
+    spawnSync('exiftool', args, { timeout: 10000 });
+  } catch {
+    // Fout bij GPS schrijven is niet fataal — bestand is al gekopieerd
+  }
+}
+
 // ─── Export selectie query ────────────────────────────────
 
 function selecteerFotos() {
   const db = getDb();
   const fotos = db.prepare(`
     SELECT id, volledig_pad, bestandsnaam, bestandsgrootte,
-           datum_foto, gps_land, gps_stad, geexporteerd
+           datum_foto, gps_land, gps_stad, gps_lat, gps_lon, geexporteerd
     FROM fotos
     WHERE (genegeerd = 0 OR genegeerd IS NULL)
       AND (is_duplicaat = 0 OR is_duplicaat IS NULL)
@@ -168,6 +199,7 @@ async function voerExportUit(fotos, doelmap) {
       }
       const doel = uniekePad(doelmap, submap, basisnaam);
       fs.copyFileSync(foto.volledig_pad, doel);
+      schrijfGpsNaarBestand(doel, foto);
       updateStmt.run(foto.id);
       exportStatus.gedaan++;
     } catch (err) {

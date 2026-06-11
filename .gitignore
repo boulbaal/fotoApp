@@ -5,3 +5,8 @@ data/
 thumbnails/
 .env
 npm-debug.log*
+magweg/
+
+# Electron build output
+dist/
+node_modules/

@@ -32,7 +32,7 @@ async function laadGpsBulk() {
   gpsBulkGroepen.push({ groep_id: 'hold', datum_start: null, datum_eind: null, ids: [], voorbeelden: [], isHold: true });
 
   if (gpsBulkGroepen.filter(g => !g.isHold).length === 0) {
-    container.innerHTML = '<div class="leeg" style="padding:48px;text-align:center;font-size:16px">✅ Alle foto\'s hebben al een GPS-locatie!</div>';
+    container.innerHTML = '<div class="leeg" style="padding:48px;text-align:center;font-size:16px">✅ Alle foto\'s en video\'s hebben al een GPS-locatie!</div>';
     return;
   }
 
@@ -44,7 +44,7 @@ function bijwerkInfo() {
   const totaal = gpsBulkGroepen.filter(g => !g.isHold).reduce((s, g) => s + g.ids.length, 0);
   const aantalGroepen = gpsBulkGroepen.filter(g => !g.isHold).length;
   document.getElementById('gpsBulkInfo').textContent =
-    totaal > 0 ? `${aantalGroepen} groepen · ${totaal.toLocaleString()} foto's zonder locatie` : '';
+    totaal > 0 ? `${aantalGroepen} groepen · ${totaal.toLocaleString()} foto's en video's zonder locatie` : '';
 }
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ function groepKaartHtml(g) {
       ? formatDatum(g.datum_start)
       : `${formatDatum(g.datum_start)} — ${formatDatum(g.datum_eind)}`;
 
-  const fotoLabel = `${g.ids.length.toLocaleString()} foto${g.ids.length !== 1 ? "'s" : ''}`;
+  const fotoLabel = `${g.ids.length.toLocaleString()} item${g.ids.length !== 1 ? 's' : ''}`;
 
   const thumbHtml = g.voorbeelden.length > 0
     ? g.voorbeelden.map(id => thumbEl(g.groep_id, id)).join('')
@@ -114,7 +114,7 @@ function groepKaartHtml(g) {
 function holdGroepHtml(g) {
   const thumbHtml = g.ids.length > 0
     ? g.voorbeelden.map(id => thumbEl('hold', id)).join('')
-    : '<div class="hold-leeg">Sleep foto\'s hierheen om ze apart te zetten</div>';
+    : '<div class="hold-leeg">Sleep foto\'s of video\'s hierheen om ze apart te zetten</div>';
   return `
     <div class="bulk-groep bulk-hold-groep" id="groep-hold" data-groep="hold">
       <div class="bulk-thumbs" id="thumbs-hold" data-groep="hold">${thumbHtml}</div>
@@ -149,7 +149,7 @@ function pickerKaartHtml(g) {
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="btn btn-primair" style="font-size:13px"
             onclick="bevestigBulkLocatie('${g.groep_id}')">
-            ✅ Toewijzen aan <span id="bevestig-label-${g.groep_id}">${g.ids.length} foto's</span>
+            ✅ Toewijzen aan <span id="bevestig-label-${g.groep_id}">${g.ids.length} items</span>
           </button>
           <button class="btn btn-secundair" style="font-size:13px"
             onclick="annuleerBulkLocatie('${g.groep_id}')">Andere locatie</button>
@@ -443,7 +443,7 @@ async function bevestigBulkLocatie(groepId) {
     const dupTekst = resp.duplicaten_bijgewerkt ? ' (incl. duplicaten)' : '';
     groepEl.innerHTML = `
       <div style="padding:14px 20px;color:#4ade80;font-size:14px">
-        ✅ ${resp.bijgewerkt.toLocaleString()} foto${resp.bijgewerkt !== 1 ? "'s" : ''}${dupTekst} toegewezen aan ${naamTekst}
+        ✅ ${resp.bijgewerkt.toLocaleString()} item${resp.bijgewerkt !== 1 ? 's' : ''}${dupTekst} toegewezen aan ${naamTekst}
       </div>`;
 
     gpsBulkGroepen = gpsBulkGroepen.filter(g => g.groep_id != groepId);

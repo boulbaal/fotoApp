@@ -64,7 +64,7 @@ async function laadFotos(pagina = 1) {
 
   const params = new URLSearchParams({
     pagina, per_pagina: 200, zonder_thumbnail: 0,
-    zonder_kopien: 1,
+    zonder_kopien: 1, is_video: 0,
     ...(zoek && { zoek }),
     ...(bron && { bron_id: bron }),
     ...(jaar && { jaar }),
@@ -82,7 +82,7 @@ async function laadFotos(pagina = 1) {
   console.log('[laadFotos] URL:', '/api/fotos?' + params.toString());
 
   const data = await fetch('/api/fotos?' + params).then(r => r.json());
-  document.getElementById('fotosTeller').textContent = `${data.totaal.toLocaleString()} foto's`;
+  document.getElementById('fotosTeller').textContent = `${data.totaal.toLocaleString()} foto${data.totaal === 1 ? '' : "'s"}`;
 
   const grid = document.getElementById('fotoGrid');
   if (data.fotos.length === 0) {
@@ -93,10 +93,12 @@ async function laadFotos(pagina = 1) {
   grid.innerHTML = data.fotos.map(f => `
     <div class="foto-item" onclick="toonDetail(${f.id})">
       ${f.is_duplicaat ? '<div class="dup-badge">DUP</div>' : ''}
+      ${f.geexporteerd ? '<div class="export-badge">✓</div>' : ''}
+      ${f.is_video ? `<div class="video-badge">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>` : ''}
       <div class="bron-badge">${f.bron_icoon || '💻'}</div>
       ${f.thumbnail
         ? `<img src="${f.thumbnail}" loading="lazy" alt="${f.bestandsnaam}">`
-        : `<div class="no-img">🖼️</div>`}
+        : `<div class="no-img">${f.is_video ? '🎬' : '🖼️'}</div>`}
       <div class="info">
         <div class="naam">${f.bestandsnaam}</div>
         <div class="datum">${formatDatum(f.datum_foto)}${f.gps_stad ? ' · ' + f.gps_stad : ''}</div>
@@ -125,6 +127,7 @@ async function laadFotos(pagina = 1) {
 }
 
 let huidigeFotoId = null;
+let huidigeItemIsVideo = false;
 let origStad = '';
 let origLand = '';
 let origDatum = '';
@@ -144,6 +147,7 @@ function heeftOnopgeslagenWijzigingen() {
 
 async function toonDetail(id) {
   huidigeFotoId = id;
+  huidigeItemIsVideo = false;
   const f = await fetch('/api/fotos/' + id).then(r => r.json());
   renderModal(f);
   document.getElementById('modalOverlay').classList.add('open');
@@ -240,7 +244,7 @@ function renderModal(f) {
     </table>
     <div style="display:flex;gap:8px;margin-top:12px">
       <button id="opslaanKnop" class="btn btn-primair" style="flex:1;font-size:13px" onclick="slaaBewerkingOpFoto()">💾 Opslaan</button>
-      <button class="btn btn-secundair" style="font-size:13px" onclick="openGpsKaart()">📍 GPS kiezen</button>
+      <button class="btn btn-secundair" style="font-size:13px" onclick="openGpsKaart(${f.gps_lat || 'null'}, ${f.gps_lon || 'null'})">📍 GPS kiezen</button>
     </div>
     <div id="bewerkStatus" style="font-size:12px;color:#888;margin-top:6px"></div>
   `;
@@ -269,7 +273,7 @@ function renderModal(f) {
 async function slaaBewerkingOpFoto() {
   const stad  = document.getElementById('bewerkStad').value.trim();
   const land  = document.getElementById('bewerkLand').value.trim();
-  const datumTekst = document.getElementById('bewerkDatum').value.trim();
+  const datumTekst = document.getElementById('bewerkDatum')?.value?.trim() || '';
   const status = document.getElementById('bewerkStatus');
 
   // Zet dd/mm/yyyy om naar ISO string (enkel als veld zichtbaar/ingevuld is)
@@ -303,8 +307,12 @@ async function slaaBewerkingOpFoto() {
   });
   if (r.ok) {
     const bijgewerkt = await r.json();
-    origStad = ''; origLand = ''; origDatum = ''; // reset vóór renderModal
-    renderModal(bijgewerkt);
+    origStad = ''; origLand = ''; origDatum = ''; // reset vóór render
+    if (bijgewerkt.is_video && typeof renderVideoModal === 'function') {
+      renderVideoModal(bijgewerkt);
+    } else {
+      renderModal(bijgewerkt);
+    }
     // Knop instellen NA renderModal (renderModal herbouwt het formulier)
     const knopNa = document.getElementById('opslaanKnop');
     if (knopNa) { knopNa.disabled = true; knopNa.textContent = '✅ Opgeslagen'; }
@@ -320,6 +328,7 @@ async function slaaBewerkingOpFoto() {
 
     // Auto-close na 1 seconde
     setTimeout(() => {
+      document.querySelectorAll('#modalOverlay video').forEach(v => { v.pause(); v.src = ''; });
       document.getElementById('modalOverlay').classList.remove('open');
       origStad = ''; origLand = ''; origDatum = '';
     }, 1000);
@@ -329,9 +338,9 @@ async function slaaBewerkingOpFoto() {
   }
 }
 
-function openGpsKaart() {
+function openGpsKaart(lat, lon) {
   document.getElementById('gpsKaartOverlay').classList.add('open');
-  initGpsKaart();
+  initGpsKaart(lat || null, lon || null);
   if (typeof gpsKaart !== 'undefined' && gpsKaart) setTimeout(() => gpsKaart.invalidateSize(), 100);
 }
 
@@ -340,6 +349,8 @@ function sluitModal(e) {
     if (heeftOnopgeslagenWijzigingen()) {
       if (!confirm('⚠️ Je hebt onopgeslagen wijzigingen.\n\nWil je toch sluiten zonder op te slaan?')) return;
     }
+    // Stop alle video's in de modal zodat geluid niet blijft spelen
+    document.querySelectorAll('#modalOverlay video').forEach(v => { v.pause(); v.src = ''; });
     document.getElementById('modalOverlay').classList.remove('open');
     origStad = ''; origLand = ''; origDatum = '';
   }

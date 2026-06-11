@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { getDb } = require('./database');
-const { startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen, stopScan, verwijderUitWachtrij } = require('./scanner');
+const { startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen, stopScan, verwijderUitWachtrij, startVideoThumbnailPass, getVideoThumbStatus, startVideoGpsPass, getVideoGpsStatus } = require('./scanner');
 const { berekenPreview, startExport, stopExport, getStatus: getExportStatus, resetExport } = require('./export');
 
 const router = express.Router();
@@ -91,17 +91,59 @@ router.post('/scan/geocode', async (req, res) => {
   res.json({ ok: true, bericht: 'Geocode pass gestart' });
 });
 
+// Video thumbnail pass — start handmatig of wordt automatisch gestart na scan
+router.post('/scan/video-thumbnails', (req, res) => {
+  startVideoThumbnailPass();
+  res.json({ ok: true, status: getVideoThumbStatus() });
+});
+
+router.get('/scan/video-thumbnails/status', (req, res) => {
+  res.json(getVideoThumbStatus());
+});
+
+// Auto-start bij opstart als er videos zonder thumbnail zijn
+setTimeout(() => startVideoThumbnailPass(), 5000);
+
+// Video GPS pass — leest GPS uit video-containers via exiftool (fallback voor exifr)
+router.post('/scan/video-gps', (req, res) => {
+  startVideoGpsPass();
+  res.json({ ok: true, status: getVideoGpsStatus() });
+});
+
+router.get('/scan/video-gps/status', (req, res) => {
+  res.json(getVideoGpsStatus());
+});
+
+// Auto-start 15s na opstart (na thumbnail pass)
+setTimeout(() => startVideoGpsPass(), 15000);
+
 // === STATISTIEKEN ===
 
 router.get('/stats', (req, res) => {
   const db = getDb();
 
-  const totaal     = db.prepare('SELECT COUNT(*) as n FROM fotos').get().n;
+  const totaal      = db.prepare('SELECT COUNT(*) as n FROM fotos').get().n;
+  const totaalFotos = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE COALESCE(is_video,0) = 0').get().n;
+  const totaalVideos= db.prepare('SELECT COUNT(*) as n FROM fotos WHERE is_video = 1').get().n;
   const metGps     = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE gps_lat IS NOT NULL AND gps_lat != 0').get().n;
   const zonderGps  = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE gps_lat IS NULL OR gps_lat = 0').get().n;
   const duplicaten = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE is_duplicaat = 1').get().n;
   const duplicaatGroepen = db.prepare('SELECT COUNT(DISTINCT duplicaat_groep) as n FROM fotos WHERE duplicaat_groep IS NOT NULL').get().n;
   const totalGrootte = db.prepare('SELECT SUM(bestandsgrootte) as n FROM fotos').get().n || 0;
+
+  // Foto-specifiek
+  const fotosUniek     = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE COALESCE(is_video,0)=0 AND COALESCE(is_duplicaat,0)=0').get().n;
+  const fotosDubbel    = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE COALESCE(is_video,0)=0 AND is_duplicaat=1').get().n;
+  const fotosMetGps    = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE COALESCE(is_video,0)=0 AND gps_lat IS NOT NULL AND gps_lat!=0').get().n;
+  const fotosZonderGps = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE COALESCE(is_video,0)=0 AND (gps_lat IS NULL OR gps_lat=0)').get().n;
+
+  // Video-specifiek
+  const videosUniek     = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE is_video=1 AND COALESCE(is_duplicaat,0)=0').get().n;
+  const videosDubbel    = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE is_video=1 AND is_duplicaat=1').get().n;
+  const videosMetGps    = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE is_video=1 AND gps_lat IS NOT NULL AND gps_lat!=0').get().n;
+  const videosZonderGps = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE is_video=1 AND (gps_lat IS NULL OR gps_lat=0)').get().n;
+
+  const perJaarVideo = db.prepare('SELECT jaar, COUNT(*) as aantal FROM fotos WHERE is_video=1 AND jaar IS NOT NULL GROUP BY jaar ORDER BY jaar').all();
 
   const perBron = db.prepare(`
     SELECT b.id as bron_id, b.naam, b.icoon, COUNT(f.id) as aantal, SUM(f.bestandsgrootte) as grootte
@@ -116,21 +158,36 @@ router.get('/stats', (req, res) => {
 
   const perCamera = db.prepare(`
     SELECT camera_merk, camera_model, COUNT(*) as aantal FROM fotos
-    WHERE camera_merk IS NOT NULL
+    WHERE camera_merk IS NOT NULL AND COALESCE(is_video,0)=0
+    GROUP BY camera_merk, camera_model ORDER BY aantal DESC LIMIT 10
+  `).all();
+
+  const perCameraVideo = db.prepare(`
+    SELECT camera_merk, camera_model, COUNT(*) as aantal FROM fotos
+    WHERE camera_merk IS NOT NULL AND is_video=1
     GROUP BY camera_merk, camera_model ORDER BY aantal DESC LIMIT 10
   `).all();
 
   const perLand = db.prepare(`
     SELECT gps_land, MAX(gps_land_code) as gps_land_code, COUNT(*) as aantal FROM fotos
-    WHERE gps_land IS NOT NULL AND gps_land != ''
+    WHERE gps_land IS NOT NULL AND gps_land != '' AND COALESCE(is_video,0)=0
+    GROUP BY gps_land ORDER BY aantal DESC LIMIT 10
+  `).all();
+
+  const perLandVideo = db.prepare(`
+    SELECT gps_land, MAX(gps_land_code) as gps_land_code, COUNT(*) as aantal FROM fotos
+    WHERE gps_land IS NOT NULL AND gps_land != '' AND is_video=1
     GROUP BY gps_land ORDER BY aantal DESC LIMIT 10
   `).all();
 
   db.close();
 
   res.json({
-    totaal, metGps, zonderGps, duplicaten, duplicaatGroepen,
-    totalGrootte, perBron, perJaar, perCamera, perLand
+    totaal, totaalFotos, totaalVideos,
+    metGps, zonderGps, duplicaten, duplicaatGroepen,
+    fotosUniek, fotosDubbel, fotosMetGps, fotosZonderGps,
+    videosUniek, videosDubbel, videosMetGps, videosZonderGps,
+    totalGrootte, perBron, perJaar, perJaarVideo, perCamera, perCameraVideo, perLand, perLandVideo
   });
 });
 
@@ -138,7 +195,7 @@ router.get('/stats', (req, res) => {
 
 router.get('/fotos', (req, res) => {
   const db = getDb();
-  const { pagina = 1, per_pagina = 50, bron_id, jaar, zoek, zonder_thumbnail, land, camera_merk, camera_model, zonder_kopien, zonder_gps, genegeerd } = req.query;
+  const { pagina = 1, per_pagina = 50, bron_id, jaar, zoek, zonder_thumbnail, land, camera_merk, camera_model, zonder_kopien, zonder_gps, genegeerd, is_video } = req.query;
   const offset = (parseInt(pagina) - 1) * parseInt(per_pagina);
 
   let waar = '1=1';
@@ -153,6 +210,8 @@ router.get('/fotos', (req, res) => {
   if (zonder_gps === '1') { waar += ' AND (f.gps_lat IS NULL OR f.gps_lat = 0)'; }
   if (genegeerd === '1')  { waar += ' AND f.genegeerd = 1'; }
   if (genegeerd === '0')  { waar += ' AND (f.genegeerd IS NULL OR f.genegeerd = 0)'; }
+  if (is_video === '1')   { waar += ' AND f.is_video = 1'; }
+  if (is_video === '0')   { waar += ' AND (f.is_video IS NULL OR f.is_video = 0)'; }
 
   // Verberg kopieën: toon het beste exemplaar per groep dat ook voldoet aan actieve filters
   // Als land/camera filter actief is: kies de beste kopie MET dat land, zodat originelen zonder
@@ -234,15 +293,130 @@ router.get('/fotos/:id', (req, res) => {
   res.json({ ...foto, duplicaat_locaties: duplicaatLocaties, is_origineel: isOrigineel });
 });
 
-// Originele foto serveren
+// Originele foto/video serveren met Range-support (voor video streaming)
 router.get('/fotos/:id/bestand', (req, res) => {
+  const db = getDb();
+  const foto = db.prepare('SELECT volledig_pad, bestandstype, is_video FROM fotos WHERE id = ?').get(req.params.id);
+  db.close();
+  if (!foto || !fs.existsSync(foto.volledig_pad)) {
+    return res.status(404).json({ fout: 'Bestand niet gevonden' });
+  }
+
+  // Video's: stuur met Range-support zodat de browser kan zoeken en streamen
+  if (foto.is_video) {
+    const ext = path.extname(foto.volledig_pad).toLowerCase();
+    const mimeTypes = {
+      '.mp4': 'video/mp4', '.m4v': 'video/mp4',
+      '.mov': 'video/quicktime', '.qt': 'video/quicktime',
+      '.avi': 'video/x-msvideo',
+      '.mkv': 'video/x-matroska',
+      '.webm': 'video/webm',
+      '.wmv': 'video/x-ms-wmv',
+      '.flv': 'video/x-flv',
+      '.3gp': 'video/3gpp', '.3g2': 'video/3gpp2',
+      '.mts': 'video/MP2T', '.m2ts': 'video/MP2T',
+      '.mpg': 'video/mpeg', '.mpeg': 'video/mpeg', '.m2v': 'video/mpeg',
+      '.ogv': 'video/ogg', '.ogg': 'video/ogg',
+    };
+    const contentType = mimeTypes[ext] || 'video/mp4';
+    const stat = fs.statSync(foto.volledig_pad);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunkSize = end - start + 1;
+      const fileStream = fs.createReadStream(foto.volledig_pad, { start, end });
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': contentType,
+      });
+      fileStream.pipe(res);
+    } else {
+      res.writeHead(200, {
+        'Content-Length': fileSize,
+        'Content-Type': contentType,
+        'Accept-Ranges': 'bytes',
+      });
+      fs.createReadStream(foto.volledig_pad).pipe(res);
+    }
+    return;
+  }
+
+  // Foto's: gewoon sendFile
+  res.sendFile(foto.volledig_pad);
+});
+
+// Bestand openen in systeemspeler — op voorgrond, op het scherm waar de muis is
+router.post('/fotos/:id/open-extern', (req, res) => {
   const db = getDb();
   const foto = db.prepare('SELECT volledig_pad FROM fotos WHERE id = ?').get(req.params.id);
   db.close();
   if (!foto || !fs.existsSync(foto.volledig_pad)) {
     return res.status(404).json({ fout: 'Bestand niet gevonden' });
   }
-  res.sendFile(foto.volledig_pad);
+
+  // Electron: gebruik shell.openPath (werkt op Windows, Mac én Linux)
+  if (global.electronOpenExtern) {
+    global.electronOpenExtern(foto.volledig_pad).then(err => {
+      if (err) console.warn('shell.openPath fout:', err);
+    });
+    return res.json({ ok: true, methode: 'electron' });
+  }
+
+  // Standalone Linux: VLC of xdg-open
+  const { spawn, spawnSync, execFileSync } = require('child_process');
+
+  const env = {
+    ...process.env,
+    DISPLAY: process.env.DISPLAY || ':0',
+    DBUS_SESSION_BUS_ADDRESS: process.env.DBUS_SESSION_BUS_ADDRESS
+      || `unix:path=/run/user/${process.getuid?.() || 1000}/bus`,
+  };
+
+  let vlcBeschikbaar = false;
+  try { execFileSync('which', ['vlc'], { env, stdio: 'pipe' }); vlcBeschikbaar = true; } catch (_) {}
+
+  const mouseX = parseInt(req.body?.mouseX) || null;
+  const mouseY = parseInt(req.body?.mouseY) || null;
+
+  if (vlcBeschikbaar) {
+    const child = spawn('vlc', ['--started-from-file', foto.volledig_pad], {
+      detached: true, stdio: 'ignore', env,
+    });
+    child.unref();
+
+    setTimeout(() => {
+      const xdotoolBeschikbaar = spawnSync('which', ['xdotool'], { env, stdio: 'pipe' }).status === 0;
+      if (xdotoolBeschikbaar) {
+        spawnSync('xdotool', [
+          'search', '--name', 'VLC media player',
+          'windowactivate', '--sync', 'windowraise',
+        ], { env, stdio: 'ignore', timeout: 3000 });
+
+        if (mouseX !== null && mouseY !== null) {
+          const wmctrlBeschikbaar = spawnSync('which', ['wmctrl'], { env, stdio: 'pipe' }).status === 0;
+          if (wmctrlBeschikbaar) {
+            const x = Math.max(0, mouseX - 640);
+            const y = Math.max(0, mouseY - 360);
+            spawnSync('wmctrl', ['-a', 'VLC media player', '-e', `0,${x},${y},-1,-1`],
+              { env, stdio: 'ignore' });
+          }
+        }
+      }
+    }, 900);
+  } else {
+    const child = spawn('xdg-open', [foto.volledig_pad], {
+      detached: true, stdio: 'ignore', env,
+    });
+    child.unref();
+  }
+
+  res.json({ ok: true, vlc: vlcBeschikbaar });
 });
 
 // === FOTO BEWERKEN ===
@@ -500,7 +674,12 @@ router.get('/fotos/:id/thumbnail', (req, res) => {
 
 // Locatie-clusters voor de kaart (gegroepeerd op ~1km raster)
 router.get('/kaart/locaties', (req, res) => {
+  const { is_video } = req.query;
   const db = getDb();
+  let typeFilter = '';
+  if (is_video === '1') typeFilter = 'AND is_video = 1';
+  else if (is_video === '0') typeFilter = 'AND (is_video IS NULL OR is_video = 0)';
+
   const locaties = db.prepare(`
     SELECT
       ROUND(gps_lat, 2) as lat,
@@ -511,9 +690,11 @@ router.get('/kaart/locaties', (req, res) => {
       MIN(jaar)          as jaar_min,
       MAX(jaar)          as jaar_max,
       COUNT(*)           as aantal,
+      SUM(CASE WHEN is_video = 1 THEN 1 ELSE 0 END) as aantal_videos,
       MIN(id)            as voorbeeld_id
     FROM fotos
     WHERE gps_lat IS NOT NULL AND gps_lon IS NOT NULL
+      ${typeFilter}
       AND (duplicaat_groep IS NULL
            OR id = (SELECT MIN(id) FROM fotos f2 WHERE f2.duplicaat_groep = fotos.duplicaat_groep))
     GROUP BY ROUND(gps_lat, 2), ROUND(gps_lon, 2)
@@ -525,7 +706,7 @@ router.get('/kaart/locaties', (req, res) => {
 
 // Foto's op een specifieke locatie (voor het slide-up panel)
 router.get('/kaart/fotos', (req, res) => {
-  const { lat, lon, limit = 40, zonder_kopien = '1' } = req.query;
+  const { lat, lon, limit = 40, zonder_kopien = '1', is_video } = req.query;
   if (!lat || !lon) return res.status(400).json({ fout: 'lat en lon vereist' });
   const db = getDb();
 
@@ -543,9 +724,13 @@ router.get('/kaart/fotos', (req, res) => {
     )`;
   }
 
+  let typeFilter = '';
+  if (is_video === '1') typeFilter = 'AND f.is_video = 1';
+  else if (is_video === '0') typeFilter = 'AND (f.is_video IS NULL OR f.is_video = 0)';
+
   const fotos = db.prepare(`
     SELECT f.id, f.bestandsnaam, f.datum_foto, f.gps_stad, f.gps_land, f.gps_land_code,
-           f.is_duplicaat,
+           f.is_duplicaat, f.is_video, f.duur,
            CASE WHEN f.duplicaat_groep IS NOT NULL AND f.id = (
              SELECT f2.id FROM fotos f2 JOIN bronnen b2 ON f2.bron_id = b2.id
              WHERE f2.duplicaat_groep = f.duplicaat_groep
@@ -556,6 +741,7 @@ router.get('/kaart/fotos', (req, res) => {
     FROM fotos f JOIN bronnen b ON f.bron_id = b.id
     WHERE ROUND(f.gps_lat, 2) = ROUND(?, 2)
       AND ROUND(f.gps_lon, 2) = ROUND(?, 2)
+      ${typeFilter}
       ${kopienFilter}
     ORDER BY f.datum_foto ASC NULLS LAST
     LIMIT ?

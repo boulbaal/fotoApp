@@ -53,6 +53,16 @@ const FOTO_EXTENSIES = new Set([
   '.svg', '.ico', '.psd', '.psb',
 ]);
 
+const VIDEO_EXTENSIES = new Set([
+  '.mp4', '.m4v', '.mov', '.qt',
+  '.avi', '.wmv', '.flv',
+  '.mkv', '.webm',
+  '.3gp', '.3g2',
+  '.mts', '.m2ts',
+  '.mpg', '.mpeg', '.m2v',
+  '.ogv', '.ogg',
+]);
+
 // Mappen die we overslaan (geen echte foto's)
 const SKIP_MAPPEN = [
   '.cache', '.thumbnails', 'thumbnails',
@@ -239,7 +249,7 @@ function vindAlleFotos(startPad) {
           zoek(volledigPad);
         } else if (item.isFile()) {
           const ext = path.extname(item.name).toLowerCase();
-          if (FOTO_EXTENSIES.has(ext)) {
+          if (FOTO_EXTENSIES.has(ext) || VIDEO_EXTENSIES.has(ext)) {
             fotos.push(volledigPad);
           }
         }
@@ -273,7 +283,110 @@ function berekenHash(bestandsPad) {
   }
 }
 
+function leesVideoDuur(bestandsPad) {
+  try {
+    const result = spawnSync('exiftool', ['-Duration#', '-b', bestandsPad], {
+      encoding: 'utf8', timeout: 5000
+    });
+    const duur = parseFloat(result.stdout);
+    return isNaN(duur) ? null : Math.round(duur);
+  } catch (_) { return null; }
+}
+
+// Lees GPS uit video via exiftool — exifr ondersteunt MP4/MOV GPS niet goed
+// Werkt voor iPhone MOV, sommige Android MP4, GoPro, etc.
+function leesGpsUitVideo(bestandsPad) {
+  try {
+    const result = spawnSync('exiftool', [
+      '-GPSLatitude#', '-GPSLongitude#',
+      '-Keys:GPSCoordinates',
+      '-n', '-j',
+      bestandsPad
+    ], { encoding: 'utf8', timeout: 8000, stdio: 'pipe' });
+
+    if (result.status !== 0 || !result.stdout) return { gps_lat: null, gps_lon: null };
+
+    const data = JSON.parse(result.stdout)[0] || {};
+
+    // Keys:GPSCoordinates formaat: "+35.6927+139.7010+0.000/" of "+lat+lon+alt/"
+    if (data['Keys:GPSCoordinates']) {
+      const match = data['Keys:GPSCoordinates'].match(/([+-]\d+\.?\d*)\s*([+-]\d+\.?\d*)/);
+      if (match) {
+        const lat = parseFloat(match[1]);
+        const lon = parseFloat(match[2]);
+        if (Math.abs(lat) > 0.001 && Math.abs(lon) > 0.001) return { gps_lat: lat, gps_lon: lon };
+      }
+    }
+
+    // Standaard EXIF GPS tags (ook in sommige MP4)
+    const lat = parseFloat(data['GPSLatitude']);
+    const lon = parseFloat(data['GPSLongitude']);
+    if (!isNaN(lat) && !isNaN(lon) && Math.abs(lat) > 0.001 && Math.abs(lon) > 0.001) {
+      return { gps_lat: lat, gps_lon: lon };
+    }
+
+    return { gps_lat: null, gps_lon: null };
+  } catch (_) {
+    return { gps_lat: null, gps_lon: null };
+  }
+}
+
+async function maakVideoThumbnail(bestandsPad) {
+  // Bereken seek-positie: 30% van de duur, min 2s, max 60s
+  // -ss VOOR -i = keyframe seeking = geen overhead ongeacht hoe ver we springen
+  let seekSec = 3; // standaard fallback
+  const duur = leesVideoDuur(bestandsPad);
+  if (duur && duur > 4) {
+    seekSec = Math.min(Math.round(duur * 0.3), 60);
+  }
+
+  try {
+    const tmpPad = `/tmp/fotoapp_thumb_${Date.now()}.jpg`;
+    const result = spawnSync('ffmpeg', [
+      '-ss', String(seekSec),   // vóór -i: snelle keyframe seek
+      '-i', bestandsPad,
+      '-vframes', '1',
+      '-q:v', '5',
+      '-y', tmpPad
+    ], { timeout: 15000 });
+
+    if (result.status === 0 && fs.existsSync(tmpPad)) {
+      const buffer = await sharp(tmpPad)
+        .resize(300, 300, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 70 })
+        .toBuffer();
+      fs.unlinkSync(tmpPad);
+      return 'data:image/jpeg;base64,' + buffer.toString('base64');
+    }
+    if (fs.existsSync(tmpPad)) fs.unlinkSync(tmpPad);
+  } catch (_) {}
+
+  // Fallback: exiftool embedded thumbnail
+  for (const tag of ['-ThumbnailImage', '-PreviewImage', '-OtherImage', '-CoverArt']) {
+    try {
+      const result = spawnSync('exiftool', [tag, '-b', bestandsPad], {
+        maxBuffer: 10 * 1024 * 1024, timeout: 8000
+      });
+      if (result.stdout && result.stdout.length > 500) {
+        const buffer = await sharp(result.stdout)
+          .resize(300, 300, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 70 })
+          .toBuffer();
+        return 'data:image/jpeg;base64,' + buffer.toString('base64');
+      }
+    } catch (_) {}
+  }
+
+  return null;
+}
+
 async function maakThumbnail(bestandsPad) {
+  // Video: apart pad
+  const ext = path.extname(bestandsPad).toLowerCase();
+  if (VIDEO_EXTENSIES.has(ext)) {
+    return maakVideoThumbnail(bestandsPad);
+  }
+
   // Stap 1: probeer sharp (werkt voor jpg/png/webp/heic/tiff/...)
   try {
     const buffer = await sharp(bestandsPad)
@@ -410,10 +523,18 @@ async function haalGpsAdresOp(lat, lon) {
           try {
             const json = JSON.parse(data);
             const addr = json.address || {};
+            // Strip niet-Latijnse delen (bijv. "Malha - مالحة" → "Malha")
+            const reinigNaam = (s) => {
+              if (!s) return null;
+              // Splits op " - " of " / " en neem het eerste deel met Latijnse tekens
+              const delen = s.split(/\s*[-\/]\s*/);
+              const latijn = delen.find(d => /[a-zA-Z]/.test(d));
+              return ((latijn || delen[0] || s).trim()) || null;
+            };
             resolve({
               gps_adres: json.display_name || null,
-              gps_stad: addr.city || addr.town || addr.village || addr.hamlet || addr.municipality || null,
-              gps_land: addr.country || null,
+              gps_stad: reinigNaam(addr.city || addr.town || addr.village || addr.hamlet || addr.municipality || null),
+              gps_land: reinigNaam(addr.country || null),
               gps_land_code: (addr.country_code || '').toUpperCase() || null
             });
           } catch { resolve({}); }
@@ -486,7 +607,8 @@ async function scanAsync(bronId, startPad, logId) {
         camera_merk, camera_model, lens, software,
         breedte, hoogte, orientatie, iso, sluitertijd, diafragma,
         brandpuntsafstand, flits, kleurruimte, thumbnail,
-        google_description, google_device_type
+        google_description, google_device_type,
+        is_video, duur
       ) VALUES (
         @bron_id, @bestandsnaam, @volledig_pad, @hash, @bestandsgrootte, @bestandstype,
         @datum_foto, @datum_bestand, @datum_bron, @jaar, @maand, @dag,
@@ -494,7 +616,8 @@ async function scanAsync(bronId, startPad, logId) {
         @camera_merk, @camera_model, @lens, @software,
         @breedte, @hoogte, @orientatie, @iso, @sluitertijd, @diafragma,
         @brandpuntsafstand, @flits, @kleurruimte, @thumbnail,
-        @google_description, @google_device_type
+        @google_description, @google_device_type,
+        @is_video, @duur
       )
     `);
 
@@ -531,8 +654,13 @@ async function scanAsync(bronId, startPad, logId) {
         else if (parseDatumUitBestandsnaam(path.basename(fotoPad))) { datumFoto = parseDatumUitBestandsnaam(path.basename(fotoPad));       datumBron = 'Bestandsnaam'; }
         else if (stat.birthtime && stat.birthtime.getTime() !== stat.mtime.getTime()) { datumFoto = stat.birthtime.toISOString();          datumBron = 'Aanmaakdatum'; }
         else                                                    { datumFoto = stat.mtime.toISOString();                                    datumBron = 'Wijzigingsdatum'; }
-        const gpsLat = meta.gps_lat || googleJson.gps_lat || null;
-        const gpsLon = meta.gps_lon || googleJson.gps_lon || null;
+        // GPS: exifr → Google JSON → exiftool (voor MP4/MOV containers)
+        let gpsLat = meta.gps_lat || googleJson.gps_lat || null;
+        let gpsLon = meta.gps_lon || googleJson.gps_lon || null;
+        if (!gpsLat && VIDEO_EXTENSIES.has(path.extname(fotoPad).toLowerCase())) {
+          const videoGps = leesGpsUitVideo(fotoPad);
+          if (videoGps.gps_lat) { gpsLat = videoGps.gps_lat; gpsLon = videoGps.gps_lon; }
+        }
 
         const datumObj = datumFoto ? new Date(datumFoto) : null;
 
@@ -577,7 +705,9 @@ async function scanAsync(bronId, startPad, logId) {
           kleurruimte: meta.kleurruimte || null,
           thumbnail: thumbnail,
           google_description: googleJson.google_description || null,
-          google_device_type: googleJson.google_device_type || null
+          google_device_type: googleJson.google_device_type || null,
+          is_video: VIDEO_EXTENSIES.has(path.extname(fotoPad).toLowerCase()) ? 1 : 0,
+          duur: VIDEO_EXTENSIES.has(path.extname(fotoPad).toLowerCase()) ? leesVideoDuur(fotoPad) : null
         });
 
         scanStatus.nieuw++;
@@ -620,6 +750,8 @@ async function scanAsync(bronId, startPad, logId) {
     setTimeout(() => verwerkWachtrij(), 500);
     // Geocoding pass op de achtergrond starten (na wachtrij-verwerking)
     setTimeout(() => startGeocodePass(), 1000);
+    // Video thumbnail pass op de achtergrond starten
+    setTimeout(() => startVideoThumbnailPass(), 3000);
   }
 }
 
@@ -651,4 +783,137 @@ function stopScan(leegWachtrij = false) {
   console.log('⏹ Stop aangevraagd');
 }
 
-module.exports = { startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen, stopScan, verwijderUitWachtrij };
+// === VIDEO THUMBNAIL PASS ===
+
+let videoThumbPassStatus = { bezig: false, gedaan: 0, totaal: 0, fout: 0 };
+
+function getVideoThumbStatus() {
+  return videoThumbPassStatus;
+}
+
+async function startVideoThumbnailPass() {
+  if (videoThumbPassStatus.bezig) return;
+
+  const db = getDb();
+  const videos = db.prepare(
+    "SELECT id, volledig_pad FROM fotos WHERE is_video = 1 AND thumbnail IS NULL"
+  ).all();
+  db.close();
+
+  if (videos.length === 0) return; // niets te doen
+
+  videoThumbPassStatus = { bezig: true, gedaan: 0, totaal: videos.length, fout: 0 };
+  console.log(`🎬 Video thumbnail pass gestart — ${videos.length} video's te verwerken`);
+  console.log('   ℹ️  Dit draait rustig op de achtergrond. De app werkt gewoon verder.');
+  console.log('   ⏳ Heb geduld — thumbnails verschijnen automatisch in de galerij.');
+
+  (async () => {
+    for (const v of videos) {
+      // Stop als een nieuwe scan gestart is
+      if (scanStatus.bezig) {
+        console.log('🎬 Video thumbnail pass gepauzeerd — scan actief');
+        videoThumbPassStatus.bezig = false;
+        return;
+      }
+
+      try {
+        const thumb = await maakVideoThumbnail(v.volledig_pad);
+        if (thumb) {
+          const db2 = getDb();
+          db2.prepare('UPDATE fotos SET thumbnail = ? WHERE id = ?').run(thumb, v.id);
+          db2.close();
+        } else {
+          videoThumbPassStatus.fout++;
+        }
+      } catch (_) {
+        videoThumbPassStatus.fout++;
+      }
+
+      videoThumbPassStatus.gedaan++;
+
+      // Voortgang in server log elke 25 videos
+      if (videoThumbPassStatus.gedaan % 25 === 0) {
+        const over = videoThumbPassStatus.totaal - videoThumbPassStatus.gedaan;
+        console.log(`🎬 Thumbnails: ${videoThumbPassStatus.gedaan}/${videoThumbPassStatus.totaal} klaar — nog ${over} te gaan`);
+      }
+
+      // Kleine pauze zodat de server niet overbelast raakt
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    const { gedaan, totaal, fout } = videoThumbPassStatus;
+    videoThumbPassStatus.bezig = false;
+    console.log(`✅ Video thumbnail pass voltooid: ${gedaan - fout}/${totaal} aangemaakt${fout > 0 ? `, ${fout} mislukt (geen erg)` : ''}`);
+  })();
+}
+
+// ─── VIDEO GPS PASS ──────────────────────────────────────────────────────────
+// Leest GPS uit bestaande video's via exiftool (fallback voor containers die exifr mist)
+
+let videoGpsPassStatus = { bezig: false, gedaan: 0, totaal: 0, gevonden: 0 };
+
+function getVideoGpsStatus() {
+  return { ...videoGpsPassStatus };
+}
+
+async function startVideoGpsPass() {
+  if (videoGpsPassStatus.bezig) return;
+
+  const db = getDb();
+  const videos = db.prepare(
+    "SELECT id, volledig_pad FROM fotos WHERE is_video = 1 AND (gps_lat IS NULL OR gps_lat = 0)"
+  ).all();
+  db.close();
+
+  if (videos.length === 0) return;
+
+  videoGpsPassStatus = { bezig: true, gedaan: 0, totaal: videos.length, gevonden: 0 };
+  console.log(`📍 Video GPS pass gestart — ${videos.length} video's controleren op GPS`);
+  console.log('   ℹ️  Dit draait rustig op de achtergrond. Heb geduld.');
+
+  (async () => {
+    for (const v of videos) {
+      if (scanStatus.bezig) {
+        console.log('📍 Video GPS pass gepauzeerd — scan actief');
+        videoGpsPassStatus.bezig = false;
+        return;
+      }
+
+      try {
+        const gps = leesGpsUitVideo(v.volledig_pad);
+        if (gps.gps_lat && gps.gps_lon) {
+          // GPS gevonden — haal stad/land op en sla op
+          const adres = await haalGpsAdresOp(gps.gps_lat, gps.gps_lon);
+          const db2 = getDb();
+          db2.prepare(`
+            UPDATE fotos SET gps_lat=?, gps_lon=?, gps_stad=?, gps_land=?, gps_land_code=?, gps_adres=?
+            WHERE id=?
+          `).run(gps.gps_lat, gps.gps_lon, adres.gps_stad||null, adres.gps_land||null, adres.gps_land_code||null, adres.gps_adres||null, v.id);
+          db2.close();
+          videoGpsPassStatus.gevonden++;
+          if (videoGpsPassStatus.gevonden % 10 === 0) {
+            console.log(`📍 Video GPS: ${videoGpsPassStatus.gevonden} locaties gevonden (${videoGpsPassStatus.gedaan}/${videoGpsPassStatus.totaal} verwerkt)`);
+          }
+        }
+      } catch (_) {}
+
+      videoGpsPassStatus.gedaan++;
+      await new Promise(r => setTimeout(r, 20)); // lichte pauze
+    }
+
+    videoGpsPassStatus.bezig = false;
+    const { gevonden, totaal } = videoGpsPassStatus;
+    if (gevonden > 0) {
+      console.log(`✅ Video GPS pass klaar: ${gevonden} nieuwe locaties gevonden in ${totaal} video's`);
+    } else {
+      console.log(`📍 Video GPS pass klaar: geen nieuwe GPS-data gevonden in ${totaal} video's (locatie niet opgeslagen in container)`);
+    }
+  })();
+}
+
+module.exports = {
+  startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen,
+  stopScan, verwijderUitWachtrij,
+  maakThumbnailVoorVideo: maakVideoThumbnail, startVideoThumbnailPass, getVideoThumbStatus,
+  startVideoGpsPass, getVideoGpsStatus
+};

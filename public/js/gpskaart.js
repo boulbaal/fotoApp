@@ -4,7 +4,7 @@ let gpsGekozen = null; // { lat, lon, stad, land, landCode, adres }
 let gpsGeocodeBezig = false;
 let zoekTimer = null;
 
-function initGpsKaart() {
+function initGpsKaart(bestaandeLat, bestaandeLon) {
   document.getElementById('gpsZoekResultaten').classList.remove('open');
   document.getElementById('gpsZoekInput').value = '';
   document.getElementById('gpsGekozenInfo').textContent = '';
@@ -14,11 +14,22 @@ function initGpsKaart() {
 
   if (gpsKaart) {
     if (gpsMarker) { gpsKaart.removeLayer(gpsMarker); gpsMarker = null; }
-    gpsKaart.setView([20, 10], 2);
+    // Zoom naar bestaande locatie als die er is, anders world view
+    if (bestaandeLat && bestaandeLon) {
+      gpsKaart.setView([bestaandeLat, bestaandeLon], 13);
+      gpsMarker = L.marker([bestaandeLat, bestaandeLon]).addTo(gpsKaart);
+      document.getElementById('gpsKaartStatus').textContent = `📍 Huidige locatie: ${bestaandeLat.toFixed(4)}, ${bestaandeLon.toFixed(4)}`;
+      document.getElementById('gpsOpslaanKnop').disabled = false;
+      gpsGekozen = { lat: bestaandeLat, lon: bestaandeLon, stad: null, land: null, landCode: null, adres: null };
+    } else {
+      gpsKaart.setView([20, 10], 2);
+    }
     return;
   }
 
-  gpsKaart = L.map('gpsKaart', { doubleClickZoom: false }).setView([20, 10], 2);
+  const startView = (bestaandeLat && bestaandeLon) ? [bestaandeLat, bestaandeLon] : [20, 10];
+  const startZoom = (bestaandeLat && bestaandeLon) ? 13 : 2;
+  gpsKaart = L.map('gpsKaart', { doubleClickZoom: false }).setView(startView, startZoom);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap', maxZoom: 19
   }).addTo(gpsKaart);
@@ -26,6 +37,13 @@ function initGpsKaart() {
   gpsKaart.on('click', function(e) {
     plaatsMarkerEnGeocode(e.latlng.lat, e.latlng.lng);
   });
+
+  if (bestaandeLat && bestaandeLon) {
+    gpsMarker = L.marker([bestaandeLat, bestaandeLon]).addTo(gpsKaart);
+    document.getElementById('gpsKaartStatus').textContent = `📍 Huidige locatie: ${bestaandeLat.toFixed(4)}, ${bestaandeLon.toFixed(4)}`;
+    document.getElementById('gpsOpslaanKnop').disabled = false;
+    gpsGekozen = { lat: bestaandeLat, lon: bestaandeLon, stad: null, land: null, landCode: null, adres: null };
+  }
 }
 
 async function plaatsMarkerEnGeocode(lat, lon) {
@@ -133,7 +151,11 @@ async function slaGpsOp() {
     knop.textContent = '✅ Opgeslagen';
 
     const bijgewerkt = await fetch('/api/fotos/' + huidigeFotoId).then(r => r.json());
-    renderModal(bijgewerkt);
+    if (typeof huidigeItemIsVideo !== 'undefined' && huidigeItemIsVideo) {
+      renderVideoModal(bijgewerkt);
+    } else {
+      renderModal(bijgewerkt);
+    }
 
     setTimeout(() => sluitGpsKaart(), 1500);
   } else {

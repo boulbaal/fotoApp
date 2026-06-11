@@ -132,6 +132,14 @@ function initDb() {
     db.exec("ALTER TABLE fotos ADD COLUMN geexporteerd INTEGER DEFAULT 0");
     console.log('✅ Migratie: geexporteerd kolom toegevoegd');
   }
+  if (!kolommen.includes('duur')) {
+    db.exec("ALTER TABLE fotos ADD COLUMN duur INTEGER DEFAULT NULL");
+    console.log('✅ Migratie: duur kolom toegevoegd (voor video\'s)');
+  }
+  if (!kolommen.includes('is_video')) {
+    db.exec("ALTER TABLE fotos ADD COLUMN is_video INTEGER DEFAULT 0");
+    console.log('✅ Migratie: is_video kolom toegevoegd');
+  }
 
   // Standaard fase instellen
   db.prepare("INSERT OR IGNORE INTO instellingen (sleutel, waarde) VALUES ('fase', '1')").run();

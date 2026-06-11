@@ -1,17 +1,31 @@
 async function laadStats() {
   const data = await fetch('/api/stats').then(r => r.json());
 
-  document.getElementById('statTotaal').textContent = data.totaal.toLocaleString();
-  document.getElementById('statDuplicaten').textContent = data.duplicaten.toLocaleString();
-  document.getElementById('statMetGps').textContent = data.metGps.toLocaleString();
-  document.getElementById('statZonderGps').textContent = data.zonderGps.toLocaleString();
+  // Foto stats
+  document.getElementById('statTotaal').textContent        = (data.totaalFotos  ?? data.totaal).toLocaleString();
+  document.getElementById('statFotosUniek').textContent    = (data.fotosUniek    || 0).toLocaleString();
+  document.getElementById('statFotosDubbel').textContent   = (data.fotosDubbel   || 0).toLocaleString();
+  document.getElementById('statFotosMetGps').textContent   = (data.fotosMetGps   || 0).toLocaleString();
+  document.getElementById('statFotosZonderGps').textContent= (data.fotosZonderGps|| 0).toLocaleString();
+
+  // Video stats
+  document.getElementById('statVideos').textContent        = (data.totaalVideos  || 0).toLocaleString();
+  document.getElementById('statVideosUniek').textContent   = (data.videosUniek   || 0).toLocaleString();
+  document.getElementById('statVideosDubbel').textContent  = (data.videosDubbel  || 0).toLocaleString();
+  document.getElementById('statVideosMetGps').textContent  = (data.videosMetGps  || 0).toLocaleString();
+  document.getElementById('statVideosZonderGps').textContent=(data.videosZonderGps||0).toLocaleString();
+
   document.getElementById('statGrootte').textContent = formatGrootte(data.totalGrootte);
 
   tekenBalk('grafiekJaar', data.perJaar, 'jaar', 'aantal', (rij) => {
     toonPagina('fotos', { jaar: rij.jaar });
   }, null, null);
 
-  tekenBalk('grafiekCamera', data.perCamera.map(c => ({
+  tekenBalk('grafiekJaarVideo', data.perJaarVideo || [], 'jaar', 'aantal', (rij) => {
+    toonPagina('videos', { jaar: rij.jaar });
+  }, null, null);
+
+  tekenBalk('grafiekCamera', (data.perCamera || []).map(c => ({
     label: [c.camera_merk, c.camera_model].filter(Boolean).join(' ') || '?',
     aantal: c.aantal,
     camera_merk: c.camera_merk,
@@ -24,13 +38,26 @@ async function laadStats() {
     });
   }, null, 10);
 
-  const landenMetVlag = data.perLand.map(r => {
+  tekenBalk('grafiekCameraVideo', (data.perCameraVideo || []).map(c => ({
+    label: [c.camera_merk, c.camera_model].filter(Boolean).join(' ') || '?',
+    aantal: c.aantal,
+    camera_merk: c.camera_merk,
+    camera_model: c.camera_model
+  })), 'label', 'aantal', null, null, 10);
+
+  const landenMetVlag = (data.perLand || []).map(r => {
     const vlag = r.gps_land_code ? landVlag(r.gps_land_code) : landVlagVanNaam(r.gps_land);
     return { ...r, label: (vlag ? vlag + ' ' : '') + r.gps_land };
   });
   tekenBalk('grafiekLand', landenMetVlag, 'label', 'aantal', (rij) => {
     toonPagina('fotos', { land: rij.gps_land, _label: rij.label });
   }, null, 10);
+
+  const landenVideoMetVlag = (data.perLandVideo || []).map(r => {
+    const vlag = r.gps_land_code ? landVlag(r.gps_land_code) : landVlagVanNaam(r.gps_land);
+    return { ...r, label: (vlag ? vlag + ' ' : '') + r.gps_land };
+  });
+  tekenBalk('grafiekLandVideo', landenVideoMetVlag, 'label', 'aantal', null, null, 10);
 
   tekenBalk('grafiekBron', data.perBron.map(b => ({
     label: b.icoon + ' ' + b.naam,

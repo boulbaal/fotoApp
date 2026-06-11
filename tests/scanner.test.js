@@ -523,8 +523,9 @@ module.exports = async function testScanner() {
 
   test('HTML: statZonderGps stat-kaart aanwezig en klikbaar', () => {
     const htmlCode = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
-    if (!htmlCode.includes('statZonderGps')) {
-      throw new Error('statZonderGps element niet gevonden in index.html');
+    // Nieuwe structuur: statFotosZonderGps en statVideosZonderGps vervangen het oude statZonderGps
+    if (!htmlCode.includes('statFotosZonderGps') && !htmlCode.includes('statZonderGps')) {
+      throw new Error('statFotosZonderGps (of statZonderGps) element niet gevonden in index.html');
     }
     if (!htmlCode.includes('zonder_gps')) {
       throw new Error('zonder_gps onclick niet gevonden in index.html stat-kaart');

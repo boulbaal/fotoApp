@@ -1,165 +1,156 @@
 # 📷 FotoApp
 
-**Lokale foto-beheer applicatie** — foto's organiseren, duplicaten opruimen en migreren naar een nieuwe schijf. Geen cloud, geen uploads, alles blijft op je eigen computer.
+> **Jouw foto's. Jouw computer. Jouw controle.**
+> Gratis, open source, zonder cloud, zonder abonnement.
 
-🔗 **Code:** [github.com/boulbaal/fotoApp](https://github.com/boulbaal/fotoApp)
+<div align="center">
 
----
+[![GitHub Stars](https://img.shields.io/github/stars/boulbaal/fotoApp?style=social)](https://github.com/boulbaal/fotoApp/stargazers)
+[![License: Non-Commercial](https://img.shields.io/badge/license-Non--Commercial-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20Mac-lightgrey)](https://github.com/boulbaal/fotoApp/releases)
 
-## Wat doet de app?
+### ❤️ Vind je dit project waardevol? Steun het met een donatie.
 
-Je hebt foto's verspreid over meerdere locaties: je PC, een externe harde schijf, usb-sticks, Google Photos exports. De app helpt je om:
+[![Doneer via PayPal](https://img.shields.io/badge/Doneer-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen)
+[![Supporter Edition](https://img.shields.io/badge/Supporter_Edition-€19_eenmalig-FF6B35?style=for-the-badge)](mailto:aboulbahaiem@gmail.com?subject=Supporter%20Edition)
 
-1. **Alles in kaart te brengen** — bronnen scannen, duplicaten opsporen, GPS-locaties invullen
-2. **Te selecteren wat je wil bewaren** — foto's die je niet nodig hebt markeer je als "negeren"
-3. **Te exporteren naar één nieuwe schijf** — alleen de foto's die je wil bewaren
+*Elke donatie, hoe klein ook, helpt dit project levend te houden.*
 
-De app draait volledig lokaal. Je opent hem in je browser op `http://localhost:3000`.
-
----
-
-## Hoe werkt het? De drie fasen
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                   │
-│   FASE 1 — Organiseren        FASE 2 — Selecteren                │
-│   ─────────────────────       ──────────────────                  │
-│                                                                   │
-│   📁 Bronnen toevoegen        🚫 Foto's markeren die             │
-│      (PC, SSD, USB)               je NIET wil bewaren            │
-│          │                                                        │
-│          ▼                    📋 Overzicht van alles             │
-│   🔍 Scannen                      wat je negeert                 │
-│      • metadata lezen                                             │
-│      • duplicaten vinden                                          │
-│      • GPS-locaties ophalen                                       │
-│          │                                                        │
-│          ▼                    FASE 3 — Exporteren (gepland)      │
-│   🗺️  Kaart bekijken          ─────────────────────────          │
-│      GPS handmatig toewijzen                                      │
-│      Duplicaten bekijken      📦 Alleen bewaarde foto's          │
-│                                   kopiëren naar nieuwe schijf    │
-└─────────────────────────────────────────────────────────────────┘
-```
+</div>
 
 ---
 
-## Architectuur — alles lokaal
+## 📢 Waarom bestaat FotoApp?
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                    JE COMPUTER                           │
-│                                                          │
-│   Browser              Node.js server                   │
-│   ──────────           ─────────────────                │
-│   localhost:3000  ◄──► index.js + api.js                │
-│                         Express + WebSocket              │
-│                              │                           │
-│                    ┌─────────┴──────────┐               │
-│                    ▼                    ▼               │
-│              SQLite DB           Foto's op schijf       │
-│              data/fotos.db       ~/Pictures, SSD, USB   │
-│              (metadata,          (originelen blijven     │
-│               thumbnails,         altijd waar ze zijn)  │
-│               GPS-data)                                  │
-└──────────────────────────────────────────────────────────┘
+Je kent het verhaal. Duizenden foto's op Google Photos. Op iCloud. Op OneDrive.
+En elke maand betaal je meer om ze daar te houden — of ze worden gebruikt om AI te trainen.
 
-GitHub (github.com/boulbaal/fotoApp)
-  └── alleen de CODE — nooit foto's of database
-```
+**Ze zijn van jou. Maar voelen ze nog zo?**
 
-**Wat staat op GitHub:** alleen de broncode (`src/`, `public/`, `tests/`, `index.js`, ...)
+In 2024–2025 veranderde Google Photos zijn voorwaarden opnieuw. Apple verhoogde opslagprijzen. Microsoft gebruikt je OneDrive-inhoud voor AI-training. Miljoenen mensen hangen met hun meest persoonlijke herinneringen aan systemen die ze niet controleren — en waarvan ze de echte prijs niet kennen.
 
-**Wat staat NIET op GitHub:** de database (`data/fotos.db`), thumbnails, foto's, en `node_modules/`
+FotoApp is het antwoord op die vraag: **wat als je je foto's gewoon op je eigen computer beheert?**
+
+Geen account. Geen abonnement. Geen server van ons. Geen AI die je gezicht leert kennen.
+Je foto's blijven op jouw harde schijf — en nergens anders.
 
 ---
 
-## Installatie
+## ✨ Wat doet FotoApp?
 
-### Vereisten
-- [Node.js](https://nodejs.org/) versie 18 of hoger
-- Linux (Ubuntu/Debian) — de app gebruikt `zenity` voor de mapkiezer
+FotoApp helpt je in drie stappen:
+
+### 1️⃣ Organiseren
+- Scan meerdere bronnen tegelijk: je pc, externe harde schijf, USB-stick, smartphone-backup
+- Detecteert automatisch dubbele foto's (ook al staan ze op verschillende schijven)
+- Haalt datum, camera en GPS-locatie op uit de foto's zelf
+- Toont alles op een kaart — zie meteen waar en wanneer je hebt gefotografeerd
+- Werkt ook met Google Takeout exports en RAW-bestanden
+
+### 2️⃣ Selecteren
+- Bekijk al je foto's en markeer wat je wil bewaren of weggooien
+- Grote hover-preview zodat je goed kunt beoordelen
+- Duplicaten worden automatisch gegroepeerd — jij kiest welke je houdt
+
+### 3️⃣ Exporteren
+- Kopiëert je foto's naar een nieuwe schijf of map
+- Automatische naamgeving: `Frankrijk_Parijs_15_07_2023.jpg`
+- Gesorteerd op jaar en maand
+- **Originelen worden nooit verwijderd** — je kunt altijd terugkeren
+- GPS-data wordt teruggeschreven naar de foto's zelf
+
+---
+
+## 🔒 Privacy — geen compromissen
+
+| Wat | FotoApp | Google Photos | iCloud |
+|---|---|---|---|
+| Draait lokaal | ✅ | ❌ | ❌ |
+| Geen account nodig | ✅ | ❌ | ❌ |
+| Geen abonnement | ✅ | ❌ | ❌ |
+| Data blijft op jouw machine | ✅ | ❌ | ❌ |
+| Open source (controleerbaar) | ✅ | ❌ | ❌ |
+| Gebruikt je foto's voor AI | ❌ | ✅ | ✅ |
+
+---
+
+## 💻 Download & Installeren
+
+> ⚠️ **Let op:** FotoApp vereist momenteel Node.js. Een klik-en-klaar installer voor Windows, Mac en Linux is in ontwikkeling.
 
 ```bash
-# Installeer zenity (mapkiezer)
-sudo apt install zenity
-
-# Clone de code
-git clone git@github.com:boulbaal/fotoApp.git
+# Vereisten: Node.js 18+ en Git
+git clone https://github.com/boulbaal/fotoApp.git
 cd fotoApp
-
-# Installeer dependencies
 npm install
-```
-
----
-
-## Starten en stoppen
-
-```bash
-# App starten (voert eerst tests uit, dan start de server)
 sh start.sh
-
-# App stoppen
-sh stop.sh
 ```
 
-De app is daarna bereikbaar op: **http://localhost:3000**
+Ga naar **http://localhost:3000** in je browser.
 
 ---
 
-## Projectstructuur
+## ❤️ Steun dit project
 
-```
-fotoApp/
-├── index.js              ← server (Express + WebSocket)
-├── src/
-│   ├── api.js            ← REST API endpoints
-│   ├── scanner.js        ← foto's scannen, EXIF, GPS, duplicaten
-│   └── database.js       ← SQLite schema en migraties
-├── public/
-│   ├── index.html        ← de webpagina
-│   ├── css/style.css     ← stijlen
-│   └── js/               ← frontend JavaScript per pagina
-├── tests/
-│   └── run-tests.js      ← testsuite (148 tests)
-├── data/
-│   └── fotos.db          ← SQLite database (niet op GitHub)
-├── start.sh              ← start de app
-└── stop.sh               ← stop de app
-```
+FotoApp is en blijft gratis. Geen betaalwal, geen premium features achter een slot.
 
----
+Maar software onderhouden kost tijd. Als FotoApp jou uren werk heeft bespaard, of als je gewoon gelooft in het idee dat mensen hun eigen foto's moeten kunnen beheren zonder een techbedrijf daarvoor te betalen — dan kun je dit project steunen.
 
-## Wat wordt gescand?
+### 💳 Doneer via PayPal
+Elk bedrag helpt, ook €2 of €5.
 
-Per foto leest de app:
-- **EXIF-metadata** — datum, camera, instellingen
-- **GPS-coördinaten** → automatisch omgezet naar stad + land
-- **MD5-hash** → duplicaten detecteren
-- **Google Takeout JSON** → datum en GPS uit Google Photos exports
-- **Thumbnail** → snel voorbeeld via `sharp` of `exiftool`
+**[➡️ Doneer via PayPal](https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen)**
 
-Datum-fallback (in volgorde): EXIF → Google JSON → bestandsnaam → aanmaakdatum → wijzigingsdatum
+Of stuur rechtstreeks naar: `aboulbahaiem@gmail.com` via PayPal.
+
+### 🌟 Supporter Edition — €19 eenmalig
+Wil je iets meer doen? Stuur een mail naar [aboulbahaiem@gmail.com](mailto:aboulbahaiem@gmail.com?subject=Supporter%20Edition) en word vermeld als officiële supporter in de app en in de credits. Exact dezelfde software — maar met de warme wetenschap dat je dit project mee mogelijk maakt.
+
+### ⭐ Gratis steunen
+- Geef een **ster op GitHub** — dat helpt anderen het project vinden
+- Deel FotoApp met iemand die het nodig heeft
+- Meld bugs of stel verbeteringen voor via [GitHub Issues](https://github.com/boulbaal/fotoApp/issues)
 
 ---
 
-## Technische keuzes
+## 🤝 Bijdragen aan de code
 
-| Keuze | Reden |
+FotoApp is open source en verwelkomt bijdragen. Of je nu een developer bent die een feature wil toevoegen, of iemand die een vertaling wil maken — alles helpt.
+
+Lees [CONTRIBUTING.md](CONTRIBUTING.md) voor hoe je kunt bijdragen.
+
+---
+
+## 📋 Licentie
+
+FotoApp is **gratis voor persoonlijk gebruik en non-profitorganisaties**.
+Commercieel gebruik door bedrijven is niet toegestaan zonder toestemming.
+
+Zie [LICENSE](LICENSE) voor de volledige voorwaarden.
+
+Commerciële licentie nodig? Mail naar [aboulbahaiem@gmail.com](mailto:aboulbahaiem@gmail.com).
+
+---
+
+## 🏗️ Technologie
+
+| Component | Technologie |
 |---|---|
-| SQLite | Lokaal-first, geen aparte database server |
-| Vanilla JS | Geen build-stap, direct begrijpbaar |
-| WebSocket | Live scanvoortgang + mapkiezer |
-| Nominatim | GPS → stad/land, gratis en privacy-vriendelijk |
-| MD5-hash | Snel, voldoende voor duplicaatdetectie |
-| zenity | Native mapkiezer op Linux |
+| Backend | Node.js + Express |
+| Database | SQLite (lokaal, geen server) |
+| Frontend | Vanilla JavaScript |
+| Kaarten | Leaflet + OpenStreetMap |
+| Geocoding | Nominatim (privacy-first, geen API key) |
+| EXIF | exifr + exiftool |
+| Thumbnails | sharp |
 
 ---
 
-## Privacy
+<div align="center">
 
-- Foto's verlaten nooit je computer
-- GPS-data wordt lokaal vertaald via [Nominatim](https://nominatim.openstreetmap.org/) (OpenStreetMap) — geen commerciële API
-- Geen accounts, geen tracking, geen analytics
+**Gemaakt door [Ali Boulbahaiem](mailto:aboulbahaiem@gmail.com)**
+*Van de mens, voor de mens.*
+
+[![Doneer via PayPal](https://img.shields.io/badge/Doneer-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen)
+
+</div>

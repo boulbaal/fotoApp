@@ -96,3 +96,50 @@ function formateerDatumInput(input) {
   if (v.length > 10) v = v.slice(0,10);
   input.value = v;
 }
+
+// ─── MODAL GPS KAARTJE ────────────────────────────────────────────────────────
+// Toont een kleine Leaflet kaart met pin op de gegeven coördinaten in de detail modal
+
+let _modalKaart = null;
+let _modalMarker = null;
+
+function initialiseerModalKaart(lat, lon) {
+  const el = document.getElementById('modalGpsKaartje');
+  if (!el) return;
+
+  el.style.display = 'block';
+
+  if (_modalKaart) {
+    // Kaart bestaat al — verplaats pin en centreer
+    _modalKaart.setView([lat, lon], 13);
+    if (_modalMarker) {
+      _modalMarker.setLatLng([lat, lon]);
+    } else {
+      _modalMarker = L.marker([lat, lon]).addTo(_modalKaart);
+    }
+    _modalKaart.invalidateSize();
+    return;
+  }
+
+  // Eerste keer: maak kaart aan
+  _modalKaart = L.map(el, {
+    center: [lat, lon],
+    zoom: 13,
+    zoomControl: true,
+    attributionControl: false,
+    dragging: true,
+    scrollWheelZoom: false,
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(_modalKaart);
+
+  _modalMarker = L.marker([lat, lon]).addTo(_modalKaart);
+}
+
+function verbergModalKaart() {
+  const el = document.getElementById('modalGpsKaartje');
+  if (el) el.style.display = 'none';
+}

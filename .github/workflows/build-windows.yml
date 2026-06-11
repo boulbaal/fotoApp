@@ -1,0 +1,36 @@
+name: Build Windows installer
+
+on:
+  push:
+    tags:
+      - 'v*'          # Bouw automatisch bij: git tag v1.0.0 && git push --tags
+  workflow_dispatch:   # Of handmatig starten via GitHub → Actions tab
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Code ophalen
+        uses: actions/checkout@v4
+
+      - name: Node.js instellen
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Dependencies installeren
+        run: npm ci
+
+      - name: Windows installer bouwen
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Installer uploaden als artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FotoApp-Windows
+          path: dist/*.exe
+          retention-days: 30
