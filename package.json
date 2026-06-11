@@ -27,7 +27,6 @@
     "ws": "^8.21.0"
   },
   "devDependencies": {
-    "@electron/rebuild": "^3.6.0",
     "electron": "^33.0.0",
     "electron-builder": "^25.1.8"
   },
