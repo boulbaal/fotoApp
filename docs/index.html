@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FotoApp – Gratis Foto Beheer Software | Windows Download</title>
+  <meta name="description" content="FotoApp: gratis, open-source desktopapp voor foto- en videobeheer. Geen cloud. Duplicaatdetectie, GPS-kaart, EXIF, RAW, Google Takeout. Download voor Windows.">
+  <meta name="keywords" content="fotobeheer software gratis, foto organiseren windows, duplicaten foto verwijderen, EXIF viewer gratis, GPS foto kaart, RAW foto software, photo management software free, duplicate photo finder, local photo organizer offline, FotoApp download">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <link rel="canonical" href="https://boulbaal.github.io/fotoApp/">
+  <link rel="sitemap" type="application/xml" href="/fotoApp/sitemap.xml">
+  <meta property="og:title" content="FotoApp – Gratis lokale foto- en videobeheer">
+  <meta property="og:description" content="Organiseer duizenden foto's lokaal. Geen cloud. Duplicaatdetectie, GPS, RAW, Google Takeout. Gratis. Open source.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://boulbaal.github.io/fotoApp/">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"FotoApp","operatingSystem":["Windows","macOS","Linux"],"applicationCategory":"MultimediaApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"downloadUrl":"https://github.com/boulbaal/fotoApp/releases/latest","softwareVersion":"1.0.0","author":{"@type":"Person","name":"Ali"}}</script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--blue:#2563eb;--blue-d:#1d4ed8;--blue-l:#60a5fa;--bg:#0f0f13;--bg2:#131320;--bg3:#1a1a2a;--border:#2a2a40;--text:#e8e8f0;--muted:#64748b;--soft:#94a3b8}
+    html{scroll-behavior:smooth}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.65}
+    a{color:var(--blue-l);text-decoration:none}a:hover{text-decoration:underline}
+
+    /* NAV */
+    nav{position:sticky;top:0;z-index:100;background:rgba(15,15,19,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px}
+    .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px;gap:12px}
+    .nav-logo{font-weight:900;font-size:1.15rem;color:#fff;display:flex;align-items:center;gap:8px;flex-shrink:0}
+    .nav-right{display:flex;align-items:center;gap:10px}
+    .nav-links{display:flex;align-items:center;gap:18px;font-size:.88rem;color:var(--soft)}
+    .nav-links a{color:var(--soft);transition:color .2s}
+    .nav-links a:hover{color:#fff;text-decoration:none}
+
+    /* LANG SWITCHER */
+    .lang-switcher{position:relative}
+    .lang-btn{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);color:var(--soft);font-size:.85rem;padding:7px 12px;border-radius:8px;cursor:pointer;transition:border-color .2s;white-space:nowrap}
+    .lang-btn:hover{border-color:var(--blue-l);color:#fff}
+    .lang-dropdown{position:absolute;top:calc(100% + 6px);right:0;background:#1c1c2e;border:1px solid var(--border);border-radius:10px;overflow:hidden;min-width:150px;box-shadow:0 8px 30px rgba(0,0,0,.4);display:none;z-index:200}
+    .lang-switcher.open .lang-dropdown{display:block}
+    .lang-option{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:.88rem;color:var(--soft);cursor:pointer;transition:background .15s,color .15s}
+    .lang-option:hover,.lang-option.active{background:rgba(96,165,250,.08);color:#fff}
+    .lang-option.active{font-weight:600;color:var(--blue-l)}
+    .lang-flag{font-size:1.1rem}
+
+    .nav-btn{background:var(--blue);color:#fff!important;padding:7px 16px;border-radius:8px;font-weight:700;font-size:.85rem;transition:background .2s;white-space:nowrap}
+    .nav-btn:hover{background:var(--blue-d)!important;text-decoration:none!important}
+
+    /* HERO */
+    .hero{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);padding:100px 24px 80px;text-align:center;border-bottom:1px solid var(--border)}
+    .hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(37,99,235,.15);border:1px solid rgba(96,165,250,.3);color:#93c5fd;font-size:13px;padding:5px 16px;border-radius:20px;margin-bottom:28px}
+    .hero h1{font-size:clamp(2.2rem,6vw,3.8rem);font-weight:900;color:#fff;margin-bottom:20px;line-height:1.1;letter-spacing:-.02em}
+    .hero h1 em{color:var(--blue-l);font-style:normal}
+    .hero-sub{font-size:1.15rem;color:var(--soft);max-width:620px;margin:0 auto 40px;line-height:1.7}
+    .btn-row{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+    .btn-primary{display:inline-flex;align-items:center;gap:10px;background:var(--blue);color:#fff;font-size:1.05rem;font-weight:700;padding:15px 36px;border-radius:12px;box-shadow:0 6px 30px rgba(37,99,235,.45);transition:background .2s,transform .15s}
+    .btn-primary:hover{background:var(--blue-d);transform:translateY(-2px);text-decoration:none}
+    .btn-ghost{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);color:var(--soft);padding:13px 24px;border-radius:12px;font-size:.95rem;transition:border-color .2s,color .2s}
+    .btn-ghost:hover{border-color:var(--blue-l);color:var(--blue-l);text-decoration:none}
+    .hero-meta{margin-top:22px;font-size:13px;color:#334155;display:flex;justify-content:center;gap:20px;flex-wrap:wrap}
+    .hero-meta span::before{content:"✓ ";color:#22c55e}
+
+    /* TRUST */
+    .trust{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:16px 24px}
+    .trust-inner{max-width:900px;margin:0 auto;display:flex;justify-content:center;gap:28px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+
+    /* SECTIONS */
+    .section{max-width:1100px;margin:0 auto;padding:80px 24px}
+    .section-label{text-align:center;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--blue-l);margin-bottom:10px}
+    .section-title{text-align:center;font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;color:#f1f5f9;margin-bottom:12px;line-height:1.2}
+    .section-sub{text-align:center;color:var(--muted);margin-bottom:52px;font-size:1rem;max-width:580px;margin-left:auto;margin-right:auto}
+
+    /* FEATURES */
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+    .feature{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px;transition:border-color .25s,transform .2s}
+    .feature:hover{border-color:rgba(96,165,250,.35);transform:translateY(-3px)}
+    .feature-icon{font-size:2.2rem;margin-bottom:14px}
+    .feature h3{font-size:1.05rem;font-weight:700;color:#f1f5f9;margin-bottom:8px}
+    .feature p{font-size:.9rem;color:var(--muted);line-height:1.6}
+    .feature-tag{display:inline-block;background:rgba(37,99,235,.1);border:1px solid rgba(96,165,250,.2);color:#93c5fd;font-size:11px;padding:2px 8px;border-radius:6px;margin-top:10px}
+
+    /* PRIVACY */
+    .privacy-box{background:linear-gradient(135deg,rgba(30,58,95,.4),rgba(15,52,96,.4));border:1px solid rgba(96,165,250,.15);border-radius:20px;padding:56px 40px;text-align:center;max-width:1100px;margin:0 auto}
+    .privacy-box h2{font-size:1.9rem;font-weight:800;color:#fff;margin-bottom:14px}
+    .privacy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:24px;margin-top:40px}
+    .privacy-item .icon{font-size:2.4rem;margin-bottom:10px}
+    .privacy-item h3{font-size:.95rem;font-weight:700;color:#e2e8f0;margin-bottom:4px}
+    .privacy-item p{font-size:.85rem;color:var(--muted)}
+
+    /* STEPS */
+    .steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;max-width:900px;margin:0 auto}
+    .step-card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:28px;position:relative}
+    .step-num{font-size:3rem;font-weight:900;color:rgba(96,165,250,.1);position:absolute;top:14px;right:18px;line-height:1}
+    .step-card h3{font-size:1rem;font-weight:700;color:#f1f5f9;margin-bottom:8px}
+    .step-card p{font-size:.875rem;color:var(--muted);line-height:1.6}
+    code{background:#1e1e2e;color:#93c5fd;padding:2px 8px;border-radius:5px;font-size:.82rem}
+
+    /* FAQ */
+    .faq-list{max-width:740px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+    .faq-item{background:var(--bg3);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .faq-q{padding:18px 24px;font-weight:600;color:#e2e8f0;font-size:.95rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+    .faq-q::after{content:"﹢";font-size:1.4rem;color:var(--muted)}
+    .faq-item.open .faq-q::after{content:"﹣"}
+    .faq-a{padding:0 24px 18px;color:var(--muted);font-size:.9rem;line-height:1.7;display:none}
+    .faq-item.open .faq-a{display:block}
+
+    /* CTA */
+    .cta{background:linear-gradient(135deg,#1e3a5f,#0f3460);border-top:1px solid #2a3f5f;text-align:center;padding:80px 24px}
+    .cta h2{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:900;color:#fff;margin-bottom:14px}
+    .cta p{color:var(--soft);margin-bottom:36px;max-width:480px;margin-left:auto;margin-right:auto}
+
+    /* FOOTER */
+    footer{background:#070710;border-top:1px solid #12121e;padding:40px 24px;text-align:center}
+    .footer-links{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin-bottom:18px;font-size:.875rem}
+    .footer-links a{color:var(--muted);transition:color .2s}
+    .footer-links a:hover{color:var(--blue-l);text-decoration:none}
+    .footer-copy{font-size:12px;color:#1e293b}
+
+    @media(max-width:640px){.nav-links{display:none}.hero{padding:70px 20px 60px}}
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">📷 FotoApp</div>
+    <div class="nav-right">
+      <div class="nav-links">
+        <a href="#functies" data-i18n="nav_features">Functies</a>
+        <a href="#installatie" data-i18n="nav_install">Installatie</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/boulbaal/fotoApp">GitHub</a>
+      </div>
+      <!-- LANGUAGE SWITCHER -->
+      <div class="lang-switcher" id="langSwitcher">
+        <div class="lang-btn" id="langBtn">
+          <span id="langFlag">🇳🇱</span>
+          <span id="langLabel">NL</span>
+          <span style="font-size:.7rem;opacity:.6">▾</span>
+        </div>
+        <div class="lang-dropdown" id="langDropdown">
+          <div class="lang-option active" data-lang="nl"><span class="lang-flag">🇳🇱</span> Nederlands</div>
+          <div class="lang-option" data-lang="en"><span class="lang-flag">🇬🇧</span> English</div>
+          <div class="lang-option" data-lang="fr"><span class="lang-flag">🇫🇷</span> Français</div>
+          <div class="lang-option" data-lang="de"><span class="lang-flag">🇩🇪</span> Deutsch</div>
+        </div>
+      </div>
+      <a href="https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe" class="nav-btn" data-i18n="nav_download">⬇ Download</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">✨ v1.0.0 — <span data-i18n="badge_free">Gratis &amp; Open Source</span></div>
+  <h1 data-i18n="hero_h1">Jouw foto's.<br><em>Lokaal. Privé. Gratis.</em></h1>
+  <p class="hero-sub" data-i18n="hero_sub">FotoApp organiseert duizenden foto's en video's op je eigen computer. Geen cloud, geen abonnement. Jouw foto's blijven van jou.</p>
+  <div class="btn-row">
+    <a href="https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe" class="btn-primary">
+      ⬇️ <span data-i18n="btn_download_win">Download voor Windows</span> <span style="opacity:.65;font-size:.85rem">~94 MB</span>
+    </a>
+    <a href="https://github.com/boulbaal/fotoApp" class="btn-ghost">🔗 <span data-i18n="btn_github">Broncode op GitHub</span></a>
+  </div>
+  <div class="hero-meta">
+    <span data-i18n="meta1">Windows 10/11 64-bit</span>
+    <span data-i18n="meta2">Open Source (ISC)</span>
+    <span data-i18n="meta3">Geen registratie</span>
+    <span data-i18n="meta4">Werkt offline</span>
+    <span data-i18n="meta5">Mac &amp; Linux (broncode)</span>
+  </div>
+</section>
+
+<!-- TRUST -->
+<div class="trust">
+  <div class="trust-inner">
+    <span>🔒 <span data-i18n="trust1">Geen cloud upload</span></span>
+    <span>💸 <span data-i18n="trust2">Gratis voor altijd</span></span>
+    <span>🔍 <span data-i18n="trust3">Open source code</span></span>
+    <span>🗺️ <span data-i18n="trust4">GPS-kaart ingebouwd</span></span>
+    <span>📷 <span data-i18n="trust5">RAW-ondersteuning</span></span>
+    <span>🎯 <span data-i18n="trust6">Duplicaatdetectie</span></span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div id="functies">
+  <div class="section">
+    <p class="section-label" data-i18n="feat_label">Functies</p>
+    <h2 class="section-title" data-i18n="feat_title">Alles wat je nodig hebt, niets wat je niet wil</h2>
+    <p class="section-sub" data-i18n="feat_sub">Gebouwd door iemand die zelf 27.000+ foto's moest organiseren.</p>
+    <div class="features">
+      <div class="feature"><div class="feature-icon">🔍</div><h3 data-i18n="f1_title">Duplicaatdetectie</h3><p data-i18n="f1_desc">Vindt exacte kopieën via MD5-hash — ook als bestandsnaam, datum of map verschilt. Groepsgewijs negeren.</p><span class="feature-tag">MD5 hash</span></div>
+      <div class="feature"><div class="feature-icon">🗺️</div><h3 data-i18n="f2_title">GPS-kaart</h3><p data-i18n="f2_desc">Interactieve wereldkaart met al je fotolocaties. Klik op een locatie om foto's te zien. GPS handmatig toewijzen.</p><span class="feature-tag">Leaflet + OpenStreetMap</span></div>
+      <div class="feature"><div class="feature-icon">📊</div><h3 data-i18n="f3_title">Dashboard &amp; statistieken</h3><p data-i18n="f3_desc">Grafieken per jaar, camera en land — apart voor foto's en video's. Klik op een balk om direct te filteren.</p><span class="feature-tag">Foto's + Video's</span></div>
+      <div class="feature"><div class="feature-icon">📷</div><h3 data-i18n="f4_title">RAW-support</h3><p data-i18n="f4_desc">Volledig support voor Canon CR2/CR3, Nikon NEF, Sony ARW, Fuji RAF. Thumbnails via exiftool.</p><span class="feature-tag">Canon · Nikon · Sony · Fuji</span></div>
+      <div class="feature"><div class="feature-icon">🌍</div><h3 data-i18n="f5_title">Automatische geocoding</h3><p data-i18n="f5_desc">GPS-coördinaten worden omgezet naar stad en land via Nominatim. Geen API-sleutel nodig, volledig privé.</p><span class="feature-tag">Nominatim · Privacy-first</span></div>
+      <div class="feature"><div class="feature-icon">📤</div><h3 data-i18n="f6_title">Slimme export</h3><p data-i18n="f6_desc">Automatische bestandsnamen: <code>Nederland_Amsterdam_15_06_2023.jpg</code>, geordend per jaar/maand.</p><span class="feature-tag">Land · Stad · Datum</span></div>
+      <div class="feature"><div class="feature-icon">🎬</div><h3 data-i18n="f7_title">Video-beheer</h3><p data-i18n="f7_desc">MP4, MOV, AVI en meer. Video's krijgen eigen statistieken, grafieken en filters — apart van foto's.</p><span class="feature-tag">MP4 · MOV · AVI</span></div>
+      <div class="feature"><div class="feature-icon">🇬</div><h3 data-i18n="f8_title">Google Takeout</h3><p data-i18n="f8_desc">Importeer je Google Foto's export. De app leest JSON-bestanden voor datum en GPS-fallback automatisch.</p><span class="feature-tag">Google Photos export</span></div>
+      <div class="feature"><div class="feature-icon">📄</div><h3 data-i18n="f9_title">EXIF-data</h3><p data-i18n="f9_desc">Alle metadata: datum, camera, lens, sluitertijd, diafragma, ISO, brandpuntsafstand — direct zichtbaar.</p><span class="feature-tag">Volledige EXIF-weergave</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PRIVACY -->
+<div style="background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 24px">
+  <div class="privacy-box">
+    <p class="section-label" data-i18n="priv_label">Privacy</p>
+    <h2 data-i18n="priv_title">Jouw foto's zijn van jou.<br>Niet van Google. Niet van Apple.</h2>
+    <p style="color:var(--soft);max-width:540px;margin:0 auto;line-height:1.7" data-i18n="priv_sub">FotoApp stuurt nooit foto's naar externe servers. Alles blijft op jouw machine. Geen account. Geen tracking.</p>
+    <div class="privacy-grid">
+      <div class="privacy-item"><div class="icon">🔒</div><h3 data-i18n="priv1_t">Volledig lokaal</h3><p data-i18n="priv1_d">Geen upload naar cloud of externe servers. Ooit.</p></div>
+      <div class="privacy-item"><div class="icon">📝</div><h3 data-i18n="priv2_t">Open source</h3><p data-i18n="priv2_d">Volledige broncode op GitHub. Niets verborgen.</p></div>
+      <div class="privacy-item"><div class="icon">🌍</div><h3 data-i18n="priv3_t">Minimale geocoding</h3><p data-i18n="priv3_d">Alleen GPS-coördinaten naar Nominatim — geen foto's.</p></div>
+      <div class="privacy-item"><div class="icon">📶</div><h3 data-i18n="priv4_t">Offline-first</h3><p data-i18n="priv4_d">Werkt volledig zonder internet na installatie.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- INSTALLATION -->
+<div id="installatie">
+  <div class="section">
+    <p class="section-label" data-i18n="inst_label">Installatie</p>
+    <h2 class="section-title" data-i18n="inst_title">In 3 stappen aan de slag</h2>
+    <p class="section-sub" data-i18n="inst_sub">Windows 10 of hoger vereist. Mac en Linux: zelf bouwen uit broncode.</p>
+    <div class="steps-grid">
+      <div class="step-card"><div class="step-num">1</div><h3 data-i18n="step1_t">Download de installer</h3><p data-i18n="step1_d">Klik op de grote downloadknop. Het bestand heet <code>FotoApp-Setup-1.0.0.exe</code> (~94 MB).</p></div>
+      <div class="step-card"><div class="step-num">2</div><h3 data-i18n="step2_t">Installeer de app</h3><p data-i18n="step2_d">Dubbelklik op het bestand. Bij SmartScreen: klik <strong style="color:#e2e8f0">"Meer informatie" → "Toch uitvoeren"</strong>. De broncode is volledig open.</p></div>
+      <div class="step-card"><div class="step-num">3</div><h3 data-i18n="step3_t">Voeg een map toe &amp; scan</h3><p data-i18n="step3_d">Open FotoApp via het startmenu. Ga naar <strong style="color:#e2e8f0">Bronnen</strong> → selecteer een map → klik <strong style="color:#e2e8f0">Scannen</strong>.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div id="faq" style="background:var(--bg2);border-top:1px solid var(--border)">
+  <div class="section">
+    <p class="section-label">FAQ</p>
+    <h2 class="section-title" data-i18n="faq_title">Veelgestelde vragen</h2>
+    <div class="faq-list" id="faqList"></div>
+  </div>
+</div>
+
+<!-- CONTRIBUTE + DONATE -->
+<div style="background:var(--bg2);border-top:1px solid var(--border);padding:80px 24px">
+  <div style="max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:32px">
+
+    <!-- BIJDRAGEN -->
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:36px;text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:16px">🤝</div>
+      <h2 style="font-size:1.4rem;font-weight:800;color:#f1f5f9;margin-bottom:10px" data-i18n="contrib_title">Meehelpen bouwen</h2>
+      <p style="color:var(--muted);font-size:.9rem;line-height:1.7;margin-bottom:24px" data-i18n="contrib_desc">FotoApp is open source. Heb je een idee, vond je een bug of wil je een taal toevoegen? Bijdragen zijn welkom — alle PRs worden persoonlijk door de beheerder beoordeeld.</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <a href="https://github.com/boulbaal/fotoApp/issues/new?template=feature_request.md" class="btn-ghost" style="justify-content:center">💡 <span data-i18n="contrib_idea">Idee delen</span></a>
+        <a href="https://github.com/boulbaal/fotoApp/issues/new?template=bug_report.md" class="btn-ghost" style="justify-content:center">🐛 <span data-i18n="contrib_bug">Bug melden</span></a>
+        <a href="https://github.com/boulbaal/fotoApp/blob/main/CONTRIBUTING.md" class="btn-ghost" style="justify-content:center">📋 <span data-i18n="contrib_rules">Bijdrage-spelregels</span></a>
+        <a href="https://github.com/boulbaal/fotoApp" class="btn-ghost" style="justify-content:center">⭐ <span data-i18n="contrib_star">Ster geven op GitHub</span></a>
+      </div>
+    </div>
+
+    <!-- DONEREN -->
+    <div style="background:linear-gradient(135deg,rgba(30,58,95,.5),rgba(124,106,247,.1));border:1px solid rgba(124,106,247,.25);border-radius:20px;padding:36px;text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:16px">❤️</div>
+      <h2 style="font-size:1.4rem;font-weight:800;color:#f1f5f9;margin-bottom:10px" data-i18n="donate_title">Steun het project</h2>
+      <p style="color:var(--muted);font-size:.9rem;line-height:1.7;margin-bottom:24px" data-i18n="donate_desc">FotoApp is gratis en blijft gratis. Vind je het nuttig? Een donatie helpt om nieuwe functies te bouwen, Mac/Linux-installers te financieren en de app levend te houden.</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <a href="https://github.com/sponsors/boulbaal" class="btn-primary" style="justify-content:center;background:linear-gradient(135deg,#7c6af7,#5b4fd4)">
+          💜 <span data-i18n="donate_sponsor">GitHub Sponsors</span>
+        </a>
+        <a href="https://ko-fi.com/" class="btn-ghost" style="justify-content:center;border-color:rgba(255,94,94,.3);color:#ff6b6b">
+          ☕ <span data-i18n="donate_kofi">Ko-fi donatie</span>
+        </a>
+      </div>
+      <p style="margin-top:16px;font-size:12px;color:#334155" data-i18n="donate_note">Geen verplichting. Elke bijdrage, hoe klein ook, wordt enorm gewaardeerd.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta">
+  <h2 data-i18n="cta_title">Klaar om je foto's te organiseren?</h2>
+  <p data-i18n="cta_sub">Download gratis. Geen account. Geen cloud. Geen limiet.</p>
+  <div class="btn-row">
+    <a href="https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe" class="btn-primary" style="font-size:1.05rem;padding:16px 40px">
+      ⬇️ <span data-i18n="cta_btn">Download FotoApp voor Windows — Gratis</span>
+    </a>
+  </div>
+  <p style="margin-top:18px;font-size:13px;color:#334155">Windows 10/11 · 64-bit · ~94 MB · v1.0.0 · <a href="https://github.com/boulbaal/fotoApp/releases" style="color:#334155" data-i18n="all_releases">Alle releases</a></p>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-links">
+    <a href="https://github.com/boulbaal/fotoApp">GitHub</a>
+    <a href="https://github.com/boulbaal/fotoApp/releases" data-i18n="foot_releases">Releases</a>
+    <a href="https://github.com/boulbaal/fotoApp/blob/main/CONTRIBUTING.md" data-i18n="foot_contrib">Bijdragen</a>
+    <a href="https://github.com/boulbaal/fotoApp/issues" data-i18n="foot_issues">Issues</a>
+    <a href="https://github.com/boulbaal/fotoApp/blob/main/README.md" data-i18n="foot_docs">Documentatie</a>
+  </div>
+  <p class="footer-copy">FotoApp © 2026 Ali · ISC License · <a href="https://github.com/boulbaal/fotoApp" style="color:#1e293b">github.com/boulbaal/fotoApp</a></p>
+</footer>
+
+<script>
+// ── TRANSLATIONS ──────────────────────────────────────────────
+const T = {
+  nl: {
+    nav_features:"Functies", nav_install:"Installatie", nav_download:"⬇ Download",
+    badge_free:"Gratis & Open Source",
+    hero_h1:"Jouw foto's.<br><em>Lokaal. Privé. Gratis.</em>",
+    hero_sub:"FotoApp organiseert duizenden foto's en video's op je eigen computer. Geen cloud, geen abonnement. Jouw foto's blijven van jou.",
+    btn_download_win:"Download voor Windows", btn_github:"Broncode op GitHub",
+    meta1:"Windows 10/11 64-bit", meta2:"Open Source (ISC)", meta3:"Geen registratie", meta4:"Werkt offline", meta5:"Mac & Linux (broncode)",
+    trust1:"Geen cloud upload", trust2:"Gratis voor altijd", trust3:"Open source code", trust4:"GPS-kaart ingebouwd", trust5:"RAW-ondersteuning", trust6:"Duplicaatdetectie",
+    feat_label:"Functies", feat_title:"Alles wat je nodig hebt, niets wat je niet wil", feat_sub:"Gebouwd door iemand die zelf 27.000+ foto's moest organiseren.",
+    f1_title:"Duplicaatdetectie", f1_desc:"Vindt exacte kopieën via MD5-hash — ook als bestandsnaam, datum of map verschilt.",
+    f2_title:"GPS-kaart", f2_desc:"Interactieve wereldkaart met al je fotolocaties. GPS handmatig toewijzen ook mogelijk.",
+    f3_title:"Dashboard & statistieken", f3_desc:"Grafieken per jaar, camera en land — apart voor foto's en video's.",
+    f4_title:"RAW-support", f4_desc:"Canon CR2/CR3, Nikon NEF, Sony ARW, Fuji RAF. Thumbnails via exiftool.",
+    f5_title:"Automatische geocoding", f5_desc:"GPS-coördinaten → stad en land via Nominatim. Geen API-sleutel, volledig privé.",
+    f6_title:"Slimme export", f6_desc:"Automatische bestandsnamen: Nederland_Amsterdam_15_06_2023.jpg, geordend per jaar/maand.",
+    f7_title:"Video-beheer", f7_desc:"MP4, MOV, AVI. Video's krijgen eigen statistieken en grafieken.",
+    f8_title:"Google Takeout", f8_desc:"Importeer Google Foto's export. JSON-bestanden voor datum en GPS-fallback.",
+    f9_title:"EXIF-data", f9_desc:"Datum, camera, lens, sluitertijd, ISO, diafragma — direct zichtbaar.",
+    priv_label:"Privacy", priv_title:"Jouw foto's zijn van jou.<br>Niet van Google. Niet van Apple.",
+    priv_sub:"FotoApp stuurt nooit foto's naar externe servers. Alles blijft op jouw machine. Geen account. Geen tracking.",
+    priv1_t:"Volledig lokaal", priv1_d:"Geen upload naar cloud of externe servers. Ooit.",
+    priv2_t:"Open source", priv2_d:"Volledige broncode op GitHub. Niets verborgen.",
+    priv3_t:"Minimale geocoding", priv3_d:"Alleen GPS-coördinaten naar Nominatim — geen foto's.",
+    priv4_t:"Offline-first", priv4_d:"Werkt volledig zonder internet na installatie.",
+    inst_label:"Installatie", inst_title:"In 3 stappen aan de slag", inst_sub:"Windows 10 of hoger vereist. Mac en Linux: zelf bouwen.",
+    step1_t:"Download de installer", step1_d:"Klik op de downloadknop. Bestand: FotoApp-Setup-1.0.0.exe (~94 MB).",
+    step2_t:"Installeer de app", step2_d:'Bij SmartScreen: klik "Meer informatie" → "Toch uitvoeren". Broncode is volledig open.',
+    step3_t:"Voeg een map toe & scan", step3_d:"Open via startmenu → Bronnen → kies een map → klik Scannen.",
+        contrib_title:"Meehelpen bouwen", contrib_desc:"FotoApp is open source. Heb je een idee, bug of wil je een taal toevoegen? Alle PRs worden persoonlijk beoordeeld.",
+    contrib_idea:"Idee delen", contrib_bug:"Bug melden", contrib_rules:"Bijdrage-spelregels", contrib_star:"Ster geven op GitHub",
+    donate_title:"Steun het project", donate_desc:"FotoApp is gratis en blijft gratis. Een donatie helpt nieuwe functies te bouwen en de app levend te houden.",
+    donate_sponsor:"GitHub Sponsors", donate_kofi:"Ko-fi donatie", donate_note:"Geen verplichting. Elke bijdrage wordt enorm gewaardeerd.",
+    faq_title:"Veelgestelde vragen",
+    faqs:[
+      {q:"Is FotoApp echt gratis?", a:"Ja, volledig gratis en open source (ISC licentie). Geen premium versie, geen abonnement."},
+      {q:"Worden mijn foto's naar de cloud geüpload?", a:"Nee. FotoApp werkt volledig lokaal. Geocoding stuurt alleen GPS-coördinaten naar Nominatim — geen foto's."},
+      {q:"Welke formaten worden ondersteund?", a:"JPG, PNG, HEIC, WebP, GIF, RAW (Canon, Nikon, Sony, Fuji), MP4, MOV, AVI, MKV en meer."},
+      {q:"Werkt FotoApp op Mac en Linux?", a:"Ja. Bouw zelf vanuit broncode: npm run build:mac of npm run build:linux."},
+      {q:"Is de app veilig? Windows geeft een waarschuwing.", a:"Ja. SmartScreen waarschuwt voor apps zonder betaald certificaat. De volledige broncode staat op GitHub."},
+      {q:"Kan ik helpen bouwen aan FotoApp?", a:"Ja! Open een Issue of dien een Pull Request in. Alle PRs worden persoonlijk beoordeeld door de beheerder."}
+    ],
+    cta_title:"Klaar om je foto's te organiseren?", cta_sub:"Download gratis. Geen account. Geen cloud. Geen limiet.",
+    cta_btn:"Download FotoApp voor Windows — Gratis", all_releases:"Alle releases",
+    foot_releases:"Releases", foot_contrib:"Bijdragen", foot_issues:"Issues", foot_docs:"Documentatie"
+  },
+
+  en: {
+    nav_features:"Features", nav_install:"Installation", nav_download:"⬇ Download",
+    badge_free:"Free & Open Source",
+    hero_h1:"Your photos.<br><em>Local. Private. Free.</em>",
+    hero_sub:"FotoApp organizes thousands of photos and videos on your own computer. No cloud, no subscription. Your photos stay yours.",
+    btn_download_win:"Download for Windows", btn_github:"Source code on GitHub",
+    meta1:"Windows 10/11 64-bit", meta2:"Open Source (ISC)", meta3:"No registration", meta4:"Works offline", meta5:"Mac & Linux (source code)",
+    trust1:"No cloud upload", trust2:"Free forever", trust3:"Open source code", trust4:"GPS map built-in", trust5:"RAW support", trust6:"Duplicate detection",
+    feat_label:"Features", feat_title:"Everything you need, nothing you don't", feat_sub:"Built by someone who had to organize 27,000+ photos themselves.",
+    f1_title:"Duplicate detection", f1_desc:"Finds exact copies via MD5 hash — even if filename, date or folder differs.",
+    f2_title:"GPS map", f2_desc:"Interactive world map with all your photo locations. Manual GPS assignment also possible.",
+    f3_title:"Dashboard & statistics", f3_desc:"Charts by year, camera and country — separate for photos and videos.",
+    f4_title:"RAW support", f4_desc:"Canon CR2/CR3, Nikon NEF, Sony ARW, Fuji RAF. Thumbnails via exiftool.",
+    f5_title:"Automatic geocoding", f5_desc:"GPS coordinates → city and country via Nominatim. No API key, fully private.",
+    f6_title:"Smart export", f6_desc:"Automatic filenames: Netherlands_Amsterdam_15_06_2023.jpg, sorted by year/month.",
+    f7_title:"Video management", f7_desc:"MP4, MOV, AVI. Videos get their own statistics and charts.",
+    f8_title:"Google Takeout", f8_desc:"Import Google Photos exports. Reads JSON files for date and GPS fallback.",
+    f9_title:"EXIF data", f9_desc:"Date, camera, lens, shutter speed, ISO, aperture — visible at a glance.",
+    priv_label:"Privacy", priv_title:"Your photos belong to you.<br>Not to Google. Not to Apple.",
+    priv_sub:"FotoApp never sends photos to external servers. Everything stays on your machine. No account. No tracking.",
+    priv1_t:"Fully local", priv1_d:"No upload to cloud or external servers. Ever.",
+    priv2_t:"Open source", priv2_d:"Full source code on GitHub. Nothing hidden.",
+    priv3_t:"Minimal geocoding", priv3_d:"Only GPS coordinates to Nominatim — no photos.",
+    priv4_t:"Offline-first", priv4_d:"Works completely without internet after installation.",
+    inst_label:"Installation", inst_title:"Get started in 3 steps", inst_sub:"Windows 10 or higher required. Mac and Linux: build from source.",
+    step1_t:"Download the installer", step1_d:"Click the download button. File: FotoApp-Setup-1.0.0.exe (~94 MB).",
+    step2_t:"Install the app", step2_d:'If SmartScreen warns you: click "More info" → "Run anyway". Source code is fully open.',
+    step3_t:"Add a folder & scan", step3_d:"Open via Start menu → Sources → choose a folder → click Scan.",
+        contrib_title:"Help build it", contrib_desc:"FotoApp is open source. Have an idea, found a bug, or want to add a language? All PRs are personally reviewed by the maintainer.",
+    contrib_idea:"Share an idea", contrib_bug:"Report a bug", contrib_rules:"Contribution guidelines", contrib_star:"Star on GitHub",
+    donate_title:"Support the project", donate_desc:"FotoApp is free and stays free. If you find it useful, a donation helps build new features and keep the app alive.",
+    donate_sponsor:"GitHub Sponsors", donate_kofi:"Ko-fi donation", donate_note:"No obligation. Every contribution, however small, is hugely appreciated.",
+    faq_title:"Frequently asked questions",
+    faqs:[
+      {q:"Is FotoApp really free?", a:"Yes, completely free and open source (ISC license). No premium version, no subscription."},
+      {q:"Are my photos uploaded to the cloud?", a:"No. FotoApp works fully locally. Geocoding only sends GPS coordinates to Nominatim — never photos."},
+      {q:"Which formats are supported?", a:"JPG, PNG, HEIC, WebP, GIF, RAW (Canon, Nikon, Sony, Fuji), MP4, MOV, AVI, MKV and more."},
+      {q:"Does FotoApp work on Mac and Linux?", a:"Yes. Build from source: npm run build:mac or npm run build:linux."},
+      {q:"Is the app safe? Windows shows a warning.", a:"Yes. SmartScreen warns for apps without a paid certificate. The full source code is on GitHub."},
+      {q:"Can I contribute to FotoApp?", a:"Yes! Open an Issue or submit a Pull Request. All PRs are personally reviewed by the maintainer."}
+    ],
+    cta_title:"Ready to organize your photos?", cta_sub:"Download free. No account. No cloud. No limits.",
+    cta_btn:"Download FotoApp for Windows — Free", all_releases:"All releases",
+    foot_releases:"Releases", foot_contrib:"Contributing", foot_issues:"Issues", foot_docs:"Documentation"
+  },
+
+  fr: {
+    nav_features:"Fonctionnalités", nav_install:"Installation", nav_download:"⬇ Télécharger",
+    badge_free:"Gratuit & Open Source",
+    hero_h1:"Vos photos.<br><em>En local. Privé. Gratuit.</em>",
+    hero_sub:"FotoApp organise des milliers de photos et vidéos sur votre propre ordinateur. Pas de cloud, pas d'abonnement. Vos photos restent à vous.",
+    btn_download_win:"Télécharger pour Windows", btn_github:"Code source sur GitHub",
+    meta1:"Windows 10/11 64-bit", meta2:"Open Source (ISC)", meta3:"Sans inscription", meta4:"Fonctionne hors ligne", meta5:"Mac & Linux (code source)",
+    trust1:"Aucun envoi vers le cloud", trust2:"Gratuit pour toujours", trust3:"Code open source", trust4:"Carte GPS intégrée", trust5:"Support RAW", trust6:"Détection des doublons",
+    feat_label:"Fonctionnalités", feat_title:"Tout ce dont vous avez besoin, rien de plus", feat_sub:"Créé par quelqu'un qui devait organiser 27 000+ photos lui-même.",
+    f1_title:"Détection des doublons", f1_desc:"Trouve les copies exactes via hash MD5 — même si le nom, la date ou le dossier diffère.",
+    f2_title:"Carte GPS", f2_desc:"Carte mondiale interactive avec tous vos emplacements photo. Attribution GPS manuelle possible.",
+    f3_title:"Tableau de bord & statistiques", f3_desc:"Graphiques par année, appareil et pays — séparés pour photos et vidéos.",
+    f4_title:"Support RAW", f4_desc:"Canon CR2/CR3, Nikon NEF, Sony ARW, Fuji RAF. Miniatures via exiftool.",
+    f5_title:"Géocodage automatique", f5_desc:"Coordonnées GPS → ville et pays via Nominatim. Aucune clé API, entièrement privé.",
+    f6_title:"Export intelligent", f6_desc:"Noms de fichiers automatiques: France_Paris_15_06_2023.jpg, classés par année/mois.",
+    f7_title:"Gestion vidéo", f7_desc:"MP4, MOV, AVI. Les vidéos ont leurs propres statistiques et graphiques.",
+    f8_title:"Google Takeout", f8_desc:"Importez votre export Google Photos. Lit les fichiers JSON pour la date et le GPS.",
+    f9_title:"Données EXIF", f9_desc:"Date, appareil, objectif, vitesse d'obturation, ISO, ouverture — visibles en un coup d'œil.",
+    priv_label:"Confidentialité", priv_title:"Vos photos vous appartiennent.<br>Pas à Google. Pas à Apple.",
+    priv_sub:"FotoApp n'envoie jamais de photos vers des serveurs externes. Tout reste sur votre machine. Sans compte. Sans traçage.",
+    priv1_t:"Entièrement local", priv1_d:"Aucun envoi vers le cloud. Jamais.",
+    priv2_t:"Open source", priv2_d:"Code source complet sur GitHub. Rien de caché.",
+    priv3_t:"Géocodage minimal", priv3_d:"Seules les coordonnées GPS sont envoyées — pas de photos.",
+    priv4_t:"Hors ligne d'abord", priv4_d:"Fonctionne sans internet après installation.",
+    inst_label:"Installation", inst_title:"Démarrez en 3 étapes", inst_sub:"Windows 10 ou supérieur requis. Mac et Linux: compilez depuis le code source.",
+    step1_t:"Téléchargez l'installeur", step1_d:"Cliquez sur le bouton. Fichier: FotoApp-Setup-1.0.0.exe (~94 Mo).",
+    step2_t:"Installez l'application", step2_d:'Si SmartScreen avertit: cliquez "Plus d\'infos" → "Exécuter quand même".',
+    step3_t:"Ajoutez un dossier & scannez", step3_d:"Ouvrez via le menu Démarrer → Sources → choisissez un dossier → cliquez Analyser.",
+        contrib_title:"Contribuer au projet", contrib_desc:"FotoApp est open source. Une idée, un bug, ou vous voulez ajouter une langue ? Toutes les PRs sont examinées personnellement.",
+    contrib_idea:"Partager une idée", contrib_bug:"Signaler un bug", contrib_rules:"Guide de contribution", contrib_star:"Étoile sur GitHub",
+    donate_title:"Soutenir le projet", donate_desc:"FotoApp est gratuit et le restera. Un don aide à développer de nouvelles fonctionnalités et à maintenir l'application.",
+    donate_sponsor:"GitHub Sponsors", donate_kofi:"Don Ko-fi", donate_note:"Sans obligation. Chaque contribution est énormément appréciée.",
+    faq_title:"Questions fréquentes",
+    faqs:[
+      {q:"FotoApp est-il vraiment gratuit ?", a:"Oui, entièrement gratuit et open source (licence ISC). Pas de version premium, pas d'abonnement."},
+      {q:"Mes photos sont-elles envoyées dans le cloud ?", a:"Non. FotoApp fonctionne entièrement en local. Le géocodage envoie uniquement des coordonnées GPS à Nominatim — jamais de photos."},
+      {q:"Quels formats sont supportés ?", a:"JPG, PNG, HEIC, WebP, GIF, RAW (Canon, Nikon, Sony, Fuji), MP4, MOV, AVI, MKV et plus."},
+      {q:"FotoApp fonctionne-t-il sur Mac et Linux ?", a:"Oui. Compilez depuis le code source: npm run build:mac ou npm run build:linux."},
+      {q:"L'application est-elle sûre ? Windows affiche un avertissement.", a:"Oui. SmartScreen avertit pour les apps sans certificat payant. Le code source complet est sur GitHub."},
+      {q:"Puis-je contribuer à FotoApp ?", a:"Oui ! Ouvrez un Issue ou soumettez une Pull Request. Toutes les PRs sont examinées personnellement par le mainteneur."}
+    ],
+    cta_title:"Prêt à organiser vos photos ?", cta_sub:"Téléchargement gratuit. Sans compte. Sans cloud. Sans limite.",
+    cta_btn:"Télécharger FotoApp pour Windows — Gratuit", all_releases:"Toutes les versions",
+    foot_releases:"Versions", foot_contrib:"Contribuer", foot_issues:"Problèmes", foot_docs:"Documentation"
+  },
+
+  de: {
+    nav_features:"Funktionen", nav_install:"Installation", nav_download:"⬇ Herunterladen",
+    badge_free:"Kostenlos & Open Source",
+    hero_h1:"Deine Fotos.<br><em>Lokal. Privat. Kostenlos.</em>",
+    hero_sub:"FotoApp organisiert tausende Fotos und Videos auf deinem eigenen Computer. Keine Cloud, kein Abo. Deine Fotos bleiben deins.",
+    btn_download_win:"Herunterladen für Windows", btn_github:"Quellcode auf GitHub",
+    meta1:"Windows 10/11 64-bit", meta2:"Open Source (ISC)", meta3:"Keine Registrierung", meta4:"Funktioniert offline", meta5:"Mac & Linux (Quellcode)",
+    trust1:"Kein Cloud-Upload", trust2:"Für immer kostenlos", trust3:"Open-Source-Code", trust4:"GPS-Karte integriert", trust5:"RAW-Unterstützung", trust6:"Duplikaterkennung",
+    feat_label:"Funktionen", feat_title:"Alles was du brauchst, nichts was du nicht willst", feat_sub:"Gebaut von jemandem, der selbst 27.000+ Fotos organisieren musste.",
+    f1_title:"Duplikaterkennung", f1_desc:"Findet exakte Kopien per MD5-Hash — auch wenn Dateiname, Datum oder Ordner abweichen.",
+    f2_title:"GPS-Karte", f2_desc:"Interaktive Weltkarte mit all deinen Fotostandorten. Manuelle GPS-Zuweisung möglich.",
+    f3_title:"Dashboard & Statistiken", f3_desc:"Diagramme nach Jahr, Kamera und Land — getrennt für Fotos und Videos.",
+    f4_title:"RAW-Unterstützung", f4_desc:"Canon CR2/CR3, Nikon NEF, Sony ARW, Fuji RAF. Vorschaubilder via exiftool.",
+    f5_title:"Automatisches Geocoding", f5_desc:"GPS-Koordinaten → Stadt und Land via Nominatim. Kein API-Schlüssel, vollständig privat.",
+    f6_title:"Intelligenter Export", f6_desc:"Automatische Dateinamen: Deutschland_Berlin_15_06_2023.jpg, sortiert nach Jahr/Monat.",
+    f7_title:"Videoverwaltung", f7_desc:"MP4, MOV, AVI. Videos haben eigene Statistiken und Diagramme.",
+    f8_title:"Google Takeout", f8_desc:"Importiere deinen Google Fotos Export. Liest JSON-Dateien für Datum und GPS-Fallback.",
+    f9_title:"EXIF-Daten", f9_desc:"Datum, Kamera, Objektiv, Verschlusszeit, ISO, Blende — auf einen Blick sichtbar.",
+    priv_label:"Datenschutz", priv_title:"Deine Fotos gehören dir.<br>Nicht Google. Nicht Apple.",
+    priv_sub:"FotoApp sendet niemals Fotos an externe Server. Alles bleibt auf deinem Rechner. Kein Konto. Kein Tracking.",
+    priv1_t:"Vollständig lokal", priv1_d:"Kein Upload in die Cloud oder auf externe Server. Niemals.",
+    priv2_t:"Open Source", priv2_d:"Vollständiger Quellcode auf GitHub. Nichts versteckt.",
+    priv3_t:"Minimales Geocoding", priv3_d:"Nur GPS-Koordinaten an Nominatim — keine Fotos.",
+    priv4_t:"Offline-First", priv4_d:"Funktioniert vollständig ohne Internet nach der Installation.",
+    inst_label:"Installation", inst_title:"In 3 Schritten loslegen", inst_sub:"Windows 10 oder höher erforderlich. Mac und Linux: aus dem Quellcode bauen.",
+    step1_t:"Installer herunterladen", step1_d:"Klicke auf den Download-Button. Datei: FotoApp-Setup-1.0.0.exe (~94 MB).",
+    step2_t:"App installieren", step2_d:'Bei SmartScreen-Warnung: klicke "Weitere Informationen" → "Trotzdem ausführen".',
+    step3_t:"Ordner hinzufügen & scannen", step3_d:"Öffne über das Startmenü → Quellen → Ordner auswählen → Scannen klicken.",
+        contrib_title:"Mithelfen & Beitragen", contrib_desc:"FotoApp ist Open Source. Hast du eine Idee, einen Bug oder möchtest eine Sprache hinzufügen? Alle PRs werden persönlich geprüft.",
+    contrib_idea:"Idee teilen", contrib_bug:"Bug melden", contrib_rules:"Beitragsrichtlinien", contrib_star:"Stern auf GitHub",
+    donate_title:"Projekt unterstützen", donate_desc:"FotoApp ist kostenlos und bleibt kostenlos. Eine Spende hilft neue Funktionen zu bauen und die App am Leben zu erhalten.",
+    donate_sponsor:"GitHub Sponsors", donate_kofi:"Ko-fi Spende", donate_note:"Keine Verpflichtung. Jeder Beitrag wird sehr geschätzt.",
+    faq_title:"Häufig gestellte Fragen",
+    faqs:[
+      {q:"Ist FotoApp wirklich kostenlos?", a:"Ja, vollständig kostenlos und Open Source (ISC-Lizenz). Keine Premium-Version, kein Abonnement."},
+      {q:"Werden meine Fotos in die Cloud hochgeladen?", a:"Nein. FotoApp funktioniert vollständig lokal. Geocoding sendet nur GPS-Koordinaten an Nominatim — niemals Fotos."},
+      {q:"Welche Formate werden unterstützt?", a:"JPG, PNG, HEIC, WebP, GIF, RAW (Canon, Nikon, Sony, Fuji), MP4, MOV, AVI, MKV und mehr."},
+      {q:"Funktioniert FotoApp auf Mac und Linux?", a:"Ja. Aus dem Quellcode bauen: npm run build:mac oder npm run build:linux."},
+      {q:"Ist die App sicher? Windows zeigt eine Warnung.", a:"Ja. SmartScreen warnt bei Apps ohne kostenpflichtiges Zertifikat. Der vollständige Quellcode ist auf GitHub."},
+      {q:"Kann ich zu FotoApp beitragen?", a:"Ja! Öffne ein Issue oder reiche einen Pull Request ein. Alle PRs werden persönlich vom Maintainer überprüft."}
+    ],
+    cta_title:"Bereit, deine Fotos zu organisieren?", cta_sub:"Kostenloser Download. Kein Konto. Keine Cloud. Kein Limit.",
+    cta_btn:"FotoApp für Windows herunterladen — Kostenlos", all_releases:"Alle Versionen",
+    foot_releases:"Versionen", foot_contrib:"Beitragen", foot_issues:"Probleme", foot_docs:"Dokumentation"
+  }
+};
+
+const FLAGS = {nl:"🇳🇱", en:"🇬🇧", fr:"🇫🇷", de:"🇩🇪"};
+const LABELS = {nl:"NL", en:"EN", fr:"FR", de:"DE"};
+
+let currentLang = localStorage.getItem("fotoapp_lang") || "nl";
+
+function applyLang(lang) {
+  currentLang = lang;
+  localStorage.setItem("fotoapp_lang", lang);
+  document.documentElement.lang = lang;
+
+  const t = T[lang];
+
+  // Update all data-i18n elements (except hero_h1 which has HTML)
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.dataset.i18n;
+    if (key === "hero_h1") { el.innerHTML = t[key]; return; }
+    if (t[key] !== undefined) el.textContent = t[key];
+  });
+
+  // FAQ
+  const faqList = document.getElementById("faqList");
+  faqList.innerHTML = t.faqs.map(f => `
+    <div class="faq-item">
+      <div class="faq-q">${f.q}</div>
+      <div class="faq-a">${f.a}</div>
+    </div>`).join("");
+  faqList.querySelectorAll(".faq-q").forEach(q => {
+    q.addEventListener("click", () => {
+      const item = q.parentElement;
+      const wasOpen = item.classList.contains("open");
+      faqList.querySelectorAll(".faq-item").forEach(i => i.classList.remove("open"));
+      if (!wasOpen) item.classList.add("open");
+    });
+  });
+
+  // Update switcher UI
+  document.getElementById("langFlag").textContent = FLAGS[lang];
+  document.getElementById("langLabel").textContent = LABELS[lang];
+  document.querySelectorAll(".lang-option").forEach(opt => {
+    opt.classList.toggle("active", opt.dataset.lang === lang);
+  });
+}
+
+// Lang switcher toggle
+const switcher = document.getElementById("langSwitcher");
+document.getElementById("langBtn").addEventListener("click", e => {
+  e.stopPropagation();
+  switcher.classList.toggle("open");
+});
+document.querySelectorAll(".lang-option").forEach(opt => {
+  opt.addEventListener("click", () => {
+    applyLang(opt.dataset.lang);
+    switcher.classList.remove("open");
+  });
+});
+document.addEventListener("click", () => switcher.classList.remove("open"));
+
+// Init
+applyLang(currentLang);
+</script>
+</body>
+</html>

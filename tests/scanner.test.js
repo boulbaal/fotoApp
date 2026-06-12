@@ -1,0 +1,896 @@
+const fs   = require('fs');
+const path = require('path');
+
+module.exports = async function testScanner() {
+  const resultaten = [];
+
+  function test(naam, fn) {
+    try {
+      fn();
+      resultaten.push({ naam, ok: true });
+    } catch (e) {
+      resultaten.push({ naam, ok: false, fout: e.message });
+    }
+  }
+
+  const scannerPath    = path.join(__dirname, '../src/scanner.js');
+  const scannerCode    = fs.readFileSync(scannerPath, 'utf8');
+  const uiScannerPath  = path.join(__dirname, '../public/js/scanner.js');
+  const uiScannerCode  = fs.readFileSync(uiScannerPath, 'utf8');
+  const uiMapkiezerPath = path.join(__dirname, '../public/js/mapkiezer.js');
+  const uiMapkiezerCode = fs.readFileSync(uiMapkiezerPath, 'utf8');
+  const uiDashboardPath = path.join(__dirname, '../public/js/dashboard.js');
+  const uiDashboardCode = fs.readFileSync(uiDashboardPath, 'utf8');
+  const utilsPath       = path.join(__dirname, '../public/js/utils.js');
+  const utilsCode       = fs.readFileSync(utilsPath, 'utf8');
+  const fotosPath       = path.join(__dirname, '../public/js/fotos.js');
+  const fotosCode       = fs.readFileSync(fotosPath, 'utf8');
+  const dbPath          = path.join(__dirname, '../src/database.js');
+  const dbCode          = fs.readFileSync(dbPath, 'utf8');
+  const apiPath         = path.join(__dirname, '../src/api.js');
+  const apiCode         = fs.readFileSync(apiPath, 'utf8');
+
+  // ─── BESTANDSSTRUCTUUR ────────────────────────────────────────────────────
+
+  test('scanner.js bestand bestaat', () => {
+    if (!fs.existsSync(scannerPath)) throw new Error('scanner.js niet gevonden');
+  });
+
+  // ─── EXTENSIES ────────────────────────────────────────────────────────────
+
+  test('FOTO_EXTENSIES bevat .jpg', () => {
+    if (!scannerCode.includes("'.jpg'")) throw new Error('.jpg niet in extensies');
+  });
+
+  test('FOTO_EXTENSIES bevat .heic (iPhone)', () => {
+    if (!scannerCode.includes("'.heic'")) throw new Error('.heic niet in extensies');
+  });
+
+  test('FOTO_EXTENSIES bevat .raw (camera)', () => {
+    if (!scannerCode.includes("'.raw'")) throw new Error('.raw niet in extensies');
+  });
+
+  test('FOTO_EXTENSIES bevat .cr2 (Canon RAW)', () => {
+    if (!scannerCode.includes("'.cr2'")) throw new Error('.cr2 niet in extensies');
+  });
+
+  test('FOTO_EXTENSIES bevat .nef (Nikon RAW)', () => {
+    if (!scannerCode.includes("'.nef'")) throw new Error('.nef niet in extensies');
+  });
+
+  // ─── SCAN VEILIGHEID ──────────────────────────────────────────────────────
+
+  test('SKIP_MAPPEN bevat node_modules', () => {
+    if (!scannerCode.includes('node_modules')) throw new Error('node_modules niet in skip lijst');
+  });
+
+  test('scanStoppen check aanwezig in vindAlleFotos', () => {
+    if (!scannerCode.includes('if (scanStoppen) return')) throw new Error('Stop check ontbreekt in vindAlleFotos');
+  });
+
+  // ─── GPS & GEOCODING ──────────────────────────────────────────────────────
+
+  test('GPS adres ophaling gebruikt accept-language=en', () => {
+    if (!scannerCode.includes('accept-language=en')) throw new Error('Engelse landnamen niet geconfigureerd');
+  });
+
+  test('haalGpsAdresOp functie aanwezig', () => {
+    if (!scannerCode.includes('async function haalGpsAdresOp')) throw new Error('haalGpsAdresOp niet gevonden');
+  });
+
+  test('GPS cache aanwezig (voorkomt dubbele Nominatim-calls)', () => {
+    if (!scannerCode.includes('gpsCache')) throw new Error('GPS cache ontbreekt');
+  });
+
+  test('gps_land_code wordt opgeslagen bij geocoding', () => {
+    if (!scannerCode.includes('gps_land_code')) throw new Error('gps_land_code niet gevonden in scanner');
+  });
+
+  test('Post-scan geocode pass aanwezig', () => {
+    if (!scannerCode.includes('async function startGeocodePass')) throw new Error('startGeocodePass niet gevonden');
+  });
+
+  test('Geocode pass wordt na scan gestart', () => {
+    if (!scannerCode.includes('startGeocodePass')) throw new Error('startGeocodePass wordt niet aangeroepen na scan');
+  });
+
+  test('geocodeStatus object aanwezig', () => {
+    if (!scannerCode.includes('geocodeStatus')) throw new Error('geocodeStatus object niet gevonden');
+  });
+
+  test('getGeocodeStatus geëxporteerd', () => {
+    if (!scannerCode.includes('getGeocodeStatus')) throw new Error('getGeocodeStatus niet geëxporteerd');
+  });
+
+  // ─── DUPLICATEN ───────────────────────────────────────────────────────────
+
+  test('Duplicate detectie aanwezig', () => {
+    if (!scannerCode.includes('detecteerDuplicaten')) throw new Error('detecteerDuplicaten functie niet gevonden');
+  });
+
+  // ─── THUMBNAILS ───────────────────────────────────────────────────────────
+
+  test('Thumbnail generatie via sharp aanwezig', () => {
+    if (!scannerCode.includes('sharp(')) throw new Error('sharp() niet gevonden');
+  });
+
+  test('RAW thumbnail fallback via exiftool aanwezig', () => {
+    if (!scannerCode.includes('PreviewImage')) throw new Error('exiftool RAW preview fallback ontbreekt');
+  });
+
+  // ─── HASHING ──────────────────────────────────────────────────────────────
+
+  test('Hash berekening via MD5 aanwezig', () => {
+    if (!scannerCode.includes('md5')) throw new Error('MD5 hash niet gevonden');
+  });
+
+  // ─── DATUM FALLBACK KETEN ─────────────────────────────────────────────────
+
+  test('EXIF heeft voorrang boven Google JSON (datum)', () => {
+    // Keten: EXIF → Google JSON → bestandsnaam → birthtime → mtime
+    if (!scannerCode.includes("datumBron = 'EXIF'")) throw new Error('EXIF datum-prioriteit niet geïmplementeerd');
+    if (!scannerCode.includes("datumBron = 'Google Takeout'")) throw new Error('Google Takeout datum-fallback ontbreekt');
+  });
+
+  test('datum_bron wordt opgeslagen in database', () => {
+    if (!scannerCode.includes('datum_bron: datumBron')) throw new Error('datum_bron wordt niet opgeslagen');
+  });
+
+  test('parseDatumUitBestandsnaam functie aanwezig', () => {
+    if (!scannerCode.includes('function parseDatumUitBestandsnaam')) throw new Error('parseDatumUitBestandsnaam niet gevonden');
+  });
+
+  test('Datum uit bestandsnaam als fallback gebruikt', () => {
+    if (!scannerCode.includes("datumBron = 'Bestandsnaam'")) throw new Error('Bestandsnaam datum-fallback ontbreekt');
+  });
+
+  test('Aanmaakdatum (birthtime) als fallback gebruikt', () => {
+    if (!scannerCode.includes("datumBron = 'Aanmaakdatum'")) throw new Error('birthtime fallback ontbreekt');
+  });
+
+  test('Wijzigingsdatum (mtime) als laatste fallback', () => {
+    if (!scannerCode.includes("datumBron = 'Wijzigingsdatum'")) throw new Error('mtime fallback ontbreekt');
+  });
+
+  // ─── GOOGLE TAKEOUT ───────────────────────────────────────────────────────
+
+  test('leesGoogleJson functie aanwezig', () => {
+    if (!scannerCode.includes('function leesGoogleJson')) throw new Error('leesGoogleJson functie niet gevonden');
+  });
+
+  test('Google JSON leest photoTakenTime.timestamp', () => {
+    if (!scannerCode.includes('photoTakenTime')) throw new Error('photoTakenTime niet gelezen uit Google JSON');
+  });
+
+  test('Google JSON leest geoData als GPS fallback', () => {
+    if (!scannerCode.includes('geoData')) throw new Error('geoData niet gelezen uit Google JSON');
+  });
+
+  test('EXIF heeft voorrang boven Google JSON (GPS)', () => {
+    if (!scannerCode.includes('meta.gps_lat || googleJson.gps_lat')) throw new Error('EXIF GPS-prioriteit niet geïmplementeerd');
+  });
+
+  test('google_description kolom wordt opgeslagen', () => {
+    if (!scannerCode.includes('google_description')) throw new Error('google_description niet opgeslagen');
+  });
+
+  test('google_device_type kolom wordt opgeslagen', () => {
+    if (!scannerCode.includes('google_device_type')) throw new Error('google_device_type niet opgeslagen');
+  });
+
+  // ─── DATABASE SCHEMA ──────────────────────────────────────────────────────
+
+  test('DB migratie: gps_land_code kolom', () => {
+    if (!dbCode.includes('gps_land_code')) throw new Error('gps_land_code migratie ontbreekt in database.js');
+  });
+
+  test('DB migratie: datum_bron kolom', () => {
+    if (!dbCode.includes('datum_bron')) throw new Error('datum_bron migratie ontbreekt in database.js');
+  });
+
+  test('DB migratie: google_description kolom', () => {
+    if (!dbCode.includes('google_description')) throw new Error('google_description migratie ontbreekt in database.js');
+  });
+
+  // ─── API ENDPOINTS ────────────────────────────────────────────────────────
+
+  test('API: GET /api/scan/geocode endpoint aanwezig', () => {
+    if (!apiCode.includes("'/scan/geocode'")) throw new Error('GET /api/scan/geocode ontbreekt');
+  });
+
+  test('API: POST /api/scan/geocode endpoint aanwezig', () => {
+    if (!apiCode.includes('startGeocodePass')) throw new Error('POST /api/scan/geocode ontbreekt in api.js');
+  });
+
+  test('API: PUT /fotos/:id slaat gps_land_code op', () => {
+    if (!apiCode.includes('gps_land_code')) throw new Error('gps_land_code niet opgeslagen in PUT /fotos/:id');
+  });
+
+  test('API: POST /fotos/:id/gps slaat gps_land_code op', () => {
+    const gpsRoute = apiCode.includes("'/fotos/:id/gps'");
+    if (!gpsRoute) throw new Error('POST /fotos/:id/gps niet gevonden');
+  });
+
+  test('API: stats geeft gps_land_code mee per land', () => {
+    if (!apiCode.includes('gps_land_code') || !apiCode.includes('perLand')) throw new Error('gps_land_code niet in stats perLand');
+  });
+
+  // ─── UI: SCAN BALK ────────────────────────────────────────────────────────
+
+  test('UI: startScan geeft onmiddellijke knop-feedback', () => {
+    if (!uiScannerCode.includes('knop.disabled = true')) throw new Error('Geen directe knop-feedback in startScan');
+  });
+
+  test('UI: scanBalk toont Klaar-status wanneer niet bezig', () => {
+    if (!uiScannerCode.includes("titel.textContent    = 'Klaar'")) throw new Error('Scan balk toont geen Klaar-status');
+  });
+
+  test('Utils: formatDuur toont "< 1s" voor scans korter dan 1 seconde', () => {
+    const utilsCode = fs.readFileSync(path.join(__dirname, '../public/js/utils.js'), 'utf8');
+    if (!utilsCode.includes("'< 1s'")) throw new Error('formatDuur toont geen "< 1s" voor snelle scans');
+    if (!utilsCode.includes('seconden === null')) throw new Error('formatDuur controleert niet op null — 0 wordt verkeerd behandeld');
+  });
+
+  test('Bronnen JS: scan_duur_seconden check is null-safe (0 = "< 1s", niet leeg)', () => {
+    const bronnenCode = fs.readFileSync(path.join(__dirname, '../public/js/bronnen.js'), 'utf8');
+    if (!bronnenCode.includes('scan_duur_seconden != null')) {
+      throw new Error('bronnen.js gebruikt truthy check voor scan_duur_seconden — 0 seconden wordt niet getoond');
+    }
+  });
+
+  test('UI: startScanPolling initialiseert vorigeBericht zodat snelle scans worden herkend', () => {
+    // Bug: als scan < 1.5s duurt, ziet eerste poll al status.bezig=false terwijl vorigeBericht nog '' is.
+    // Fix: vorigeBericht op 'gestart' zetten bij start polling.
+    if (!uiScannerCode.includes("vorigeBericht = 'gestart'")) {
+      throw new Error("startScanPolling() initialiseert vorigeBericht niet — snelle scans worden niet herkend als voltooid");
+    }
+  });
+
+  test('UI: geocode voortgangsbalk aanwezig', () => {
+    if (!uiScannerCode.includes('toonGeocodeBalk')) throw new Error('toonGeocodeBalk functie ontbreekt in scanner.js');
+  });
+
+  test('UI: geocode polling aanwezig', () => {
+    if (!uiScannerCode.includes('startGeocodePolling')) throw new Error('startGeocodePolling ontbreekt in scanner.js');
+  });
+
+  // ─── UI: LOG PANELEN ──────────────────────────────────────────────────────
+
+  test('UI: client logs gaan naar logBodyClient', () => {
+    if (!uiMapkiezerCode.includes('logBodyClient')) throw new Error('Geen logBodyClient panel voor client logs');
+  });
+
+  test('UI: server logs gaan naar logBodyServer', () => {
+    if (!uiMapkiezerCode.includes('logBodyServer')) throw new Error('Geen logBodyServer panel voor server logs');
+  });
+
+  test('UI: toggleLog accepteert paneel-parameter', () => {
+    if (!uiMapkiezerCode.includes("function toggleLog(paneel)")) throw new Error('toggleLog heeft geen paneel-parameter');
+  });
+
+  // ─── UI: VLAGGEN ──────────────────────────────────────────────────────────
+
+  test('Utils: landVlag() functie aanwezig', () => {
+    if (!utilsCode.includes('function landVlag')) throw new Error('landVlag() niet gevonden in utils.js');
+  });
+
+  test('Utils: landVlagVanNaam() functie aanwezig', () => {
+    if (!utilsCode.includes('function landVlagVanNaam')) throw new Error('landVlagVanNaam() niet gevonden in utils.js');
+  });
+
+  test('Utils: LAND_CODES lookup tabel aanwezig', () => {
+    if (!utilsCode.includes('LAND_CODES')) throw new Error('LAND_CODES niet gevonden in utils.js');
+  });
+
+  test('Utils: parseDatumUitBestandsnaam klopt voor YYYYMMDD patroon', () => {
+    // Directe regex test zonder de module te laden
+    const match = 'IMG-20250728-WA0010.jpg'.match(/(\d{4})[_\-]?(\d{2})[_\-]?(\d{2})/);
+    if (!match) throw new Error('Regex herkent YYYYMMDD patroon niet');
+    const [, jaar, maand, dag] = match.map(Number);
+    if (jaar !== 2025 || maand !== 7 || dag !== 28) throw new Error(`Datum fout: ${jaar}-${maand}-${dag}`);
+  });
+
+  test('Dashboard: vlag emoji in Landen-grafiek', () => {
+    if (!uiDashboardCode.includes('landVlag') && !uiDashboardCode.includes('landVlagVanNaam')) {
+      throw new Error('Vlag emoji niet gebruikt in dashboard Landen-grafiek');
+    }
+  });
+
+  test('Fotos: datum_bron getoond in detail modal', () => {
+    if (!fotosCode.includes('datum_bron')) throw new Error('datum_bron niet getoond in detail modal');
+  });
+
+  test('Fotos: vlag emoji in Locatie rij', () => {
+    if (!fotosCode.includes('landVlag') && !fotosCode.includes('landVlagVanNaam')) {
+      throw new Error('Vlag emoji niet gebruikt in foto detail modal');
+    }
+  });
+
+  test('Fotos: duplicaatlocaties worden getoond in detail modal', () => {
+    if (!fotosCode.includes('duplicaat_locaties')) throw new Error('duplicaat_locaties niet verwerkt in fotos.js');
+    if (!fotosCode.includes('modalDuplicaten')) throw new Error('modalDuplicaten element niet gebruikt');
+  });
+
+  test('API: GET /fotos/:id geeft duplicaat_locaties mee', () => {
+    if (!apiCode.includes('duplicaat_locaties')) throw new Error('duplicaat_locaties niet teruggegeven in GET /fotos/:id');
+  });
+
+  // ─── GALERIJ TOONT ALTIJD ORIGINELEN ─────────────────────────────────────
+
+  test('Fotos: zonder_kopien altijd meegegeven (geen toggle, hardcoded)', () => {
+    if (!fotosCode.includes('zonder_kopien: 1')) throw new Error('zonder_kopien niet hardcoded op 1 in fotos.js — toggle is verwijderd, altijd originelen tonen');
+    if (fotosCode.includes('verbergKopieen')) throw new Error('verbergKopieen variabele gevonden — toggle moet verwijderd zijn');
+    if (fotosCode.includes('toggleVerbergKopieen')) throw new Error('toggleVerbergKopieen() nog aanwezig — toggle moet verwijderd zijn');
+  });
+
+  test('HTML: toggle knop verwijderd uit galerij filters', () => {
+    const htmlCode = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (htmlCode.includes('toggleKopieenKnop')) throw new Error('toggleKopieenKnop nog aanwezig in index.html — moet verwijderd zijn');
+    if (htmlCode.includes('toggleVerbergKopieen')) throw new Error('toggleVerbergKopieen() onclick nog aanwezig in index.html');
+  });
+
+  test('App: updateToggleKnop() niet meer aangeroepen (toggle verwijderd)', () => {
+    const appCode = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+    if (appCode.includes('updateToggleKnop()')) throw new Error('updateToggleKnop() nog aangeroepen in app.js — toggle is verwijderd');
+  });
+
+  test('API: zonder_kopien filter aanwezig in GET /fotos', () => {
+    if (!apiCode.includes('zonder_kopien')) throw new Error('zonder_kopien filter niet gevonden in api.js');
+  });
+
+  test('API: correlated subquery voor origineel selectie aanwezig', () => {
+    if (!apiCode.includes('duplicaat_groep') || !apiCode.includes('LIMIT 1')) {
+      throw new Error('Correlated subquery voor origineel selectie niet gevonden in api.js');
+    }
+  });
+
+  test('API: GPS groepen filtert duplicaten — toont alleen originelen', () => {
+    const groepBlok = apiCode.slice(apiCode.indexOf("'/gps/groepen'"));
+    if (!groepBlok.includes('origineelFilter') && !groepBlok.includes('MIN(id)')) {
+      throw new Error('/gps/groepen filtert duplicaten niet — toont alle kopieën in GPS bulk pagina');
+    }
+  });
+
+  // ─── GPS PROPAGATIE BINNEN DUPLICAATGROEPEN ────────────────────────────────
+
+  test('Scanner: propageerGpsInGroepen() als aparte functie aanwezig', () => {
+    if (!scannerCode.includes('function propageerGpsInGroepen')) {
+      throw new Error('propageerGpsInGroepen() niet gevonden als aparte functie in scanner.js');
+    }
+  });
+
+  test('Scanner: propageerGpsInGroepen() geëxporteerd', () => {
+    if (!scannerCode.includes('propageerGpsInGroepen')) {
+      throw new Error('propageerGpsInGroepen niet geëxporteerd in module.exports');
+    }
+    const exportRegel = scannerCode.match(/module\.exports\s*=\s*\{([^}]+)\}/)?.[1] || '';
+    if (!exportRegel.includes('propageerGpsInGroepen')) {
+      throw new Error('propageerGpsInGroepen ontbreekt in module.exports');
+    }
+  });
+
+  test('Scanner: GPS propagatie loopt ook als locaties.length === 0', () => {
+    const vroegReturn = scannerCode.match(/locaties\.length === 0[\s\S]{0,200}return/);
+    if (!vroegReturn) throw new Error('Vroege return bij locaties.length === 0 niet gevonden');
+    if (!vroegReturn[0].includes('propageerGpsInGroepen')) {
+      throw new Error('propageerGpsInGroepen() wordt niet aangeroepen bij vroege return (locaties.length === 0)');
+    }
+  });
+
+  test('Scanner: GPS propagatie omvat gps_land_code', () => {
+    const propageerBlok = scannerCode.slice(scannerCode.indexOf('function propageerGpsInGroepen'));
+    if (!propageerBlok.includes('land_code')) {
+      throw new Error('gps_land_code wordt niet meegenomen bij GPS propagatie in propageerGpsInGroepen()');
+    }
+  });
+
+  test('API: nieuw endpoint POST /scan/gps-propageren aanwezig', () => {
+    if (!apiCode.includes('/scan/gps-propageren')) {
+      throw new Error('Endpoint POST /api/scan/gps-propageren niet gevonden in api.js');
+    }
+  });
+
+  test('API: propageerGpsInGroepen geïmporteerd in api.js', () => {
+    const importRegel = apiCode.match(/require\('\.\/scanner'\)/)?.[0];
+    if (!importRegel) throw new Error('scanner niet geïmporteerd in api.js');
+    const destructure = apiCode.match(/const\s*\{([^}]+)\}\s*=\s*require\('\.\/scanner'\)/)?.[1] || '';
+    if (!destructure.includes('propageerGpsInGroepen')) {
+      throw new Error('propageerGpsInGroepen niet geïmporteerd uit scanner in api.js');
+    }
+  });
+
+  test('API: GPS delen condition werkt op gps_land IS NULL (niet alleen gps_lat IS NULL)', () => {
+    if (!apiCode.includes("gps_land IS NULL OR gps_land = ''")) {
+      throw new Error('GPS delen endpoint werkt enkel op gps_lat IS NULL — zou ook fotos zonder gps_land moeten updaten');
+    }
+  });
+
+  test('API: zonder_kopien subquery past land filter toe zodat origineel+land filter correct samenwerken', () => {
+    const subqueryBlok = apiCode.slice(apiCode.indexOf('zonder_kopien'));
+    if (!subqueryBlok.includes('landSubquery')) {
+      throw new Error('zonder_kopien subquery gebruikt geen landSubquery — combinatie met land filter werkt incorrect');
+    }
+    if (!subqueryBlok.includes('f2.gps_land = ?')) {
+      throw new Error('f2.gps_land ontbreekt in zonder_kopien subquery');
+    }
+  });
+
+  test('API: zonder_kopien subquery past camera_merk filter toe', () => {
+    const subqueryBlok = apiCode.slice(apiCode.indexOf('zonder_kopien'));
+    if (!subqueryBlok.includes('merkSubquery') || !subqueryBlok.includes('f2.camera_merk = ?')) {
+      throw new Error('camera_merk filter ontbreekt in zonder_kopien subquery');
+    }
+  });
+
+
+  test('Bronnen JS: propageerGps() functie aanwezig', () => {
+    const bronnenCode = fs.readFileSync(path.join(__dirname, '../public/js/bronnen.js'), 'utf8');
+    if (!bronnenCode.includes('function propageerGps') && !bronnenCode.includes('async function propageerGps')) {
+      throw new Error('propageerGps() functie niet gevonden in bronnen.js');
+    }
+    if (!bronnenCode.includes('/api/scan/gps-propageren')) {
+      throw new Error('propageerGps() roept niet het juiste endpoint aan in bronnen.js');
+    }
+  });
+
+  // ─── KAART PAGINA ────────────────────────────────────────────────────────────
+
+  test('Kaart: kaart.js bestand bestaat', () => {
+    const p = path.join(__dirname, '../public/js/kaart.js');
+    if (!fs.existsSync(p)) throw new Error('kaart.js niet gevonden');
+  });
+
+  test('Kaart: laadKaart() functie aanwezig', () => {
+    const kaartCode = fs.readFileSync(path.join(__dirname, '../public/js/kaart.js'), 'utf8');
+    if (!kaartCode.includes('function laadKaart') && !kaartCode.includes('async function laadKaart')) {
+      throw new Error('laadKaart() functie niet gevonden in kaart.js');
+    }
+  });
+
+  test('Kaart: herlaadLocaties() wordt altijd aangeroepen bij navigatie (ook als kaart al bestaat)', () => {
+    const kaartCode = fs.readFileSync(path.join(__dirname, '../public/js/kaart.js'), 'utf8');
+    // Controleer dat herlaadLocaties() ook wordt aangeroepen in het if(kaartInstantie) blok
+    const bestaatBlok = kaartCode.slice(kaartCode.indexOf('if (kaartInstantie)'), kaartCode.indexOf('if (kaartInstantie)') + 200);
+    if (!bestaatBlok.includes('herlaadLocaties')) {
+      throw new Error('herlaadLocaties() wordt niet aangeroepen als kaart al bestaat — nieuwe GPS markers verschijnen pas na pagina-herlaad');
+    }
+  });
+
+  test('Kaart: dark tile layer gebruikt (CartoDB dark)', () => {
+    const kaartCode = fs.readFileSync(path.join(__dirname, '../public/js/kaart.js'), 'utf8');
+    if (!kaartCode.includes('cartocdn') && !kaartCode.includes('dark')) {
+      throw new Error('Geen dark tile layer in kaart.js');
+    }
+  });
+
+  test('Kaart: MarkerCluster wordt gebruikt', () => {
+    const kaartCode = fs.readFileSync(path.join(__dirname, '../public/js/kaart.js'), 'utf8');
+    if (!kaartCode.includes('markerClusterGroup')) throw new Error('MarkerCluster niet gebruikt in kaart.js');
+  });
+
+  test('Kaart: slide-up panel aanwezig (toonLocatiePanel)', () => {
+    const kaartCode = fs.readFileSync(path.join(__dirname, '../public/js/kaart.js'), 'utf8');
+    if (!kaartCode.includes('toonLocatiePanel')) throw new Error('toonLocatiePanel() niet gevonden in kaart.js');
+    if (!kaartCode.includes('kaartPanel')) throw new Error('kaartPanel element niet gebruikt in kaart.js');
+  });
+
+  test('Kaart: bekijkLocatieInFotos() navigeert naar Foto\'s pagina', () => {
+    const kaartCode = fs.readFileSync(path.join(__dirname, '../public/js/kaart.js'), 'utf8');
+    if (!kaartCode.includes('bekijkLocatieInFotos')) throw new Error('bekijkLocatieInFotos() niet gevonden');
+    if (!kaartCode.includes("toonPagina('fotos'")) throw new Error('navigeert niet naar fotos pagina');
+  });
+
+  test('API: GET /kaart/locaties endpoint aanwezig', () => {
+    if (!apiCode.includes('/kaart/locaties')) throw new Error('/kaart/locaties endpoint niet gevonden in api.js');
+  });
+
+  test('API: GET /kaart/fotos endpoint aanwezig', () => {
+    if (!apiCode.includes('/kaart/fotos')) throw new Error('/kaart/fotos endpoint niet gevonden in api.js');
+  });
+
+  test('API: GET /fotos/:id/thumbnail endpoint aanwezig', () => {
+    if (!apiCode.includes("'/fotos/:id/thumbnail'")) throw new Error('/fotos/:id/thumbnail endpoint niet gevonden in api.js');
+  });
+
+  test('HTML: Kaart nav-knop aanwezig', () => {
+    const htmlCode = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!htmlCode.includes("toonPagina('kaart')")) throw new Error('Kaart nav-knop niet gevonden in index.html');
+    if (!htmlCode.includes('paginaKaart')) throw new Error('paginaKaart element niet gevonden in index.html');
+  });
+
+  test('HTML: MarkerCluster JS geladen', () => {
+    const htmlCode = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!htmlCode.includes('markercluster')) throw new Error('MarkerCluster library niet geladen in index.html');
+  });
+
+  // ─── ZONDER GPS FILTER ────────────────────────────────────────────────────────
+
+  test('API: zonder_gps filter aanwezig in GET /fotos', () => {
+    if (!apiCode.includes('zonder_gps')) {
+      throw new Error('zonder_gps filter niet gevonden in api.js');
+    }
+    if (!apiCode.includes('gps_lat IS NULL OR gps_lat = 0')) {
+      throw new Error('zonder_gps SQL filter incorrect — verwacht: gps_lat IS NULL OR gps_lat = 0');
+    }
+  });
+
+  test('API: zonderGps count aanwezig in stats endpoint', () => {
+    const statsBlok = apiCode.slice(apiCode.indexOf("'/stats'"));
+    if (!statsBlok.includes('zonderGps')) {
+      throw new Error('zonderGps ontbreekt in /api/stats response');
+    }
+  });
+
+  test('HTML: statZonderGps stat-kaart aanwezig en klikbaar', () => {
+    const htmlCode = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    // Nieuwe structuur: statFotosZonderGps en statVideosZonderGps vervangen het oude statZonderGps
+    if (!htmlCode.includes('statFotosZonderGps') && !htmlCode.includes('statZonderGps')) {
+      throw new Error('statFotosZonderGps (of statZonderGps) element niet gevonden in index.html');
+    }
+    if (!htmlCode.includes('zonder_gps')) {
+      throw new Error('zonder_gps onclick niet gevonden in index.html stat-kaart');
+    }
+  });
+
+  test('Fotos JS: setActieveFilter ondersteunt zonder_gps', () => {
+    const fotosCode = fs.readFileSync(path.join(__dirname, '../public/js/fotos.js'), 'utf8');
+    if (!fotosCode.includes('zonderGps') || !fotosCode.includes('zonder_gps')) {
+      throw new Error('setActieveFilter/getActieveFilter ondersteunt geen zonder_gps filter in fotos.js');
+    }
+  });
+
+  test('App JS: toonPagina verwerkt zonder_gps extraFilter', () => {
+    const appCode = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+    if (!appCode.includes('zonder_gps')) {
+      throw new Error('toonPagina() verwerkt geen zonder_gps in app.js');
+    }
+  });
+
+  // ─── GPS BULK TOEWIJZEN ───────────────────────────────────────────────────────
+
+  test('API: GET /gps/groepen endpoint aanwezig', () => {
+    if (!apiCode.includes("'/gps/groepen'")) throw new Error('/gps/groepen endpoint niet gevonden in api.js');
+  });
+
+  test('API: POST /gps/bulk-toewijzen endpoint aanwezig', () => {
+    if (!apiCode.includes("'/gps/bulk-toewijzen'")) throw new Error('/gps/bulk-toewijzen endpoint niet gevonden in api.js');
+  });
+
+  test('API: groepering op 2-uur tijdblok aanwezig', () => {
+    const blok = apiCode.slice(apiCode.indexOf('/gps/groepen'));
+    if (!blok.includes('GAP_MS') && !blok.includes('2 * 60 * 60')) {
+      throw new Error('2-uur tijdblok groepering niet gevonden in /gps/groepen');
+    }
+  });
+
+  test('API: bulk-toewijzen slaat gps_stad, gps_land, gps_lat, gps_lon op', () => {
+    const blok = apiCode.slice(apiCode.indexOf('/gps/bulk-toewijzen'));
+    if (!blok.includes('gps_stad') || !blok.includes('gps_lat')) {
+      throw new Error('GPS velden ontbreken in bulk-toewijzen endpoint');
+    }
+  });
+
+  test('GPS Bulk JS: gpsbulk.js bestand bestaat', () => {
+    const p = path.join(__dirname, '../public/js/gpsbulk.js');
+    if (!fs.existsSync(p)) throw new Error('gpsbulk.js niet gevonden');
+  });
+
+  test('GPS Bulk JS: laadGpsBulk() functie aanwezig', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('function laadGpsBulk') && !code.includes('async function laadGpsBulk')) {
+      throw new Error('laadGpsBulk() niet gevonden in gpsbulk.js');
+    }
+  });
+
+  test('GPS Bulk JS: bevestigBulkLocatie() roept bulk-toewijzen API aan', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('/api/gps/bulk-toewijzen')) {
+      throw new Error('bulk-toewijzen API call niet gevonden in gpsbulk.js');
+    }
+  });
+
+  test('HTML: paginaGpsbulk pagina en nav-knop aanwezig', () => {
+    const htmlCode = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!htmlCode.includes('paginaGpsbulk')) throw new Error('paginaGpsbulk niet gevonden in index.html');
+    if (!htmlCode.includes("toonPagina('gpsbulk')")) throw new Error('GPS bulk nav-knop niet gevonden in index.html');
+  });
+
+  test('App JS: gpsbulk pagina in namen array en laadGpsBulk() aangeroepen', () => {
+    const appCode = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+    if (!appCode.includes("'gpsbulk'")) throw new Error("'gpsbulk' niet in namen array in app.js");
+    if (!appCode.includes('laadGpsBulk')) throw new Error('laadGpsBulk() niet aangeroepen in app.js');
+  });
+
+  // ─── GPS BULK: DRAG & DROP + DUPLICATEN ──────────────────────────────────────
+
+  test('API: bulk-toewijzen propageert GPS naar duplicaten via duplicaat_groep', () => {
+    const blok = apiCode.slice(apiCode.indexOf('/gps/bulk-toewijzen'));
+    if (!blok.includes('duplicaat_groep')) {
+      throw new Error('bulk-toewijzen propageert niet naar duplicaten — duplicaat_groep ontbreekt');
+    }
+  });
+
+  test('GPS Bulk JS: drag & drop handlers aanwezig (onDragStart, onDrop)', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('onDragStart')) throw new Error('onDragStart niet gevonden in gpsbulk.js');
+    if (!code.includes('onDrop')) throw new Error('onDrop niet gevonden in gpsbulk.js');
+  });
+
+  test('GPS Bulk JS: multi-select via geselecteerd Set', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('geselecteerd') || !code.includes('new Set')) {
+      throw new Error('Multi-select via Set niet gevonden in gpsbulk.js');
+    }
+  });
+
+  test('GPS Bulk JS: hold zone aanwezig', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('isHold') || !code.includes('hold zone')) {
+      throw new Error('Hold zone niet gevonden in gpsbulk.js');
+    }
+  });
+
+  test('GPS Bulk JS: nieuwe groep aanmaken (nieuweGroep)', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('function nieuweGroep')) throw new Error('nieuweGroep() niet gevonden in gpsbulk.js');
+    if (!code.includes('isHandmatig')) throw new Error('isHandmatig markering ontbreekt in nieuweGroep()');
+  });
+
+  test('GPS Bulk JS: sleepData bevat vanGroepId en fotoId', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('vanGroepId') || !code.includes('sleepData')) {
+      throw new Error('sleepData structuur (vanGroepId/fotoId) niet gevonden in gpsbulk.js');
+    }
+  });
+
+  // ─── GPS BULK KAARTPICKER ────────────────────────────────────────────────────
+
+  test('GPS Bulk JS: openBulkKaart() functie aanwezig', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('function openBulkKaart')) throw new Error('openBulkKaart() niet gevonden in gpsbulk.js');
+  });
+
+  test('GPS Bulk JS: kaartknop in picker HTML aanwezig', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('openBulkKaart')) throw new Error('openBulkKaart aanroep niet gevonden in pickerKaartHtml');
+  });
+
+  test('GPS Bulk JS: bevestigBulkKaartLocatie() koppelt kaartlocatie aan groep', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('function bevestigBulkKaartLocatie')) throw new Error('bevestigBulkKaartLocatie() niet gevonden');
+    if (!code.includes('bulkKaartActieveGroep')) throw new Error('bulkKaartActieveGroep niet gebruikt in kaartpicker');
+  });
+
+  test('GPS Bulk JS: reverse geocode via Nominatim in kaart klik handler', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('nominatim.openstreetmap.org/reverse')) throw new Error('Nominatim reverse geocode niet gevonden in gpsbulk.js');
+  });
+
+  test('HTML: bulkKaartOverlay modal aanwezig', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('bulkKaartOverlay')) throw new Error('bulkKaartOverlay niet gevonden in index.html');
+    if (!html.includes('bulkKaartContainer')) throw new Error('bulkKaartContainer niet gevonden in index.html');
+  });
+
+  test('CLAUDE.md: tests + commit regel verankerd', () => {
+    const md = fs.readFileSync(path.join(__dirname, '../CLAUDE.md'), 'utf8');
+    if (!md.includes('git add -A && git commit')) throw new Error('commit regel niet gevonden in CLAUDE.md');
+  });
+
+  // ─── HOVER PREVIEW ───────────────────────────────────────────────────────────
+
+  test('GPS Bulk JS: hover preview handlers aanwezig (bindHoverPreview)', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('bindHoverPreview')) throw new Error('bindHoverPreview() niet gevonden in gpsbulk.js');
+    if (!code.includes('onThumbHoverIn')) throw new Error('onThumbHoverIn handler niet gevonden');
+    if (!code.includes('toonPreview')) throw new Error('toonPreview() niet gevonden in gpsbulk.js');
+  });
+
+  test('GPS Bulk JS: preview verborgen bij dragstart', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('verbergPreview')) throw new Error('verbergPreview() niet gevonden — preview blijft zichtbaar bij slepen');
+  });
+
+  test('HTML: bulkThumbPreview element aanwezig', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('bulkThumbPreview')) throw new Error('bulkThumbPreview div niet gevonden in index.html');
+  });
+
+  test('GPS Bulk JS: auto-promote hold zone als geen normale groepen meer', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('heeftNormaleGroepen')) throw new Error('heeftNormaleGroepen check ontbreekt — hold zone wordt niet auto-gepromoot');
+    if (!code.includes('Auto-promote hold zone')) throw new Error('Auto-promote logica niet gevonden in onDrop()');
+  });
+
+  // ─── GPS PROPAGATIE VIA PUT /fotos/:id ───────────────────────────────────────
+
+  test('API: PUT /fotos/:id propageert GPS naar duplicaten in zelfde groep', () => {
+    const putBlok = apiCode.slice(apiCode.indexOf("router.put('/fotos/:id'"));
+    if (!putBlok.includes('duplicaat_groep')) {
+      throw new Error('PUT /fotos/:id controleert duplicaat_groep niet — GPS wordt niet gepropageerd naar duplicaten');
+    }
+    if (!putBlok.includes('heeftGpsUpdate')) {
+      throw new Error('heeftGpsUpdate check ontbreekt in PUT /fotos/:id');
+    }
+  });
+
+  test('API: PUT /fotos/:id propageert alleen als GPS velden aanwezig zijn in request', () => {
+    const putBlok = apiCode.slice(apiCode.indexOf("router.put('/fotos/:id'"));
+    if (!putBlok.includes('some(v => v !== undefined)')) {
+      throw new Error('GPS-update detectie (some(v => v !== undefined)) ontbreekt in PUT /fotos/:id');
+    }
+  });
+
+  test('API: PUT /fotos/:id gebruikt undefined-check zodat null GPS velden gewist worden', () => {
+    const putBlok = apiCode.slice(apiCode.indexOf("router.put('/fotos/:id'"));
+    if (!putBlok.includes('!== undefined ? gps_lat')) {
+      throw new Error('PUT /fotos/:id gebruikt ?? i.p.v. undefined-check — null kan GPS velden niet wissen');
+    }
+  });
+
+  test('Fotos JS: lege stad+land wist ook GPS coördinaten', () => {
+    if (!fotosCode.includes('wisGps')) throw new Error('wisGps logica ontbreekt in slaaBewerkingOpFoto()');
+    if (!fotosCode.includes('gps_lat:       wisGps ? null : undefined')) throw new Error('gps_lat wordt niet gewist bij leeg stad+land');
+  });
+
+  test('Fotos JS: land_code afgeleid uit LAND_CODES bij tekstinvoer', () => {
+    if (!fotosCode.includes('LAND_CODES[land]')) throw new Error('LAND_CODES lookup ontbreekt bij opslaan via tekstveld');
+  });
+
+  test('Fotos JS: GPS kaart invalidateSize na heropen', () => {
+    if (!fotosCode.includes('invalidateSize')) throw new Error('gpsKaart.invalidateSize() niet aangeroepen in openGpsKaart()');
+  });
+
+  test('Fotos JS: kaart-panel herlaadt na opslaan als het open is', () => {
+    if (!fotosCode.includes('kaartPanelOverlay')) throw new Error('kaartPanelOverlay check ontbreekt in slaaBewerkingOpFoto');
+    if (!fotosCode.includes('laadPanelFotos')) throw new Error('laadPanelFotos() niet aangeroepen na opslaan');
+    if (!fotosCode.includes('herlaadLocaties')) throw new Error('herlaadLocaties() niet aangeroepen na wissen GPS');
+  });
+
+  // ─── DATABASE WIS BEHOUDT BRONNEN ────────────────────────────────────────────
+
+  test('API: database/wis verwijdert geen bronnen', () => {
+    const wisBlok = apiCode.slice(apiCode.indexOf("'/database/wis'"));
+    if (wisBlok.slice(0, 300).includes('DELETE FROM bronnen')) {
+      throw new Error('database/wis wist nog steeds bronnen — bronnen moeten bewaard blijven');
+    }
+  });
+
+  test('API: database/wis reset totaal_fotos en laatste_scan op bronnen', () => {
+    const wisBlok = apiCode.slice(apiCode.indexOf("'/database/wis'"));
+    if (!wisBlok.slice(0, 300).includes('UPDATE bronnen SET totaal_fotos = 0')) {
+      throw new Error('database/wis reset totaal_fotos niet op bronnen na wissen');
+    }
+  });
+
+  test('HTML: database wis knop zegt "Wis foto-records" (niet bronnen)', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('Bronnen blijven bewaard')) {
+      throw new Error('UI tekst vermeldt niet dat bronnen bewaard blijven na database wis');
+    }
+  });
+
+  test('Fotos JS: auto-close modal na opslaan (setTimeout 1000ms)', () => {
+    if (!fotosCode.includes('setTimeout') || !fotosCode.includes('modalOverlay')) {
+      throw new Error('Auto-close na opslaan ontbreekt in slaaBewerkingOpFoto');
+    }
+    if (!fotosCode.includes('1000')) throw new Error('1 seconde vertraging ontbreekt bij auto-close');
+  });
+
+  test('Fotos JS: lege rijen verborgen in metadatatabel', () => {
+    if (!fotosCode.includes(".filter(([k, v]) => v && v !== '—')")) {
+      throw new Error('Filter op lege rijen ontbreekt in renderModal');
+    }
+  });
+
+  test('Fotos JS: bewerkformulier in tabelstijl (meta-input)', () => {
+    if (!fotosCode.includes('meta-input')) throw new Error('meta-input klasse ontbreekt in bewerkformulier');
+    if (!fotosCode.includes('bewerk-tabel')) throw new Error('bewerk-tabel klasse ontbreekt in bewerkformulier');
+  });
+
+  test('CSS: modal heeft max-height ipv vaste height', () => {
+    const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
+    // Zoek naar vaste height (niet max-height) via regex
+    if (/(?<!max-)height: calc\(100vh - var\(--balk-h\) - 32px\)/.test(css)) {
+      throw new Error('Modal gebruikt nog vaste height — moet max-height zijn');
+    }
+    if (!css.includes('max-height: calc(100vh - var(--balk-h) - 32px)')) {
+      throw new Error('max-height ontbreekt op .modal');
+    }
+  });
+
+  // Fase navigatie tests
+  test('DB: instellingen tabel aanwezig in database.js', () => {
+    const dbCode = fs.readFileSync(path.join(__dirname, '../src/database.js'), 'utf8');
+    if (!dbCode.includes('instellingen')) throw new Error('instellingen tabel ontbreekt in database.js');
+    if (!dbCode.includes("'fase'")) throw new Error('standaard fase instelling ontbreekt');
+  });
+
+  test('DB: locatie_onbekend kolom migratie aanwezig', () => {
+    const dbCode = fs.readFileSync(path.join(__dirname, '../src/database.js'), 'utf8');
+    if (!dbCode.includes('locatie_onbekend')) throw new Error('locatie_onbekend migratie ontbreekt');
+  });
+
+  test('DB: genegeerd kolom migratie aanwezig', () => {
+    const dbCode = fs.readFileSync(path.join(__dirname, '../src/database.js'), 'utf8');
+    if (!dbCode.includes('genegeerd')) throw new Error('genegeerd migratie ontbreekt');
+  });
+
+  test('API: GET /fase endpoint aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("'/fase'")) throw new Error('GET /fase endpoint ontbreekt');
+  });
+
+  test('API: POST /fase endpoint aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("'POST', '/fase'") && !apiCode.includes("router.post('/fase'")) throw new Error('POST /fase endpoint ontbreekt');
+  });
+
+  test('API: POST /fotos/:id/locatie-onbekend endpoint aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes('locatie-onbekend')) throw new Error('locatie-onbekend endpoint ontbreekt');
+  });
+
+  test('API: POST /fotos/:id/negeer endpoint aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes('/negeer')) throw new Error('negeer endpoint ontbreekt');
+  });
+
+  test('API: GET /fase1/todo endpoint aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes('fase1/todo')) throw new Error('fase1/todo endpoint ontbreekt');
+  });
+
+  test('API: genegeerd filter aanwezig in GET /fotos', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("genegeerd === '1'")) throw new Error('genegeerd filter ontbreekt in GET /fotos');
+  });
+
+  test('HTML: fase stepper aanwezig', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('faseStepper')) throw new Error('faseStepper element ontbreekt');
+    if (!html.includes('stapFase1')) throw new Error('stapFase1 ontbreekt');
+  });
+
+  test('HTML: fase 2 paginas aanwezig (negeren, genegeerd)', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('paginaNegeren')) throw new Error('paginaNegeren ontbreekt');
+    if (!html.includes('paginaGenegeerd')) throw new Error('paginaGenegeerd ontbreekt');
+  });
+
+  test('HTML: fase1Todo checklist aanwezig op dashboard', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('fase1Todo')) throw new Error('fase1Todo checklist ontbreekt');
+  });
+
+  test('App JS: laadFase() functie aanwezig', () => {
+    const appCode = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+    if (!appCode.includes('laadFase')) throw new Error('laadFase() ontbreekt in app.js');
+  });
+
+  test('App JS: zetFase() en gaaNaarFase() aanwezig', () => {
+    const appCode = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+    if (!appCode.includes('zetFase')) throw new Error('zetFase() ontbreekt');
+    if (!appCode.includes('gaaNaarFase')) throw new Error('gaaNaarFase() ontbreekt');
+  });
+
+  test('App JS: updateNavFase() past nav-fase1 en nav-fase2 aan', () => {
+    const appCode = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+    if (!appCode.includes('nav-fase1')) throw new Error('nav-fase1 toggle ontbreekt');
+    if (!appCode.includes('nav-fase2')) throw new Error('nav-fase2 toggle ontbreekt');
+  });
+
+  test('Negeren JS: laadNegeren() en toggleNegeer() aanwezig', () => {
+    const negerenCode = fs.readFileSync(path.join(__dirname, '../public/js/negeren.js'), 'utf8');
+    if (!negerenCode.includes('laadNegeren')) throw new Error('laadNegeren() ontbreekt');
+    if (!negerenCode.includes('toggleNegeer')) throw new Error('toggleNegeer() ontbreekt');
+  });
+
+  test('CSS: fase-stepper stijlen aanwezig', () => {
+    const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
+    if (!css.includes('fase-stepper')) throw new Error('fase-stepper CSS ontbreekt');
+    if (!css.includes('stap-cirkel')) throw new Error('stap-cirkel CSS ontbreekt');
+  });
+
+  return resultaten;
+};

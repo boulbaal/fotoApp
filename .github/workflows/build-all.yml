@@ -1,0 +1,106 @@
+name: Build alle platformen
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  # ─── WINDOWS ────────────────────────────────────────────
+  build-windows:
+    name: Windows installer (.exe)
+    runs-on: windows-2022
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Dependencies installeren
+        run: npm install
+        env:
+          npm_config_python: python
+          npm_config_msvs_version: '2022'
+
+      - name: Windows bouwen en publiceren
+        run: npm run build:win:publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FotoApp-Windows
+          path: dist/*.exe
+          retention-days: 30
+
+  # ─── MACOS ──────────────────────────────────────────────
+  build-mac:
+    name: macOS installer (.dmg)
+    runs-on: macos-14
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Dependencies installeren
+        run: npm install
+
+      - name: macOS bouwen en publiceren
+        run: npm run build:mac:publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FotoApp-macOS
+          path: dist/*.dmg
+          retention-days: 30
+
+  # ─── LINUX ──────────────────────────────────────────────
+  build-linux:
+    name: Linux installer (.AppImage + .deb)
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Systeem dependencies installeren
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Dependencies installeren
+        run: npm install
+
+      - name: Linux bouwen en publiceren
+        run: npm run build:linux:publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FotoApp-Linux
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+          retention-days: 30
