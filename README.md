@@ -27,7 +27,7 @@
 
 FotoApp is een **gratis, open-source desktopapplicatie** voor het organiseren van duizenden foto's en video's — op jouw eigen machine, zonder cloud, zonder abonnement, zonder dat iemand jouw privéfoto's te zien krijgt.
 
-Gebouwd voor mensen zoals Ali, die 27.000+ foto's hebben verspreid over meerdere schijven, USB-sticks en mappen, en gewoon wil weten: *waar staat alles, en wat heb ik dubbel?*
+Gebouwd voor mensen die hun volledige fotocollectie verspreid hebben over meerdere schijven, USB-sticks en mappen, en gewoon willen weten: *waar staat alles, en wat heb ik dubbel?*
 
 ### ✨ Functies
 
@@ -259,6 +259,6 @@ FotoApp هو **تطبيق سطح مكتب مجاني ومفتوح المصدر**
 
 **[github.com/boulbaal/fotoApp](https://github.com/boulbaal/fotoApp)**
 
-Made with ❤️ by [Ali](https://github.com/boulbaal)
+Made with ❤️
 
 </div>
