@@ -6,13 +6,13 @@
 
 FotoApp is a free desktop application that helps people organize thousands of photos and videos stored across multiple hard drives, USB sticks, and folders — without uploading anything to the cloud.
 
-It was built to solve a real problem: someone had 27,000+ photos scattered everywhere and needed a way to find, filter, deduplicate, and organize them without paying for a cloud service or giving a tech company access to their private memories.
+It was built to solve a real problem: someone had 27,000+ photos and videos scattered everywhere and needed a way to find, filter, deduplicate, and organize them without paying for a cloud service or giving a tech company access to their private memories.
 
 ## Who is it for?
 
-- People with thousands of photos spread across multiple locations
-- Anyone who wants to find duplicate photos and reclaim disk space
-- Users who care about privacy and don't want their photos in the cloud
+- People with thousands of photos and videos spread across multiple locations
+- Anyone who wants to find duplicate photos and videos and reclaim disk space
+- Users who care about privacy and don't want their photos or videos in the cloud
 - Photographers using RAW files (Canon, Nikon, Sony, Fuji)
 - People who exported their Google Photos via Google Takeout
 - Windows users primarily; Mac and Linux users who can build from source

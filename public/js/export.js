@@ -24,7 +24,7 @@ async function laadExportPreview() {
 
   const ruimteEl = document.getElementById('prevRuimte');
   if (data.ruimte < 0) {
-    ruimteEl.textContent = 'Onbekend';
+    ruimteEl.textContent = window.i18n ? window.i18n.t('export_onbekend') : 'Onbekend';
     ruimteEl.style.color = '#888';
   } else if (data.ruimteOk) {
     ruimteEl.textContent = formatGrootte(data.ruimte) + '  ✅';

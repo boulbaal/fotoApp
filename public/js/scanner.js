@@ -197,7 +197,7 @@ function setScanBalk(status) {
       fill.style.width   = '0%';
     }
     dot.className        = 'scan-dot klaar';
-    titel.textContent    = 'Klaar';
+    titel.textContent    = window.i18n ? window.i18n.t('stat_ready') : 'Klaar';
     sub.textContent      = '';
     mid.textContent      = '';
     teller.textContent   = '';

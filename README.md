@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="docs/screenshot.png" alt="FotoApp Screenshot" width="800">
+<img src="docs/screenshot.svg" alt="FotoApp — foto's en video's beheren" width="900">
 
-# 📷 FotoApp
+# 📸 FotoApp
 
-**Gratis · Lokaal · Privé · Open Source**
+**Gratis · Lokaal · Privé · Open Source · Foto's én Video's**
 
 [![Release](https://img.shields.io/github/v/release/boulbaal/fotoApp?color=blue&label=Download)](https://github.com/boulbaal/fotoApp/releases/latest)
 [![Build](https://github.com/boulbaal/fotoApp/actions/workflows/build-windows.yml/badge.svg)](https://github.com/boulbaal/fotoApp/actions)

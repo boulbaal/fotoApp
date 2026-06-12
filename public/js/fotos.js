@@ -86,7 +86,7 @@ async function laadFotos(pagina = 1) {
 
   const grid = document.getElementById('fotoGrid');
   if (data.fotos.length === 0) {
-    grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">Geen foto\'s gevonden</div>';
+    grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">' + window.i18n.t('geen_fotos') + '</div>';
     return;
   }
 

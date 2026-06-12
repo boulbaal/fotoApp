@@ -222,7 +222,7 @@ module.exports = async function testScanner() {
   });
 
   test('UI: scanBalk toont Klaar-status wanneer niet bezig', () => {
-    if (!uiScannerCode.includes("titel.textContent    = 'Klaar'")) throw new Error('Scan balk toont geen Klaar-status');
+    if (!uiScannerCode.includes("stat_ready") && !uiScannerCode.includes("titel.textContent    = 'Klaar'")) throw new Error('Scan balk toont geen Klaar-status');
   });
 
   test('Utils: formatDuur toont "< 1s" voor scans korter dan 1 seconde', () => {

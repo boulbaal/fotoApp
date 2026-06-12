@@ -19,7 +19,7 @@ async function laadNegeren(pagina = 1) {
   if (!grid) return;
 
   if (data.fotos.length === 0) {
-    grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">Geen foto\'s gevonden</div>';
+    grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">' + window.i18n.t('geen_negeren') + '</div>';
     return;
   }
 

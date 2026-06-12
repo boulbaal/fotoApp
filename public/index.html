@@ -97,8 +97,8 @@
     <!-- Manifest banner -->
     <div class="manifest-banner">
       <div class="manifest-banner-tekst">
-        <strong>📷 Jouw foto's. Jouw computer. Jouw controle.</strong>
-        <span>Google, Apple en Microsoft bewaren jouw herinneringen — en worden er rijker van. FotoApp geeft ze terug aan jou. Geen cloud, geen abonnement, geen surveillance.</span>
+        <strong data-i18n="manifest_titel">📷 Jouw foto's. Jouw computer. Jouw controle.</strong>
+        <span data-i18n="manifest_tekst">Google, Apple en Microsoft bewaren jouw herinneringen — en worden er rijker van. FotoApp geeft ze terug aan jou. Geen cloud, geen abonnement, geen surveillance.</span>
       </div>
       <button class="manifest-banner-sluit" onclick="this.closest('.manifest-banner').style.display='none'" title="Verberg">✕</button>
     </div>
@@ -107,38 +107,38 @@
     <!-- Fase 1 todo -->
     <div id="fase1Todo" class="fase-todo" style="display:none">
       <div class="todo-kop">
-        <span class="todo-titel">📋 Checklist fase 1</span>
-        <button class="btn btn-primair" style="font-size:12px;padding:5px 14px" onclick="gaaNaarFase(2)">Fase 1 afronden → Fase 2</button>
+        <span class="todo-titel" data-i18n="fase1_checklist">📋 Checklist fase 1</span>
+        <button class="btn btn-primair" style="font-size:12px;padding:5px 14px" onclick="gaaNaarFase(2)" data-i18n="fase1_afronden">Fase 1 afronden → Fase 2</button>
       </div>
       <div id="todoItems"></div>
     </div>
-    <div class="stat-sectie-label">📷 Foto's</div>
+    <div class="stat-sectie-label" data-i18n="dash_fotos_label">📷 Foto's</div>
     <div class="stat-grid">
-      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos')" title="Bekijk alle foto's"><div class="getal" id="statTotaal">—</div><div class="label">Totaal</div></div>
-      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { zonder_kopien: true, _label: '📷 Unieke foto\'s' })" title="Unieke foto's (excl. duplicaten)"><div class="getal" id="statFotosUniek">—</div><div class="label">Uniek</div></div>
-      <div class="stat-kaart"><div class="getal" id="statFotosDubbel">—</div><div class="label">Dubbel</div></div>
-      <div class="stat-kaart"><div class="getal" id="statFotosMetGps">—</div><div class="label">Met locatie</div></div>
-      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { zonder_gps: true, _label: '📍 Foto\'s zonder locatie' })" title="Foto's zonder GPS"><div class="getal" id="statFotosZonderGps">—</div><div class="label">Zonder locatie</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos')" title="Bekijk alle foto's"><div class="getal" id="statTotaal">—</div><div class="label" data-i18n="lbl_total">Totaal</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { zonder_kopien: true, _label: '📷 Unieke foto\'s' })" title="Unieke foto's (excl. duplicaten)"><div class="getal" id="statFotosUniek">—</div><div class="label" data-i18n="lbl_unique">Uniek</div></div>
+      <div class="stat-kaart"><div class="getal" id="statFotosDubbel">—</div><div class="label" data-i18n="lbl_duplicate">Dubbel</div></div>
+      <div class="stat-kaart"><div class="getal" id="statFotosMetGps">—</div><div class="label" data-i18n="lbl_with_location">Met locatie</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { zonder_gps: true, _label: '📍 Foto\'s zonder locatie' })" title="Foto's zonder GPS"><div class="getal" id="statFotosZonderGps">—</div><div class="label" data-i18n="lbl_without_location">Zonder locatie</div></div>
     </div>
-    <div class="stat-sectie-label">🎬 Video's</div>
+    <div class="stat-sectie-label" data-i18n="dash_videos_label">🎬 Video's</div>
     <div class="stat-grid">
-      <div class="stat-kaart klikbaar" onclick="toonPagina('videos')" title="Bekijk alle video's"><div class="getal" id="statVideos">—</div><div class="label">Totaal</div></div>
-      <div class="stat-kaart"><div class="getal" id="statVideosUniek">—</div><div class="label">Uniek</div></div>
-      <div class="stat-kaart"><div class="getal" id="statVideosDubbel">—</div><div class="label">Dubbel</div></div>
-      <div class="stat-kaart"><div class="getal" id="statVideosMetGps">—</div><div class="label">Met locatie</div></div>
-      <div class="stat-kaart klikbaar" onclick="toonPagina('videos', { zonder_gps: true, _label: '📍 Video\'s zonder locatie' })" title="Video's zonder GPS"><div class="getal" id="statVideosZonderGps">—</div><div class="label">Zonder locatie</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('videos')" title="Bekijk alle video's"><div class="getal" id="statVideos">—</div><div class="label" data-i18n="lbl_total">Totaal</div></div>
+      <div class="stat-kaart"><div class="getal" id="statVideosUniek">—</div><div class="label" data-i18n="lbl_unique">Uniek</div></div>
+      <div class="stat-kaart"><div class="getal" id="statVideosDubbel">—</div><div class="label" data-i18n="lbl_duplicate">Dubbel</div></div>
+      <div class="stat-kaart"><div class="getal" id="statVideosMetGps">—</div><div class="label" data-i18n="lbl_with_location">Met locatie</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('videos', { zonder_gps: true, _label: '📍 Video\'s zonder locatie' })" title="Video's zonder GPS"><div class="getal" id="statVideosZonderGps">—</div><div class="label" data-i18n="lbl_without_location">Zonder locatie</div></div>
     </div>
     <div class="stat-grid stat-grid-enkel">
-      <div class="stat-kaart"><div class="getal" id="statGrootte">—</div><div class="label">Totale grootte</div></div>
+      <div class="stat-kaart"><div class="getal" id="statGrootte">—</div><div class="label" data-i18n="lbl_total_size">Totale grootte</div></div>
     </div>
     <div class="grafiek-grid">
-      <div class="grafiek-kaart"><h3>📅 Foto's per jaar</h3><div id="grafiekJaar"></div></div>
-      <div class="grafiek-kaart"><h3>🎬 Video's per jaar</h3><div id="grafiekJaarVideo"></div></div>
-      <div class="grafiek-kaart"><h3>📷 Camera's (foto's)</h3><div id="grafiekCamera"></div></div>
-      <div class="grafiek-kaart"><h3>🎬 Camera's (video's)</h3><div id="grafiekCameraVideo"></div></div>
-      <div class="grafiek-kaart"><h3>🌍 Landen (foto's)</h3><div id="grafiekLand"></div></div>
-      <div class="grafiek-kaart"><h3>🌍 Landen (video's)</h3><div id="grafiekLandVideo"></div></div>
-      <div class="grafiek-kaart"><h3>💾 Per bron</h3><div id="grafiekBron"></div></div>
+      <div class="grafiek-kaart"><h3 data-i18n="grafiek_fotos_jaar">📅 Foto's per jaar</h3><div id="grafiekJaar"></div></div>
+      <div class="grafiek-kaart"><h3 data-i18n="grafiek_videos_jaar">🎬 Video's per jaar</h3><div id="grafiekJaarVideo"></div></div>
+      <div class="grafiek-kaart"><h3 data-i18n="grafiek_cameras_fotos">📷 Camera's (foto's)</h3><div id="grafiekCamera"></div></div>
+      <div class="grafiek-kaart"><h3 data-i18n="grafiek_cameras_videos">🎬 Camera's (video's)</h3><div id="grafiekCameraVideo"></div></div>
+      <div class="grafiek-kaart"><h3 data-i18n="grafiek_landen_fotos">🌍 Landen (foto's)</h3><div id="grafiekLand"></div></div>
+      <div class="grafiek-kaart"><h3 data-i18n="grafiek_landen_videos">🌍 Landen (video's)</h3><div id="grafiekLandVideo"></div></div>
+      <div class="grafiek-kaart"><h3 data-i18n="grafiek_per_bron">💾 Per bron</h3><div id="grafiekBron"></div></div>
     </div>
   </div>
 
@@ -148,7 +148,7 @@
     <!-- Google Photos uitleg -->
     <div class="bron-uitleg">
       <div class="bron-uitleg-icoon">🌐</div>
-      <div class="bron-uitleg-type">Google Photos toevoegen</div>
+      <div class="bron-uitleg-type" data-i18n="bron_google_titel">Google Photos toevoegen</div>
       <p>Google Photos kan niet rechtstreeks verbonden worden. Exporteer eerst je foto's via <strong>Google Takeout</strong>:</p>
       <ol>
         <li>Ga naar <strong>takeout.google.com</strong></li>
@@ -157,18 +157,18 @@
         <li>Pak alles uit in één map op je PC</li>
         <li>Voeg die map hieronder toe als bron</li>
       </ol>
-      <p style="margin-top:10px;">✅ De app leest automatisch de Google-metadata mee: datum, GPS-locatie, beschrijving en apparaat.</p>
+      <p style="margin-top:10px;" data-i18n="bron_google_note">✅ De app leest automatisch de Google-metadata mee: datum, GPS-locatie, beschrijving en apparaat.</p>
     </div>
 
     <div class="formulier">
-      <h3>➕ Nieuwe bron toevoegen</h3>
+      <h3 data-i18n="bron_nieuw_titel">➕ Nieuwe bron toevoegen</h3>
       <div class="veld-groep">
         <div class="veld">
-          <label>Naam</label>
-          <input id="bronNaam" type="text" placeholder="bv. Linux PC, Oude GSM...">
+          <label data-i18n="bron_naam_label">Naam</label>
+          <input id="bronNaam" type="text" placeholder="bv. Linux PC, Oude GSM..." data-i18n-placeholder="zoek_ph">
         </div>
         <div class="veld">
-          <label>Type</label>
+          <label data-i18n="bron_type_label">Type</label>
           <select id="bronType">
             <option value="pc">💻 PC / Laptop</option>
             <option value="gsm">📱 Smartphone</option>
@@ -178,21 +178,21 @@
         </div>
       </div>
       <div class="veld" style="margin-bottom:16px;">
-        <label>Map om te scannen</label>
+        <label data-i18n="bron_map_label">Map om te scannen</label>
         <div style="display:flex; gap:8px;">
           <input id="bronPad" type="text" placeholder="bv. /home/one/Pictures" style="flex:1;">
-          <button class="btn btn-secundair" onclick="openMapKiezer()" type="button">📁 Bladeren</button>
+          <button class="btn btn-secundair" onclick="openMapKiezer()" type="button" data-i18n="bron_bladeren">📁 Bladeren</button>
         </div>
       </div>
-      <button class="btn btn-primair" onclick="voegBronToe()">Bron toevoegen</button>
+      <button class="btn btn-primair" onclick="voegBronToe()" data-i18n="bron_toevoegen_knop">Bron toevoegen</button>
     </div>
     <div class="bronnen-grid" id="bronnenGrid"></div>
 
 
 <div class="gevaar-zone">
-      <h3>⚠️ Gevaar zone</h3>
+      <h3 data-i18n="bron_gevaar_titel">⚠️ Gevaar zone</h3>
       <p>Wist alle foto-records en scangeschiedenis. <strong>Bronnen blijven bewaard</strong> — je hoeft ze niet opnieuw in te geven. De echte foto's op schijf blijven onaangeroerd.</p>
-      <button id="wisDatabaseKnop" class="btn btn-gevaar" onclick="wisDatabase()">🗑️ Wis foto-records</button>
+      <button id="wisDatabaseKnop" class="btn btn-gevaar" onclick="wisDatabase()" data-i18n="bron_wis_knop">🗑️ Wis foto-records</button>
     </div>
   </div>
 
@@ -216,7 +216,7 @@
   <!-- VIDEO'S -->
   <div class="pagina" id="paginaVideos">
     <div class="filters">
-      <input type="text" id="zoekInputVideo" placeholder="🔍 Zoeken op naam, stad..." oninput="laadVideos(1)">
+      <input type="text" id="zoekInputVideo" placeholder="🔍 Zoeken op naam, stad..." data-i18n-placeholder="zoek_videos_ph" oninput="laadVideos(1)">
       <select id="filterBronVideo" onchange="laadVideos(1)">
         <option value="">Alle bronnen</option>
       </select>
@@ -230,7 +230,7 @@
       <span style="font-size:13px; color:#a78bfa;">🎬</span>
       <span id="videoThumbTeller" style="font-size:13px; color:#888;"></span>
       <div id="videoThumbVoortgang" style="display:none; font-size:12px; color:#6b7280;"></div>
-      <button class="btn btn-secundair" style="font-size:12px; padding:5px 12px; margin-left:auto;" onclick="startVideoThumbnails()" id="videoThumbKnop">
+      <button class="btn btn-secundair" style="font-size:12px; padding:5px 12px; margin-left:auto;" onclick="startVideoThumbnails()" id="videoThumbKnop" data-i18n="video_start_nu">
         🖼️ Start nu
       </button>
     </div>
@@ -253,7 +253,7 @@
         <option value="">Alle landen</option>
       </select>
       <span id="kaartTeller" class="kaart-teller"></span>
-      <button class="btn btn-secundair" style="margin-left:auto;font-size:12px" onclick="resetKaartFilters()">✕ Wis filters</button>
+      <button class="btn btn-secundair" style="margin-left:auto;font-size:12px" onclick="resetKaartFilters()" data-i18n="kaart_wis_filters">✕ Wis filters</button>
     </div>
     <div id="kaartContainer"></div>
     <!-- Popup overlay -->
@@ -276,8 +276,8 @@
   <!-- GPS BULK TOEWIJZEN -->
   <div class="pagina" id="paginaGpsbulk">
     <div class="gpsbulk-kop">
-      <h2>📍 GPS locaties groepsgewijs toewijzen</h2>
-      <p>Foto's en video's zonder GPS worden gegroepeerd op tijdstip — meer dan 2 uur verschil = nieuwe groep. Wijs per groep één locatie toe.</p>
+      <h2 data-i18n="gps_titel">📍 GPS locaties groepsgewijs toewijzen</h2>
+      <p data-i18n="gps_uitleg">Foto's en video's zonder GPS worden gegroepeerd op tijdstip — meer dan 2 uur verschil = nieuwe groep. Wijs per groep één locatie toe.</p>
       <div id="gpsBulkInfo" class="gpsbulk-info"></div>
     </div>
     <div id="gpsBulkGroepen"></div>
@@ -293,11 +293,11 @@
   <!-- FASE 2: NEGEREN -->
   <div class="pagina" id="paginaNegeren">
     <div class="fase2-kop">
-      <h2>🚫 Foto's negeren</h2>
+      <h2 data-i18n="negeren_titel">🚫 Foto's negeren</h2>
       <p>Kies welke foto's je <strong>niet</strong> wil meenemen naar je nieuwe schijf. Originelen en duplicaten worden apart getoond. Genegeerde foto's worden overgeslagen bij de export.</p>
     </div>
     <div class="filters">
-      <input type="text" id="negerenZoek" placeholder="🔍 Zoeken..." oninput="laadNegeren(1)">
+      <input type="text" id="negerenZoek" placeholder="🔍 Zoeken..." data-i18n-placeholder="zoek_ph" oninput="laadNegeren(1)">
       <select id="negerenFilter" onchange="laadNegeren(1)">
         <option value="alle">Alle foto's</option>
         <option value="nog-niet">Nog te beoordelen</option>
@@ -311,54 +311,54 @@
   <!-- FASE 2: GENEGEERD -->
   <div class="pagina" id="paginaGenegeerd">
     <div class="fase2-kop">
-      <h2>📋 Genegeerde foto's</h2>
+      <h2 data-i18n="genegeerd_titel">📋 Genegeerde foto's</h2>
       <p>Overzicht van foto's die je hebt uitgesloten van de export. Klik op een foto om de keuze ongedaan te maken.</p>
     </div>
     <div class="foto-grid" id="genegeerGrid"></div>
     <div class="paginering" id="genegeerPaginering"></div>
-    <div id="genegeerLeeg" style="display:none; color:#888; font-size:14px; padding:40px; text-align:center;">Nog geen foto's genegeerd.</div>
+    <div id="genegeerLeeg" style="display:none; color:#888; font-size:14px; padding:40px; text-align:center;" data-i18n="genegeerd_leeg">Nog geen foto's genegeerd.</div>
   </div>
 
   <!-- FASE 3: EXPORT -->
   <div class="pagina" id="paginaExport">
     <div class="fase2-kop">
-      <h2>📦 Export</h2>
+      <h2 data-i18n="export_titel">📦 Export</h2>
       <p>Kopieer je geselecteerde foto's naar een nieuw archief. Originelen blijven altijd onaangeroerd.</p>
     </div>
 
     <!-- Stap 1: doelmap kiezen + preview -->
     <div id="exportSetup">
       <div class="export-sectie">
-        <label class="export-label">Bestemmingsmap</label>
+        <label class="export-label" data-i18n="export_doelmap_label">Bestemmingsmap</label>
         <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
-          <input type="text" id="exportDoelmap" placeholder="/media/nieuweschijf/FotoArchief" style="flex:1; background:#1a1a2e; border:1px solid #2e2e44; color:#e0e0e0; padding:8px 12px; border-radius:6px; font-size:14px;">
-          <button class="btn btn-secundair" onclick="openMapKiezer('exportDoelmap')" type="button">📁 Kiezen</button>
-          <button class="btn btn-secundair" onclick="laadExportPreview()" type="button">🔍 Berekenen</button>
+          <input type="text" id="exportDoelmap" placeholder="/media/nieuweschijf/FotoArchief" data-i18n-placeholder="export_doelmap_ph" style="flex:1; background:#1a1a2e; border:1px solid #2e2e44; color:#e0e0e0; padding:8px 12px; border-radius:6px; font-size:14px;">
+          <button class="btn btn-secundair" onclick="openMapKiezer('exportDoelmap')" type="button" data-i18n="export_kiezen">📁 Kiezen</button>
+          <button class="btn btn-secundair" onclick="laadExportPreview()" type="button" data-i18n="export_berekenen">🔍 Berekenen</button>
         </div>
       </div>
 
       <div id="exportPreview" style="display:none; margin-top:20px;">
         <div class="export-preview-kaart">
           <div class="export-preview-rij">
-            <span class="export-preview-label">Te exporteren</span>
+            <span class="export-preview-label" data-i18n="export_te_exporteren">Te exporteren</span>
             <span class="export-preview-waarde" id="prevFotos">—</span>
           </div>
           <div class="export-preview-rij">
-            <span class="export-preview-label">Totale grootte</span>
+            <span class="export-preview-label" data-i18n="export_totale_grootte">Totale grootte</span>
             <span class="export-preview-waarde" id="prevGrootte">—</span>
           </div>
           <div class="export-preview-rij">
-            <span class="export-preview-label">Vrije ruimte</span>
+            <span class="export-preview-label" data-i18n="export_vrije_ruimte">Vrije ruimte</span>
             <span class="export-preview-waarde" id="prevRuimte">—</span>
           </div>
           <div class="export-preview-rij" id="prevAlDoneRij" style="display:none">
-            <span class="export-preview-label">Al geëxporteerd</span>
+            <span class="export-preview-label" data-i18n="export_al_gedaan">Al geëxporteerd</span>
             <span class="export-preview-waarde" id="prevAlDone">—</span>
           </div>
         </div>
         <div id="prevWaarschuwing" style="display:none; margin-top:12px;"></div>
         <div style="margin-top:20px;">
-          <button class="btn btn-primair" id="exportStartKnop" onclick="startExport()" disabled>▶ Export starten</button>
+          <button class="btn btn-primair" id="exportStartKnop" onclick="startExport()" disabled data-i18n="export_starten">▶ Export starten</button>
         </div>
       </div>
     </div>
@@ -366,13 +366,13 @@
     <!-- Stap 2: voortgang -->
     <div id="exportVoortgang" style="display:none; margin-top:24px;">
       <div class="export-sectie">
-        <div class="export-voortgang-tekst" id="exportVoortgangTekst">Kopiëren...</div>
+        <div class="export-voortgang-tekst" id="exportVoortgangTekst" data-i18n="export_kopieren">Kopiëren...</div>
         <div class="export-balk-container">
           <div class="export-balk-vulling" id="exportBalk" style="width:0%"></div>
         </div>
         <div class="export-huidig-bestand" id="exportHuidigBestand"></div>
         <div style="margin-top:16px; display:flex; gap:10px; align-items:center;">
-          <button class="btn btn-secundair" onclick="stopExport()">⏹ Stoppen</button>
+          <button class="btn btn-secundair" onclick="stopExport()" data-i18n="export_stoppen">⏹ Stoppen</button>
           <span id="exportFoutenTekst" style="color:#f87171; font-size:13px; display:none;"></span>
         </div>
       </div>
@@ -382,36 +382,36 @@
     <div id="exportKlaar" style="display:none; margin-top:24px;">
       <div class="export-sectie export-klaar-kaart">
         <div style="font-size:32px; margin-bottom:8px;">✅</div>
-        <div style="font-size:18px; font-weight:600; margin-bottom:16px;">Export voltooid</div>
+        <div style="font-size:18px; font-weight:600; margin-bottom:16px;" data-i18n="export_voltooid">Export voltooid</div>
         <div class="export-preview-kaart" style="max-width:400px;">
           <div class="export-preview-rij">
-            <span class="export-preview-label">Gekopieerd</span>
+            <span class="export-preview-label" data-i18n="export_gekopieerd">Gekopieerd</span>
             <span class="export-preview-waarde" id="klaarGedaan">—</span>
           </div>
           <div class="export-preview-rij">
-            <span class="export-preview-label">Fouten</span>
+            <span class="export-preview-label" data-i18n="export_fouten_label">Fouten</span>
             <span class="export-preview-waarde" id="klaarFouten">—</span>
           </div>
           <div class="export-preview-rij">
-            <span class="export-preview-label">Locatie</span>
+            <span class="export-preview-label" data-i18n="export_locatie_label">Locatie</span>
             <span class="export-preview-waarde" id="klaarLocatie" style="font-size:12px; word-break:break-all;">—</span>
           </div>
         </div>
         <div id="klaarFoutLog" style="display:none; margin-top:16px; max-height:200px; overflow-y:auto; font-size:12px; color:#f87171;"></div>
-        <button class="btn btn-secundair" style="margin-top:20px;" onclick="resetExportUI()">↩ Nieuw export</button>
+        <button class="btn btn-secundair" style="margin-top:20px;" onclick="resetExportUI()" data-i18n="export_nieuw">↩ Nieuw export</button>
 
         <!-- Donatie-prompt na export -->
         <div class="export-doneer-prompt">
           <div class="export-doneer-tekst">
             <span class="export-doneer-hart">❤️</span>
             <div>
-              <strong>FotoApp heeft jouw foto's veilig gearchiveerd.</strong><br>
-              <span>Dit project is gratis en blijft gratis. Als het jou geholpen heeft, overweeg dan een kleine bijdrage.</span>
+              <strong data-i18n="export_doneer_tekst">FotoApp heeft jouw foto's veilig gearchiveerd.</strong><br>
+              <span data-i18n="export_doneer_sub">Dit project is gratis en blijft gratis. Als het jou geholpen heeft, overweeg dan een kleine bijdrage.</span>
             </div>
           </div>
           <div class="export-doneer-knoppen">
             <a href="https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen" target="_blank" class="btn-doneer-paypal">💳 Doneer via PayPal</a>
-            <button class="btn btn-secundair" style="font-size:12px;" onclick="toonPagina('doneer')">Meer info</button>
+            <button class="btn btn-secundair" style="font-size:12px;" onclick="toonPagina('doneer')" data-i18n="export_doneer_meer">Meer info</button>
           </div>
         </div>
       </div>
@@ -422,8 +422,8 @@
   <div class="pagina" id="paginaDoneer">
     <div class="doneer-hero">
       <div class="doneer-hero-tekst">
-        <h2>❤️ Steun FotoApp</h2>
-        <p class="doneer-subtitel">Van de mens, voor de mens. Gratis en open source — voor altijd.</p>
+        <h2 data-i18n="doneer_titel">❤️ Steun FotoApp</h2>
+        <p class="doneer-subtitel" data-i18n="doneer_subtitel">Van de mens, voor de mens. Gratis en open source — voor altijd.</p>
       </div>
     </div>
 
@@ -448,8 +448,8 @@
       <!-- PayPal donatie -->
       <div class="doneer-kaart doneer-kaart-featured">
         <div class="doneer-kaart-icoon">💳</div>
-        <h3>Doneer via PayPal</h3>
-        <p>Kies zelf hoeveel je geeft. Eenmalig, geen verplichtingen.</p>
+        <h3 data-i18n="doneer_paypal_titel">Doneer via PayPal</h3>
+        <p data-i18n="doneer_paypal_tekst">Kies zelf hoeveel je geeft. Eenmalig, geen verplichtingen.</p>
         <div class="doneer-bedragen">
           <a href="https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&amount=5&item_name=FotoApp+ondersteunen" target="_blank" class="doneer-bedrag-knop">€5</a>
           <a href="https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&amount=10&item_name=FotoApp+ondersteunen" target="_blank" class="doneer-bedrag-knop">€10</a>
@@ -462,7 +462,7 @@
       <!-- Supporter Edition -->
       <div class="doneer-kaart">
         <div class="doneer-kaart-icoon">🌟</div>
-        <h3>Supporter Edition</h3>
+        <h3 data-i18n="doneer_supporter_titel">Supporter Edition</h3>
         <p>Doneer €19 en word vermeld als officiële supporter in de app en op GitHub.</p>
         <ul class="doneer-lijst">
           <li>✓ Naam in de credits van de app</li>
@@ -476,7 +476,7 @@
       <!-- Gratis steunen -->
       <div class="doneer-kaart">
         <div class="doneer-kaart-icoon">⭐</div>
-        <h3>Gratis steunen</h3>
+        <h3 data-i18n="doneer_gratis_titel">Gratis steunen</h3>
         <p>Geen geld, maar toch bijdragen? Dit helpt net zo goed:</p>
         <ul class="doneer-lijst">
           <li>⭐ <a href="https://github.com/boulbaal/fotoApp" target="_blank">Geef een ster op GitHub</a></li>
@@ -490,7 +490,7 @@
 
     <div class="doneer-footer">
       <p>Vragen of wil je contact? <a href="mailto:aboulbahaiem@gmail.com">aboulbahaiem@gmail.com</a></p>
-      <p style="font-size:12px; color:#555; margin-top:8px;">FotoApp is niet-commercieel en wordt gebouwd in vrije tijd. Donaties worden direct gebruikt voor verdere ontwikkeling.</p>
+      <p style="font-size:12px; color:#555; margin-top:8px;" data-i18n="doneer_footer_note">FotoApp is een hobby-project, gebouwd in vrije tijd. Als je het waardeert, is een donatie een leuke manier om dat te laten weten.</p>
     </div>
   </div>
 
@@ -502,16 +502,16 @@
 <div class="modal-overlay" id="bewerkOverlay" onclick="sluitBewerkModal(event)">
   <div class="modal" style="max-width:500px; flex-direction:column; padding:28px; gap:0;" onclick="event.stopPropagation()">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-      <strong style="font-size:16px;">✏️ Bron bewerken</strong>
+      <strong style="font-size:16px;" data-i18n="modal_bewerk_titel">✏️ Bron bewerken</strong>
       <button class="sluit" onclick="sluitBewerkModal()">✕</button>
     </div>
     <input type="hidden" id="bewerkId">
     <div class="veld" style="margin-bottom:14px;">
-      <label>Naam</label>
+      <label data-i18n="bron_naam_label">Naam</label>
       <input id="bewerkNaam" type="text" placeholder="Naam van de bron">
     </div>
     <div class="veld" style="margin-bottom:14px;">
-      <label>Type</label>
+      <label data-i18n="bron_type_label">Type</label>
       <select id="bewerkType">
         <option value="pc">💻 PC / Laptop</option>
         <option value="gsm">📱 Smartphone</option>
@@ -520,7 +520,7 @@
       </select>
     </div>
     <div class="veld" style="margin-bottom:20px;">
-      <label>Map om te scannen</label>
+      <label data-i18n="bron_map_label">Map om te scannen</label>
       <div style="display:flex; gap:8px;">
         <input id="bewerkPad" type="text" placeholder="/home/one/..." style="flex:1;">
         <button class="btn btn-secundair" onclick="openMapKiezer('bewerkPad')" type="button">📁</button>
