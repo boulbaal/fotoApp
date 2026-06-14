@@ -24,7 +24,7 @@ It's open source and non-commercial. Built for people who want their memories ba
 
 👉 GitHub: https://github.com/boulbaal/fotoApp
 
-Happy to answer questions. Still early but fully functional on Linux — Windows/Mac installer coming soon.
+Happy to answer questions. Installers available for Windows, Mac and Linux.
 
 ---
 
@@ -60,7 +60,7 @@ FotoApp scans all your sources simultaneously, finds duplicates via MD5 hash (ev
 
 The duplicate cascade is my favorite feature: mark one photo as "ignore" and all copies in the same hash group are automatically ignored too.
 
-Tech stack: Node.js + SQLite + Vanilla JS. Runs in browser (localhost). Currently Linux, Windows/Mac coming.
+Tech stack: Node.js + SQLite + Vanilla JS, packaged with Electron. Installers for Windows, Mac and Linux.
 
 GitHub: https://github.com/boulbaal/fotoApp
 
@@ -97,4 +97,4 @@ Het scant meerdere bronnen tegelijk, detecteert duplicaten via MD5, haalt GPS-lo
 Volledig lokaal — geen cloud, geen account, geen abonnement. Open source en niet-commercieel.
 
 GitHub: https://github.com/boulbaal/fotoApp
-Momenteel Linux, Windows/Mac installer in de maak.
+Installers beschikbaar voor Windows, Mac en Linux.

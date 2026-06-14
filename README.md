@@ -11,7 +11,7 @@
 [![Stars](https://img.shields.io/github/stars/boulbaal/fotoApp?style=social)](https://github.com/boulbaal/fotoApp/stargazers)
 [![License: ISC](https://img.shields.io/badge/License-ISC-green.svg)](LICENSE)
 
-**[⬇️ Download voor Windows](https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe)** · **[🌐 Website](https://boulbaal.github.io/fotoApp/)** · **[🐛 Bug melden](https://github.com/boulbaal/fotoApp/issues/new?template=bug_report.md)** · **[💡 Idee delen](https://github.com/boulbaal/fotoApp/issues/new?template=feature_request.md)**
+**[⬇️ Download voor Windows](https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe)** · **[🍎 Mac & 🐧 Linux](https://github.com/boulbaal/fotoApp/releases/latest)** · **[🌐 Website](https://boulbaal.github.io/fotoApp/)** · **[❤️ Steun het project](#-steun-fotoapp--support-the-project)** · **[🐛 Bug melden](https://github.com/boulbaal/fotoApp/issues/new?template=bug_report.md)**
 
 ---
 
@@ -51,12 +51,14 @@ Gebouwd voor mensen die hun volledige fotocollectie verspreid hebben over meerde
 2. Dubbelklik → bij SmartScreen: **"Meer informatie" → "Toch uitvoeren"**
 3. Open FotoApp via het startmenu
 
-**Mac & Linux (zelf bouwen):**
+**Mac:**
+Download het `.dmg`-bestand van de [releases-pagina](https://github.com/boulbaal/fotoApp/releases/latest). Open het, sleep FotoApp naar Programma's. Bij de melding van een onbekende ontwikkelaar: rechtsklik op het app-icoon → **"Open"** → **"Open"**.
+
+**Linux:**
+Download het `.AppImage` of `.deb` van de [releases-pagina](https://github.com/boulbaal/fotoApp/releases/latest).
 ```bash
-git clone https://github.com/boulbaal/fotoApp.git
-cd fotoApp && npm install
-npm run build:mac    # → dist/FotoApp-1.0.0.dmg
-npm run build:linux  # → dist/FotoApp-1.0.0.AppImage
+chmod +x FotoApp-*.AppImage && ./FotoApp-*.AppImage   # AppImage
+sudo apt install ./fotoapp_*_amd64.deb                 # Debian/Ubuntu
 ```
 
 ### 🤝 Bijdragen
@@ -94,15 +96,17 @@ No Google Photos. No iCloud. No Amazon. **Your photos stay yours.**
 2. Double-click → if SmartScreen warns you: **"More info" → "Run anyway"**
 3. Open FotoApp from the Start Menu
 
-**Mac & Linux (build from source):**
+**Mac:**
+Download the `.dmg` from the [releases page](https://github.com/boulbaal/fotoApp/releases/latest). Open it, drag FotoApp to Applications. On the "unidentified developer" prompt: right-click the app icon → **"Open"** → **"Open"**.
+
+**Linux:**
+Download the `.AppImage` or `.deb` from the [releases page](https://github.com/boulbaal/fotoApp/releases/latest).
 ```bash
-git clone https://github.com/boulbaal/fotoApp.git
-cd fotoApp && npm install
-npm run build:mac    # → dist/FotoApp-1.0.0.dmg
-npm run build:linux  # → dist/FotoApp-1.0.0.AppImage
+chmod +x FotoApp-*.AppImage && ./FotoApp-*.AppImage   # AppImage
+sudo apt install ./fotoapp_*_amd64.deb                 # Debian/Ubuntu
 ```
 
-**Run locally (browser mode, no Electron):**
+**Build from source / run locally (browser mode, no Electron):**
 ```bash
 npm install
 sh start.sh   # runs tests + starts server at http://localhost:3000
@@ -250,6 +254,20 @@ FotoApp هو **تطبيق سطح مكتب مجاني ومفتوح المصدر**
 ### 🤝 المساهمة
 
 المساهمات مرحب بها! يتم مراجعة جميع طلبات السحب والموافقة عليها شخصياً من قبل المشرف. يرجى قراءة [CONTRIBUTING.md](CONTRIBUTING.md) قبل التقديم.
+
+---
+
+## ❤️ Steun FotoApp / Support the project
+
+FotoApp is gratis en blijft gratis. Geen abonnement, geen cloud, geen advertenties — en geen bedrijf erachter. Het wordt in vrije tijd onderhouden.
+
+Heeft FotoApp je een cloud-abonnement bespaard, of gewoon een hoop tijd? Dan is een kleine bijdrage enorm gewaardeerd. Volledig vrijblijvend.
+
+> *FotoApp is free and stays free — no subscription, no cloud, no ads. If it saved you a cloud subscription or a few hours of sorting, a small contribution is hugely appreciated. Entirely optional.*
+
+**[☕ Doneer via PayPal / Donate](https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen)** · gebruik ook de **Sponsor**-knop bovenaan deze repo.
+
+Geen budget? Een **⭐ ster** of het delen van het project helpt net zo goed. / No budget? A **⭐ star** or sharing the project helps just as much.
 
 ---
 

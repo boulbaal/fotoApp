@@ -373,3 +373,32 @@ App draait op: **http://localhost:3000**
 - **Push script**: altijd aanmaken als `/tmp/github_push.py` (zie bovenaan dit bestand)
 - **Reddit**: ingelogd in browser van gebruiker
 - **keuzevrijbijmij.nl**: ingelogd in browser van gebruiker (account op naam eigenaar)
+
+---
+
+## 🚀 Promotie-uitbreiding (sessie 14 juni 2026)
+
+Volledig promotieplan + materiaal toegevoegd in `docs/promote/`:
+
+| Bestand | Inhoud |
+|---|---|
+| `docs/promote/PROMOTIEPLAN.md` | Overkoepelende strategie + Ali's actielijst |
+| `docs/promote/distributie-checklist.md` | awesome-lijsten, AlternativeTo, Product Hunt, winget, Flathub — copy-paste klaar |
+| `docs/promote/code-signing-beslissing.md` | Gratis vs betaalde vertrouwenspaden (Azure Artifact Signing $9,99/mnd, Apple $99/jr) |
+| `docs/promote/winget/` | winget-manifest templates (SHA256 invullen na release) |
+
+### Wijzigingen deze sessie
+- **FUNDING.yml**: PayPal als `custom`-link → Sponsor-knop werkt direct zonder nieuw account. Ko-fi/BMC als placeholders.
+- **README**: Mac/Linux downloads (i.p.v. "zelf bouwen") + ❤️ Steun-sectie met framing.
+- **Launch-posts** (`posts.md`, `launch-posts.md`): "coming soon" weg → cross-platform. Nieuwe r/degoogle + r/privacy posts + Show HN timing-tip.
+
+### ⏳ Belangrijkste open acties (alleen Ali)
+1. Beslissing code signing ($9,99/mnd Azure) — pas zinvol bij honderden downloads
+2. Ko-fi/Buy Me a Coffee account aanmaken → gebruikersnaam doorgeven voor FUNDING.yml
+3. AlternativeTo aanmelden (tekst staat klaar)
+4. awesome-privacy/degoogle PR's (Claude kan ze via API klaarzetten)
+5. Launch-dag: Show HN + Reddit + Product Hunt (met screenshots/GIF)
+
+### Belangrijke nuance
+- **awesome-selfhosted past waarschijnlijk NIET** (is voor server-software). Richt op awesome-privacy / degoogle / humane-tech / open-source-mac.
+- Strategie: eerst adoptie, dan donaties. Realistische donatie-conversie ~0,1–1%.

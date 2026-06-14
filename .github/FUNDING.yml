@@ -1,7 +1,16 @@
-# GitHub Sponsors knop op de repository pagina
-# Voeg hier je accounts toe zodra je ze aanmaakt
+# Sponsor-knop bovenaan de GitHub repo-pagina.
+# 'custom' werkt direct (PayPal) — geen extern account nodig.
 
+# PayPal werkt meteen op e-mailadres, geen extra account vereist:
+custom:
+  - "https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen"
+
+# GitHub Sponsors: pas zichtbaar nadat je je hebt aangemeld op
+# https://github.com/sponsors — laat staan, doet geen kwaad.
 github: boulbaal
-# ko_fi: jouw-kofi-naam        # https://ko-fi.com/
-# buy_me_a_coffee: jouw-naam   # https://buymeacoffee.com/
-# open_collective: fotoapp     # https://opencollective.com/
+
+# Laagdrempelige opties — activeer door account aan te maken en het
+# '#' weg te halen + je gebruikersnaam in te vullen:
+# ko_fi: jouw-kofi-naam          # https://ko-fi.com/  (aanrader: minste frictie)
+# buy_me_a_coffee: jouw-naam     # https://buymeacoffee.com/
+# open_collective: fotoapp       # https://opencollective.com/ (transparante boekhouding)

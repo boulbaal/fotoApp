@@ -1,0 +1,26 @@
+# winget locale manifest (en-US)
+PackageIdentifier: boulbaal.FotoApp
+PackageVersion: 1.0.0
+PackageLocale: en-US
+Publisher: boulbaal
+PublisherUrl: https://github.com/boulbaal
+PackageName: FotoApp
+PackageUrl: https://github.com/boulbaal/fotoApp
+License: ISC
+LicenseUrl: https://github.com/boulbaal/fotoApp/blob/main/LICENSE
+ShortDescription: Free, local-only desktop app to organize photos and videos — no cloud, no account.
+Description: >-
+  FotoApp organizes thousands of photos and videos entirely on your own machine.
+  Duplicate detection (MD5), GPS map (OpenStreetMap), RAW support, Google Takeout
+  import, automatic geocoding and smart export. No cloud, no subscription, no telemetry.
+Moniker: fotoapp
+Tags:
+  - photo
+  - photo-management
+  - privacy
+  - offline
+  - open-source
+  - exif
+  - deduplication
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

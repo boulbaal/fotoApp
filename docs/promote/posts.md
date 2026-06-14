@@ -28,7 +28,7 @@ Kopieer en plak deze berichten op de onderstaande platforms. Hoe meer plaatsen d
 >
 > **Tech stack:** Node.js + Express + SQLite + Electron + sharp + Leaflet
 >
-> **Download (Windows):** https://github.com/boulbaal/fotoApp/releases/latest
+> **Download (Windows / Mac / Linux):** https://github.com/boulbaal/fotoApp/releases/latest
 > **Website:** https://boulbaal.github.io/fotoApp/
 > **GitHub:** https://github.com/boulbaal/fotoApp
 >
@@ -36,13 +36,52 @@ Kopieer en plak deze berichten op de onderstaande platforms. Hoe meer plaatsen d
 >
 > Happy to answer questions!
 
-**Andere subreddits om te posten:**
+**Andere subreddits om te posten (eigen, aangepaste tekst — niet dezelfde tekst overal):**
 - r/opensource
-- r/privacy
 - r/photography
 - r/DataHoarder
 - r/windowsapps
-- r/degoogle
+- r/linux_gaming → nee; wel r/linux, r/linuxapps
+
+> ⚠️ Reddit-tip: post niet exact dezelfde tekst in meerdere subs binnen korte tijd (spamfilter). Verspreid over dagen en pas titel/intro aan per community. Lees eerst de regels van elke sub — sommige vereisen een "self-promotion"-flair of staan links alleen toe in comments.
+
+---
+
+## 🟢 Reddit — r/degoogle
+
+**Titel:**
+> I built a free local photo manager to finally get my photos off Google Photos — no cloud, no account
+
+**Bericht:**
+> After Google Photos changed its terms (again), I wanted my photos fully on my own machine. So I built **FotoApp** — a free, open-source desktop app that organizes your whole collection locally.
+>
+> - Import directly from a **Google Takeout** export — it reads the JSON metadata to recover original dates and GPS that Google strips from the files
+> - Find duplicates across all your drives (MD5 hash)
+> - See where everything was taken on a map (OpenStreetMap, no Google API)
+> - Export with clean filenames like `Netherlands_Amsterdam_15_06_2023.jpg`
+>
+> 100% offline, no account, no telemetry. Open source (ISC).
+>
+> Windows / Mac / Linux: https://github.com/boulbaal/fotoApp/releases/latest
+> GitHub: https://github.com/boulbaal/fotoApp
+
+---
+
+## 🟣 Reddit — r/privacy
+
+**Titel:**
+> Free open-source tool to move your photos off Google Photos / iCloud onto your own computer
+
+**Bericht:**
+> Google Photos changed its terms again. iCloud prices went up. I got tired of it and built **FotoApp** — a local-only photo organizer.
+>
+> Why it matters for privacy:
+> - 100% local — your photos never leave your machine
+> - No account, no tracking, no telemetry
+> - Only network call is *optional* reverse geocoding via OpenStreetMap (sends coordinates only — no photos, no identifiers)
+> - Open source, you can read every line
+>
+> Free forever. Windows / Mac / Linux: https://github.com/boulbaal/fotoApp
 
 ---
 
@@ -58,9 +97,11 @@ Kopieer en plak deze berichten op de onderstaande platforms. Hoe meer plaatsen d
 >
 > Key features: MD5-based duplicate detection, GPS map (Leaflet/OpenStreetMap), RAW thumbnails (exiftool), automatic geocoding (Nominatim), Google Takeout JSON support, smart export with country/city/date filenames.
 >
-> Windows installer: https://github.com/boulbaal/fotoApp/releases/latest
+> Installers for Windows, Mac and Linux: https://github.com/boulbaal/fotoApp/releases/latest
 > Website: https://boulbaal.github.io/fotoApp/
 > GitHub: https://github.com/boulbaal/fotoApp
+
+**Timing-tip:** Show HN het beste op een doordeweekse dag, rond 08:00–10:00 US Eastern (≈14:00–16:00 NL). Blijf de eerste 2–3 uur actief om op alle reacties te antwoorden — dat bepaalt of je op de voorpagina komt.
 
 ---
 
@@ -79,7 +120,7 @@ Kopieer en plak deze berichten op de onderstaande platforms. Hoe meer plaatsen d
 > ✅ Works completely offline
 > ✅ Free & open source
 >
-> Windows installer available. Mac/Linux: build from source.
+> Installers available for Windows, Mac and Linux.
 
 **Link:** https://boulbaal.github.io/fotoApp/
 **Makers:** @boulbaal (jouw Product Hunt account)
@@ -103,7 +144,7 @@ Kopieer en plak deze berichten op de onderstaande platforms. Hoe meer plaatsen d
 > #opensource #photography #privacy #selfhosted
 
 **Tweet 2 (English):**
-> 🆓 Free & open-source local photo manager for Windows (Mac/Linux: build from source)
+> 🆓 Free & open-source local photo manager for Windows, Mac & Linux
 >
 > No Google Photos. No iCloud. No subscription. Your photos stay on YOUR machine.
 >
