@@ -336,3 +336,40 @@ App draait op: **http://localhost:3000**
 - Geocode pass: ~505 unieke locaties in de DB, ~9 minuten bij 1.1s/locatie (Nominatim policy)
 - Fase 3 export geïmplementeerd (10 juni 2026): negeer-cascade, Land_Stad_dd_mm_yyyy.jpg naamgeving, jaar/maand mappen, schijfruimte check, hervatten ✅
 - Sidebar layout: fase-stepper zit in aside#sideBar, main is flex:1, .pagina-kaart heeft left:184px
+
+---
+
+## 🚀 Promotie & publicatie (sessie 13 juni 2026)
+
+### Wat is gepubliceerd
+
+| Platform | URL | Status |
+|---|---|---|
+| **Dev.to** | https://dev.to/boulbaal/i-built-a-free-open-source-photo-video-organizeopensourcephotographynodejselectronr-for-27000-1a19 | ✅ Live |
+| **Reddit r/selfhosted** | https://www.reddit.com/r/selfhosted/comments/1u3cvwq/new_project_megathread_week_of_11_jun_2026/ | ✅ Gepost als comment |
+| **GitHub** | https://github.com/boulbaal/fotoApp | ✅ Live, README bijgewerkt |
+| **GitHub Pages** | https://boulbaal.github.io/fotoApp/ | ✅ Live |
+| **keuzevrijbijmij.nl** | https://keuzevrijbijmij.nl/aanbieders/profiel | ⏳ Formulier half ingevuld, nog niet ingediend |
+
+### Accounts aangemaakt deze sessie
+- **Reddit**: account aangemaakt op naam van eigenaar, ingelogd via reddit.com
+- **keuzevrijbijmij.nl**: account bestaat al, ingelogd via /aanbieders/profiel
+
+### README wijzigingen (13 juni 2026)
+- Naam "Ali" verwijderd uit de beschrijving én onderaan ("Made with ❤️ by Ali")
+- "27.000+" vervangen door "volledige fotocollectie" (generiek, geen specifiek aantal)
+- GitHub deployment history opgeschoond: 9 van 10 oude deployments verwijderd
+
+### ⏳ Nog te doen (volgende sessie)
+
+1. **keuzevrijbijmij.nl** — formulier afmaken en indienen (Bedrijfsnaam: FotoApp, Locatie: Nederland, Website: https://github.com/boulbaal/fotoApp, advertentietekst al ingevuld)
+2. **Handleiding in de app** — uitgebreide handleiding met annotaties/pijltjes, meertalig (NL/EN/FR/DE/ES/AR), te tonen in de taal die rechtsboven geselecteerd is, geplaatst net boven de sponsoring sectie
+3. **AlternativeTo.net** — FotoApp registreren als alternatief voor Google Photos
+4. **GitHub repo** — overwegen of een echte repo (i.p.v. dev.to link) in Reddit post wenselijk is
+
+### 🔑 Toegang & tokens
+- **GitHub token**: zit verwerkt in git remote URL — ophalen via `git remote get-url origin`
+- **GitHub repo**: github.com/boulbaal/fotoApp
+- **Push script**: altijd aanmaken als `/tmp/github_push.py` (zie bovenaan dit bestand)
+- **Reddit**: ingelogd in browser van gebruiker
+- **keuzevrijbijmij.nl**: ingelogd in browser van gebruiker (account op naam eigenaar)
