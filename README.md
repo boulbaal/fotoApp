@@ -11,7 +11,7 @@
 [![Stars](https://img.shields.io/github/stars/boulbaal/fotoApp?style=social)](https://github.com/boulbaal/fotoApp/stargazers)
 [![License: ISC](https://img.shields.io/badge/License-ISC-green.svg)](LICENSE)
 
-**[⬇️ Download voor Windows](https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe)** · **[🍎 Mac & 🐧 Linux](https://github.com/boulbaal/fotoApp/releases/latest)** · **[🌐 Website](https://boulbaal.github.io/fotoApp/)** · **[❤️ Steun het project](#-steun-fotoapp--support-the-project)** · **[🐛 Bug melden](https://github.com/boulbaal/fotoApp/issues/new?template=bug_report.md)**
+**[⬇️ Download voor Windows](https://github.com/boulbaal/fotoApp/releases/latest)** · **[🍎 Mac & 🐧 Linux](https://github.com/boulbaal/fotoApp/releases/latest)** · **[🌐 Website](https://boulbaal.github.io/fotoApp/)** · **[❤️ Steun het project](#-steun-fotoapp--support-the-project)** · **[🐛 Bug melden](https://github.com/boulbaal/fotoApp/issues/new?template=bug_report.md)**
 
 ---
 
@@ -47,7 +47,7 @@ Gebouwd voor mensen die hun volledige fotocollectie verspreid hebben over meerde
 ### 📥 Installeren
 
 **Windows (aanbevolen):**
-1. Download [FotoApp-Setup-1.0.0.exe](https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe) (~94 MB)
+1. Download [het Windows-installatiebestand (.exe)](https://github.com/boulbaal/fotoApp/releases/latest) (~94 MB)
 2. Dubbelklik → bij SmartScreen: **"Meer informatie" → "Toch uitvoeren"**
 3. Open FotoApp via het startmenu
 
@@ -92,7 +92,7 @@ No Google Photos. No iCloud. No Amazon. **Your photos stay yours.**
 ### 📥 Installation
 
 **Windows (recommended):**
-1. Download [FotoApp-Setup-1.0.0.exe](https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe) (~94 MB)
+1. Download [het Windows-installatiebestand (.exe)](https://github.com/boulbaal/fotoApp/releases/latest) (~94 MB)
 2. Double-click → if SmartScreen warns you: **"More info" → "Run anyway"**
 3. Open FotoApp from the Start Menu
 
@@ -162,7 +162,7 @@ FotoApp est une **application de bureau gratuite et open-source** pour organiser
 
 ### 📥 Téléchargement
 
-[⬇️ Télécharger pour Windows](https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe) (~94 MB)
+[⬇️ Télécharger pour Windows](https://github.com/boulbaal/fotoApp/releases/latest) (~94 MB)
 
 Mac & Linux: compilez depuis le code source (voir section anglaise ci-dessus).
 
@@ -191,7 +191,7 @@ FotoApp ist eine **kostenlose, Open-Source-Desktop-Anwendung** zur Organisation 
 
 ### 📥 Download
 
-[⬇️ Download für Windows](https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe) (~94 MB)
+[⬇️ Download für Windows](https://github.com/boulbaal/fotoApp/releases/latest) (~94 MB)
 
 Mac & Linux: Aus dem Quellcode bauen (siehe englischen Abschnitt oben).
 
@@ -220,7 +220,7 @@ FotoApp es una **aplicación de escritorio gratuita y de código abierto** para 
 
 ### 📥 Descarga
 
-[⬇️ Descargar para Windows](https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe) (~94 MB)
+[⬇️ Descargar para Windows](https://github.com/boulbaal/fotoApp/releases/latest) (~94 MB)
 
 Mac y Linux: compila desde el código fuente (ver sección en inglés arriba).
 
@@ -249,7 +249,7 @@ FotoApp هو **تطبيق سطح مكتب مجاني ومفتوح المصدر**
 
 ### 📥 التحميل
 
-[⬇️ تحميل لـ Windows](https://github.com/boulbaal/fotoApp/releases/latest/download/FotoApp-Setup-1.0.0.exe) (~94 ميجابايت)
+[⬇️ تحميل لـ Windows](https://github.com/boulbaal/fotoApp/releases/latest) (~94 ميجابايت)
 
 ### 🤝 المساهمة
 
