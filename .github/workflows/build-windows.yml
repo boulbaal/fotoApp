@@ -1,9 +1,8 @@
 name: Build Windows installer
 
+# Alleen handmatig — de tag-build wordt gedekt door build-all.yml
+# (voorkomt dubbele Windows-builds + publish-conflict op dezelfde release)
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 jobs:
