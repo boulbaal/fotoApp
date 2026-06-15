@@ -49,6 +49,7 @@
         <button data-pagina="duplicaten" class="nav-fase1" onclick="toonPagina('duplicaten')">🔁 Duplicaten</button>
         <button data-pagina="kaart" class="nav-fase1" onclick="toonPagina('kaart')">🗺️ Kaart</button>
         <button data-pagina="gpsbulk" class="nav-fase1" onclick="toonPagina('gpsbulk')">📍 GPS toewijzen</button>
+        <button data-pagina="wrapped" onclick="toonPagina('wrapped')">✨ Foto-leven</button>
       </div>
     </div>
 
@@ -494,6 +495,23 @@
     </div>
   </div>
 
+  <!-- WRAPPED / FOTO-LEVEN PAGINA -->
+  <div class="pagina" id="paginaWrapped">
+    <div class="wrapped-intro">
+      <h2 data-i18n="wrapped_titel">✨ Jouw foto-leven</h2>
+      <p data-i18n="wrapped_subtitel">Een overzicht van je hele collectie — deel het met één klik.</p>
+    </div>
+
+    <div class="wrapped-kaart" id="wrappedKaart">
+      <div class="wrapped-laden" id="wrappedLaden">Bezig met samenstellen…</div>
+    </div>
+
+    <div class="wrapped-acties">
+      <button class="btn btn-primair" id="wrappedDownloadKnop" onclick="downloadWrapped()">📥 <span data-i18n="wrapped_download">Download als afbeelding</span></button>
+      <span class="wrapped-hint" data-i18n="wrapped_hint">Tip: deel 'm op Reddit, Mastodon of bij je vrienden.</span>
+    </div>
+  </div>
+
 </main>
 
 </div><!-- /app-layout -->
@@ -657,6 +675,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 <script src="/js/utils.js"></script>
+<script src="/js/wrapped.js"></script>
 <script src="/js/dashboard.js"></script>
 <script src="/js/scanner.js"></script>
 <script src="/js/bronnen.js"></script>

@@ -892,5 +892,35 @@ module.exports = async function testScanner() {
     if (!css.includes('stap-cirkel')) throw new Error('stap-cirkel CSS ontbreekt');
   });
 
+  test('API: GET /wrapped endpoint aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("'/wrapped'")) throw new Error('GET /wrapped endpoint ontbreekt');
+    if (!apiCode.includes('aantalLanden') || !apiCode.includes('druksteMaand')) throw new Error('wrapped cijfers ontbreken');
+  });
+
+  test('HTML: paginaWrapped pagina en nav-knop aanwezig', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('paginaWrapped')) throw new Error('paginaWrapped ontbreekt');
+    if (!html.includes('data-pagina="wrapped"')) throw new Error('wrapped nav-knop ontbreekt');
+    if (!html.includes('wrapped.js')) throw new Error('wrapped.js script-tag ontbreekt');
+  });
+
+  test('Wrapped JS: laadWrapped() en download-functie aanwezig', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/wrapped.js'), 'utf8');
+    if (!code.includes('laadWrapped')) throw new Error('laadWrapped() ontbreekt');
+    if (!code.includes('downloadWrapped')) throw new Error('downloadWrapped() ontbreekt');
+    if (!code.includes('toBlob') && !code.includes('toDataURL')) throw new Error('canvas-export ontbreekt');
+  });
+
+  test('App JS: toonPagina roept laadWrapped() aan', () => {
+    const appCode = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+    if (!appCode.includes('laadWrapped')) throw new Error('laadWrapped() niet aangeroepen in app.js');
+  });
+
+  test('CSS: wrapped-kaart stijlen aanwezig', () => {
+    const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
+    if (!css.includes('wrapped-kaart')) throw new Error('wrapped-kaart CSS ontbreekt');
+  });
+
   return resultaten;
 };

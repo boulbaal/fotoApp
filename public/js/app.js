@@ -173,6 +173,7 @@ function toonPagina(naam, extraFilter) {
     controleerVideoThumbBanner();
   }
   if (naam === 'duplicaten') laadDuplicaten(1);
+  if (naam === 'wrapped')   laadWrapped();
   if (naam === 'export')    controleerExportStatus();
   // doneer heeft geen laad-functie nodig
 }

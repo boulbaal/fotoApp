@@ -191,6 +191,44 @@ router.get('/stats', (req, res) => {
   });
 });
 
+// === WRAPPED / FOTO-LEVEN (deelbaar samenvattingsscherm) ===
+router.get('/wrapped', (req, res) => {
+  const db = getDb();
+
+  const totaalFotos  = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE COALESCE(is_video,0)=0').get().n;
+  const totaalVideos = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE is_video=1').get().n;
+  const aantalLanden = db.prepare("SELECT COUNT(DISTINCT gps_land) as n FROM fotos WHERE gps_land IS NOT NULL AND gps_land != ''").get().n;
+  const aantalSteden = db.prepare("SELECT COUNT(DISTINCT gps_stad) as n FROM fotos WHERE gps_stad IS NOT NULL AND gps_stad != ''").get().n;
+  const metGps       = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE gps_lat IS NOT NULL AND gps_lat != 0').get().n;
+  const totalGrootte = db.prepare('SELECT SUM(bestandsgrootte) as n FROM fotos').get().n || 0;
+
+  const topJaar = db.prepare(`
+    SELECT jaar, COUNT(*) as aantal FROM fotos
+    WHERE jaar IS NOT NULL GROUP BY jaar ORDER BY aantal DESC LIMIT 1
+  `).get() || null;
+
+  const druksteMaand = db.prepare(`
+    SELECT jaar, maand, COUNT(*) as aantal FROM fotos
+    WHERE jaar IS NOT NULL AND maand IS NOT NULL
+    GROUP BY jaar, maand ORDER BY aantal DESC LIMIT 1
+  `).get() || null;
+
+  const reeks = db.prepare('SELECT MIN(jaar) as van, MAX(jaar) as tot FROM fotos WHERE jaar IS NOT NULL').get() || { van: null, tot: null };
+
+  const topLanden = db.prepare(`
+    SELECT gps_land, MAX(gps_land_code) as gps_land_code, COUNT(*) as aantal FROM fotos
+    WHERE gps_land IS NOT NULL AND gps_land != ''
+    GROUP BY gps_land ORDER BY aantal DESC LIMIT 5
+  `).all();
+
+  db.close();
+
+  res.json({
+    totaalFotos, totaalVideos, aantalLanden, aantalSteden,
+    metGps, totalGrootte, topJaar, druksteMaand, reeks, topLanden
+  });
+});
+
 // === FOTO'S ===
 
 router.get('/fotos', (req, res) => {
