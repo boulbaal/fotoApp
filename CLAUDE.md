@@ -402,3 +402,32 @@ Volledig promotieplan + materiaal toegevoegd in `docs/promote/`:
 ### Belangrijke nuance
 - **awesome-selfhosted past waarschijnlijk NIET** (is voor server-software). Richt op awesome-privacy / degoogle / humane-tech / open-source-mac.
 - Strategie: eerst adoptie, dan donaties. Realistische donatie-conversie ~0,1–1%.
+
+---
+
+## 🚀 Viral-feature + release v1.0.1 (sessie 15 juni 2026)
+
+### ✨ "Jouw foto-leven" deelscherm (Wrapped)
+- Nieuw `/api/wrapped` endpoint (`src/api.js`): totalen, landen, steden, top-jaar, drukste maand, top-5 landen.
+- Nieuwe pagina + nav-knop ✨ Foto-leven; `public/js/wrapped.js` rendert de kaart en exporteert als PNG (1080×1350 canvas, story-formaat, watermerk + repo-link).
+- i18n keys `wrapped_*` in nl/en/fr/de.
+- Doel: de enige feature die zichzelf verspreidt — elke gedeelde kaart = gratis reclame met repo-link in beeld.
+
+### Release v1.0.1 — alle platforms live
+- Versie gebumpt naar 1.0.1, getagd, build-all.yml getriggerd.
+- **macOS-build fix**: faalde op `ModuleNotFoundError: No module named 'distutils'` (runner draait Python 3.12). Opgelost door `actions/setup-python@v5` met `python-version: '3.11'` toe te voegen aan de mac- én linux-job in `build-all.yml`.
+- `build-windows.yml` op **workflow_dispatch only** gezet → geen dubbele Windows-build meer bij tags.
+- Release v1.0.1 bevat nu: Windows `.exe`, macOS Intel `.dmg`, macOS arm64 `.dmg`, Linux `.AppImage` + `.deb`. Release uit draft → **live**, als latest gemarkeerd.
+- **README downloadlinks** wijzen nu naar `/releases/latest` (versie-onafhankelijk, breken nooit meer bij een versiebump). Voorheen hard naar `FotoApp-Setup-1.0.0.exe`.
+
+### Launchmateriaal afgerond
+- `docs/promote/LAUNCHDAG.md` — definitief draaiboek: tijdschema, finale Show HN + Reddit-teksten (met Foto-leven-hook), capture-gids (screenshots/GIF), antwoord-spiekbriefje.
+- `docs/promote/assets/foto-leven-voorbeeld.png` — voorbeeld-deelplaatje (fallback). **Beste visual = Ali's eigen export** via ✨ Foto-leven → Download als afbeelding (échte cijfers + kleuren-emoji).
+
+### ⏳ Open voor Ali
+- De eigenlijke launchdag uitvoeren (zie LAUNCHDAG.md). Dit is nu de grootste hefboom — niet meer code.
+- Eigen Foto-leven-plaatje + 2–3 screenshots + korte GIF maken vóór de launch.
+- winget SHA256's invullen na v1.0.1 (optioneel).
+
+### Tests
+- 153/153 groen (6 nieuwe wrapped-tests). Push gaat via `/tmp/github_push.py` (REPO_DIR = huidige sessie-mount; `git diff HEAD~1 HEAD` + remote_sha als parent).
