@@ -424,10 +424,17 @@ Volledig promotieplan + materiaal toegevoegd in `docs/promote/`:
 - `docs/promote/LAUNCHDAG.md` — definitief draaiboek: tijdschema, finale Show HN + Reddit-teksten (met Foto-leven-hook), capture-gids (screenshots/GIF), antwoord-spiekbriefje.
 - `docs/promote/assets/foto-leven-voorbeeld.png` — voorbeeld-deelplaatje (fallback). **Beste visual = Ali's eigen export** via ✨ Foto-leven → Download als afbeelding (échte cijfers + kleuren-emoji).
 
-### ⏳ Open voor Ali
-- De eigenlijke launchdag uitvoeren (zie LAUNCHDAG.md). Dit is nu de grootste hefboom — niet meer code.
+### ✅ Afgewerkt (15 juni, "werk het allemaal af")
+- **winget-manifests** ingevuld met echte SHA256 (`EA8BF693…01B30F`), v1.0.1.
+- **GitHub repo-metadata**: description, homepage (boulbaal.github.io/fotoApp), 18 topics. ⚠️ Social-preview-afbeelding kan NIET via API — alleen via web-UI (Settings → Social preview). Ali uploadt dit handmatig (Foto-leven-plaatje).
+- **awesome-list PR's**: pluja/awesome-privacy **#870** + Lissy93/awesome-privacy **#625** (beide "Photo Management"). NB: tycrek/degoogle is GEARCHIVEERD → geen PR mogelijk. Fork voor Lissy93 = `boulbaal/awesome-privacy-1` (naam-collisie met pluja-fork).
+- **Social posts afgerond** in `posts.md`: Twitter/X met Foto-leven-hook + "plaatje eraan"-notitie, Mastodon idem, en **volledige AlternativeTo-aanmelding** (copy-paste klaar).
+
+### ⏳ Open voor Ali (echt alleen Ali)
+- De eigenlijke launchdag uitvoeren (zie LAUNCHDAG.md). Grootste hefboom — niet meer code.
 - Eigen Foto-leven-plaatje + 2–3 screenshots + korte GIF maken vóór de launch.
-- winget SHA256's invullen na v1.0.1 (optioneel).
+- Social-preview-afbeelding op GitHub handmatig uploaden (web-UI).
+- AlternativeTo + Product Hunt indienen (login vereist; tekst staat klaar in `posts.md`).
 
 ### Tests
 - 153/153 groen (6 nieuwe wrapped-tests). Push gaat via `/tmp/github_push.py` (REPO_DIR = huidige sessie-mount; `git diff HEAD~1 HEAD` + remote_sha als parent).
