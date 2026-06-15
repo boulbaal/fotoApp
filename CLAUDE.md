@@ -438,3 +438,28 @@ Volledig promotieplan + materiaal toegevoegd in `docs/promote/`:
 
 ### Tests
 - 153/153 groen (6 nieuwe wrapped-tests). Push gaat via `/tmp/github_push.py` (REPO_DIR = huidige sessie-mount; `git diff HEAD~1 HEAD` + remote_sha als parent).
+
+---
+
+## 🚀 Awesome-lijsten uitbreiding + e-mailfeedback (sessie 15 juni 2026, deel 2)
+
+Opdracht Ali: "post FotoApp op meer privacy/FOSS-sites zoals pluja, doe alles voor publiciteit" + "check mijn mails, er is feedback over wat fout liep, neem die mee".
+
+### E-mailfeedback verwerkt
+- **liss-bot** op Lissy93 PR #625 (compliance-check FAILED). Hersteld: entry naar **einde** van de Photo Management-sectie verplaatst, beschrijving ingekort tot **240 tekens** (was 323, limiet 50–250), **PR-template volledig ingevuld**, **auteurschap expliciet vermeld**, en een verklarende comment geplaatst. ⚠️ Resterende waarschuwingen (repo 6 dagen oud, 0 sterren, <16 wk sinds release) zijn **maturity-regels** van Lissy93 — kan alsnog worden afgewezen tot het project ouder is. Eerlijk gemeld aan Ali.
+- Oude failed Windows-builds (v1.0.0, 11 juni) zijn al opgelost door de v1.0.1 setup-python-fix; geen actie nodig.
+
+### Awesome-list PR's (5 totaal, alle via GitHub API)
+| Lijst | PR | Categorie | Status |
+|---|---|---|---|
+| pluja/awesome-privacy | #870 | Photo Management | open, mergeable |
+| Lissy93/awesome-privacy | #625 | Photo Management | open, compliance-fixes gedaan |
+| 0PandaDEV/awesome-windows | #198 | Graphics | open |
+| johnjago/awesome-free-software | #131 | Graphics | open |
+| serhii-londar/open-source-mac-os-apps | #1160 | images | open |
+
+- **Gearchiveerd/niet geschikt** (geen PR mogelijk): tycrek/degoogle, humanetech-community/awesome-humane-tech, luong-komorebi/Awesome-Linux-Software (allemaal archived); awesome-selfhosted (alleen server-software).
+- Forks: `boulbaal/awesome-privacy` (pluja), `boulbaal/awesome-privacy-1` (Lissy93), `boulbaal/awesome-windows`, `boulbaal/awesome-free-software`, `boulbaal/open-source-mac-os-apps`. Branch overal `add-fotoapp`.
+
+### ⏳ Browser-posts (login vereist — Ali keurt per platform goed)
+- AlternativeTo, Reddit, Product Hunt: tekst staat klaar in `posts.md`. Reddit/HN volgens LAUNCHDAG.md **niet op maandag/vrijdag** posten.
