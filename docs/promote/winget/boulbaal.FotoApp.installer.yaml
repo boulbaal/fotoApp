@@ -1,8 +1,6 @@
 # winget installer manifest
-# VUL IN na publicatie: de exacte InstallerUrl en InstallerSha256.
-# SHA256 ophalen:  certutil -hashfile FotoApp-Setup-1.0.0.exe SHA256
 PackageIdentifier: boulbaal.FotoApp
-PackageVersion: 1.0.0
+PackageVersion: 1.0.1
 InstallerType: nullsoft   # FotoApp gebruikt NSIS
 Scope: user
 InstallModes:
@@ -10,7 +8,7 @@ InstallModes:
   - silent
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/boulbaal/fotoApp/releases/download/v1.0.0/FotoApp-Setup-1.0.0.exe
-    InstallerSha256: <VUL_SHA256_IN>
+    InstallerUrl: https://github.com/boulbaal/fotoApp/releases/download/v1.0.1/FotoApp-Setup-1.0.1.exe
+    InstallerSha256: EA8BF6934E5FEF36EDA025099E72426AE07430481556D96BA075E2755E01B30F
 ManifestType: installer
 ManifestVersion: 1.6.0

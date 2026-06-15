@@ -129,7 +129,19 @@ Kopieer en plak deze berichten op de onderstaande platforms. Hoe meer plaatsen d
 
 ## 🐦 Twitter / X
 
-**Tweet 1 (launch):**
+> 📌 **Hang aan ELKE tweet je eigen Foto-leven-plaatje** (✨ Foto-leven → Download als afbeelding). Dat beeld doet het meeste werk — échte cijfers + kleuren trekken kliks. Fallback: `docs/promote/assets/foto-leven-voorbeeld.png`.
+
+**Tweet 1 — de Foto-leven-hook (sterkste, post deze als eerste):**
+> Mijn hele fotoleven op één kaart 👇
+> 27.000+ foto's, 14 landen, 96 steden — allemaal lokaal teruggevonden, niks in de cloud.
+>
+> Ik bouwde FotoApp: gratis & open-source fotobeheer dat je hele collectie op je eigen pc ordent. Eén klik maakt deze kaart.
+>
+> Win/Mac/Linux → https://github.com/boulbaal/fotoApp
+>
+> #opensource #privacy #photography
+
+**Tweet 2 (NL, features):**
 > 📷 Ik heb FotoApp gebouwd — gratis, open-source app voor lokaal fotobeheer.
 >
 > ✅ Duplicaten vinden (MD5)
@@ -138,20 +150,17 @@ Kopieer en plak deze berichten op de onderstaande platforms. Hoe meer plaatsen d
 > ✅ Google Takeout import
 > ✅ Geen cloud, geen abonnement
 >
-> Windows download: https://boulbaal.github.io/fotoApp/
-> GitHub: https://github.com/boulbaal/fotoApp
+> Download (Win/Mac/Linux): https://github.com/boulbaal/fotoApp/releases/latest
 >
 > #opensource #photography #privacy #selfhosted
 
-**Tweet 2 (English):**
+**Tweet 3 (English):**
 > 🆓 Free & open-source local photo manager for Windows, Mac & Linux
 >
 > No Google Photos. No iCloud. No subscription. Your photos stay on YOUR machine.
 >
-> → Duplicate detection
-> → GPS map
-> → RAW support
-> → Google Takeout import
+> → Duplicate detection → GPS map → RAW support → Google Takeout import
+> → A shareable "year in photos" card (see image 👆)
 >
 > https://github.com/boulbaal/fotoApp
 >
@@ -161,16 +170,18 @@ Kopieer en plak deze berichten op de onderstaande platforms. Hoe meer plaatsen d
 
 ## 💬 Mastodon / Fediverse
 
-> 📷 FotoApp v1.0.0 is out!
+> 📌 Voeg ook hier het Foto-leven-plaatje toe als media. Op de Fediverse is een sterke visual het halve werk.
+
+> 📷 FotoApp is out — and it turns your whole photo collection into one shareable card.
 >
-> Free, open-source desktop app for managing photos and videos locally. No cloud, no subscription, no tracking.
+> Free, open-source desktop app for managing photos & videos **locally**. No cloud, no account, no telemetry.
 >
-> Features: duplicate detection (MD5), GPS map, RAW support, Google Takeout import, smart export, video support.
+> ✨ "Your photo life": total photos, countries, cities, busiest month — one click exports it as an image (attached 👆).
+> 🔍 Duplicate detection · 🗺️ GPS map · 📷 RAW · 📥 Google Takeout import · 📤 smart export
 >
-> 🔗 https://boulbaal.github.io/fotoApp/
-> 💻 https://github.com/boulbaal/fotoApp
+> 🔗 https://github.com/boulbaal/fotoApp
 >
-> #FOSS #OpenSource #Photography #Privacy #SelfHosted #Linux #Windows
+> #FOSS #OpenSource #Photography #Privacy #SelfHosted #deGoogle #Linux #Windows
 
 ---
 
@@ -191,16 +202,38 @@ Stuur een PR naar deze repositories om FotoApp toe te voegen:
 
 ---
 
-## 📝 alternativeto.net
+## 📝 alternativeto.net — volledige aanmelding (copy-paste)
 
-Voeg FotoApp toe als alternatief voor:
-- Google Photos
-- Apple Photos
-- DigiKam
-- Shotwell
-- FastStone Image Viewer
+Ga naar https://alternativeto.net/manage/new/ (log eerst in). Vul in:
 
-URL: https://alternativeto.net/
+**Name:**
+> FotoApp
+
+**Tagline / short description (max ~200 tekens):**
+> Free, local-only desktop app to organize photos and videos — duplicate detection, GPS map, RAW support, Google Takeout import. No cloud, no account, no telemetry.
+
+**Full description:**
+> FotoApp organizes thousands of photos and videos entirely on your own machine. It finds duplicates across all your drives (MD5 hash), shows every geotagged photo on an OpenStreetMap map, reads RAW files (Canon, Nikon, Sony, Fuji), imports Google Takeout exports (recovering dates and GPS that Google strips out), and exports everything with clean, sorted filenames like Netherlands_Amsterdam_15_06_2023.jpg. A "Your photo life" screen summarizes your whole collection into one shareable image. No cloud, no subscription, no telemetry — the only network call is optional reverse geocoding (coordinates only). Open source (ISC).
+
+**Official website:**
+> https://boulbaal.github.io/fotoApp/
+
+**Source code / GitHub:**
+> https://github.com/boulbaal/fotoApp
+
+**License:** Open Source (ISC) · **Free:** Yes
+
+**Platforms:** Windows, Mac, Linux, Self-Hosted
+
+**Categories / Tags:** Photo Management, Photos & Graphics, Backup & Sync, Privacy
+
+**List as an alternative to:**
+> Google Photos · Apple Photos · digiKam · Shotwell · Adobe Lightroom · FastStone Image Viewer · Mylio
+
+**Likely-to-love / key features (vink/voeg toe):**
+> Privacy focused · Works Offline · No Account Required · Duplicate finder · GPS / Geotagging map · RAW support · Google Takeout import · Lightweight
+
+**Screenshots:** upload het dashboard, de GPS-kaart en het ✨ Foto-leven-scherm (`docs/promote/assets/foto-leven-voorbeeld.png` als fallback).
 
 ---
 

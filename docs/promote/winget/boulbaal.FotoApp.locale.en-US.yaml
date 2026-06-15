@@ -1,6 +1,6 @@
 # winget locale manifest (en-US)
 PackageIdentifier: boulbaal.FotoApp
-PackageVersion: 1.0.0
+PackageVersion: 1.0.1
 PackageLocale: en-US
 Publisher: boulbaal
 PublisherUrl: https://github.com/boulbaal
