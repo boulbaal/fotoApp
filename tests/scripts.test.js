@@ -66,6 +66,26 @@ module.exports = async function testScripts() {
     if (!start.includes('tcp:3000')) throw new Error('poort-opruiming ontbreekt');
   });
 
+  test('start-electron.sh test native module vóór start', () => {
+    if (!start.includes('ELECTRON_RUN_AS_NODE') || !start.includes('better-sqlite3')) {
+      throw new Error('pre-flight native-module check ontbreekt');
+    }
+  });
+
+  test('start-electron.sh adviseert npm run rebuild bij mismatch', () => {
+    if (!start.includes('npm run rebuild')) throw new Error('rebuild-advies ontbreekt');
+  });
+
+  test('start-electron.sh scant welk proces poort 3000 gebruikt', () => {
+    if (!start.includes('ps -p')) throw new Error('proces-scan op poort ontbreekt');
+  });
+
+  test('start-electron.sh heeft post-mortem diagnose', () => {
+    if (!start.includes('NODE_MODULE_VERSION') || !start.includes('grep')) {
+      throw new Error('post-mortem log-analyse ontbreekt');
+    }
+  });
+
   // ─── STOP-ELECTRON INHOUD ───────────────────────────────────────────────────
 
   const stop = lees('stop-electron.sh');
@@ -90,6 +110,54 @@ module.exports = async function testScripts() {
     const kaalPid = /(?<!electron)\.pid/;
     if (kaalPid.test(start) || kaalPid.test(stop)) {
       throw new Error('mag .pid van de web-server niet overschrijven');
+    }
+  });
+
+  // ─── ELECTRON FOUTAFHANDELING ───────────────────────────────────────────────
+
+  const mainJs = lees('electron/main.js');
+
+  test('electron/main.js bewaart server-fout (serverError)', () => {
+    if (!mainJs.includes('serverError')) throw new Error('serverError ontbreekt');
+  });
+
+  test('electron/main.js classificeert fouten (diagnoseFout)', () => {
+    if (!mainJs.includes('diagnoseFout')) throw new Error('diagnoseFout ontbreekt');
+  });
+
+  test('electron/main.js herkent native-module mismatch', () => {
+    if (!mainJs.includes('NODE_MODULE_VERSION') || !mainJs.includes('npm run rebuild')) {
+      throw new Error('native-module diagnose ontbreekt');
+    }
+  });
+
+  test('electron/main.js herkent bezette poort (EADDRINUSE)', () => {
+    if (!mainJs.includes('EADDRINUSE')) throw new Error('poort-diagnose ontbreekt');
+  });
+
+  test('electron/main.js geeft diagnose door aan error.html (hash)', () => {
+    if (!mainJs.includes('error.html') || !mainJs.includes('hash')) {
+      throw new Error('diagnose wordt niet doorgegeven aan foutpagina');
+    }
+  });
+
+  test('electron/main.js schrijft foutlog', () => {
+    if (!mainJs.includes('logFout') || !mainJs.includes('electron-fout.log')) {
+      throw new Error('foutlog ontbreekt');
+    }
+  });
+
+  // ─── FOUTPAGINA ─────────────────────────────────────────────────────────────
+
+  const errorHtml = lees('electron/error.html');
+
+  test('error.html leest de diagnose uit location.hash', () => {
+    if (!errorHtml.includes('location.hash')) throw new Error('hash-uitlezing ontbreekt');
+  });
+
+  test('error.html toont oplossingen met kopieer-knop', () => {
+    if (!errorHtml.includes('oplossingen') || !errorHtml.includes('clipboard')) {
+      throw new Error('oplossingen of kopieer-knop ontbreekt');
     }
   });
 

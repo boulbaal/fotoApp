@@ -16,14 +16,76 @@ process.env.ELECTRON_RUN  = '1';             // vlag voor index.js
 // ── Server starten ──────────────────────────────────────────────────────────
 let serverReady = false;
 let serverPort  = 3000;
+let serverError = null;   // bewaart de oorzaak als de server niet startte
 
 function startServer() {
   try {
     require('../index.js');
     serverReady = true;
   } catch (e) {
+    serverError = e;
     console.error('Server kon niet starten:', e);
+    logFout(e);
   }
+}
+
+// Vang ook asynchrone fouten op (bv. native module die later faalt)
+process.on('uncaughtException',  (e) => { if (!serverReady) { serverError = serverError || e; logFout(e); } });
+process.on('unhandledRejection', (e) => { if (!serverReady) { serverError = serverError || e; logFout(e); } });
+
+// ── Fout-diagnose: vertaal technische fouten naar begrijpelijke uitleg ───────
+function diagnoseFout(err) {
+  const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err || '');
+
+  // 1) Native module gebouwd voor verkeerde Node/Electron-versie
+  if (/NODE_MODULE_VERSION|ERR_DLOPEN_FAILED|did not self-register|compiled against a different/i.test(msg)) {
+    return {
+      titel: 'De database-module moet opnieuw gebouwd worden',
+      uitleg: 'De native database-module (better-sqlite3) is gebouwd voor een andere Node-versie dan Electron gebruikt. Dit gebeurt na een Node-update of een verse "npm install". Hierdoor kon de interne server niet starten — het ligt NIET aan poort 3000.',
+      oplossingen: [
+        { tekst: 'Bouw de native modules voor Electron (meestal genoeg):', cmd: 'npm run rebuild' },
+        { tekst: 'Werkt dat niet? Verwijder, herinstalleer en bouw opnieuw:', cmd: 'rm -rf node_modules && npm install && npm run rebuild' },
+        { tekst: 'Start daarna de desktop-app opnieuw:', cmd: 'sh start-electron.sh' },
+      ],
+      details: msg,
+    };
+  }
+
+  // 2) Poort al in gebruik
+  if (/EADDRINUSE/i.test(msg)) {
+    return {
+      titel: 'Poort 3000 is al in gebruik',
+      uitleg: 'Een ander programma (of een vorige FotoApp die nog draait) gebruikt poort 3000, dus de server kon niet starten.',
+      oplossingen: [
+        { tekst: 'Stop een eventuele vorige instantie:', cmd: 'sh stop-electron.sh' },
+        { tekst: 'Kijk welk proces de poort gebruikt:', cmd: 'lsof -i tcp:3000' },
+        { tekst: 'Start daarna opnieuw:', cmd: 'sh start-electron.sh' },
+      ],
+      details: msg,
+    };
+  }
+
+  // 3) Algemeen (server reageerde niet op tijd)
+  return {
+    titel: 'Kan de app-server niet bereiken',
+    uitleg: err
+      ? 'De interne server kon niet starten door een onverwachte fout (zie technische details onderaan).'
+      : 'De interne server reageerde niet op tijd. Soms helpt gewoon opnieuw starten.',
+    oplossingen: [
+      { tekst: 'Herstart de desktop-app:', cmd: 'sh stop-electron.sh && sh start-electron.sh' },
+      { tekst: 'Controleer of poort 3000 vrij is:', cmd: 'lsof -i tcp:3000' },
+      { tekst: 'Bouw zo nodig de native modules opnieuw:', cmd: 'npm run rebuild' },
+    ],
+    details: msg,
+  };
+}
+
+function logFout(err) {
+  try {
+    const logPad = path.join(process.env.FOTOAPP_DATA || __dirname, 'electron-fout.log');
+    const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
+    fs.appendFileSync(logPad, `\n[${new Date().toISOString()}]\n${msg}\n`);
+  } catch (_) { /* logging mag nooit zelf crashen */ }
 }
 
 // ── Electron folder-dialog (vervangt zenity) ────────────────────────────────
@@ -65,11 +127,21 @@ function createWindow() {
     Menu.setApplicationMenu(null);
   }
 
+  // Toon de foutpagina met begrijpelijke uitleg + oplossingen
+  const toonFout = (err) => {
+    const info = diagnoseFout(err);
+    const hash = encodeURIComponent(JSON.stringify(info));
+    mainWindow.loadFile(path.join(__dirname, 'error.html'), { hash });
+  };
+
   // Laad de app — probeer opnieuw als de server nog niet klaar is
   const loadApp = (retries = 20) => {
+    // Server is al gecrasht? Direct de foutpagina tonen, niet 6s wachten.
+    if (serverError) { toonFout(serverError); return; }
     mainWindow.loadURL(`http://localhost:${serverPort}`).catch(() => {
+      if (serverError) { toonFout(serverError); return; }
       if (retries > 0) setTimeout(() => loadApp(retries - 1), 300);
-      else mainWindow.loadFile(path.join(__dirname, 'error.html'));
+      else toonFout(null);
     });
   };
 

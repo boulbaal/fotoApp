@@ -1,20 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="nl">
 <head>
   <meta charset="utf-8">
   <title>FotoApp – Fout</title>
   <style>
-    body { background:#0f0f17; color:#ccc; font-family:sans-serif;
-           display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
-    .box { text-align:center; }
-    h1 { color:#f87171; }
-    p  { color:#888; }
+    * { box-sizing: border-box; }
+    body { background:#0f0f17; color:#d6d6e0; font-family:-apple-system,Segoe UI,Roboto,sans-serif;
+           margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px; }
+    .box { max-width:680px; width:100%; }
+    h1 { color:#f87171; font-size:24px; margin:0 0 12px; }
+    .uitleg { color:#aab; line-height:1.55; margin:0 0 24px; }
+    h2 { color:#e5e7eb; font-size:15px; text-transform:uppercase; letter-spacing:.05em; margin:0 0 12px; }
+    .stap { background:#1a1a26; border:1px solid #2a2a3a; border-radius:10px; padding:14px 16px; margin-bottom:10px; }
+    .stap p { margin:0 0 8px; color:#cfd0db; font-size:14px; }
+    .cmdrij { display:flex; align-items:stretch; gap:8px; }
+    code { flex:1; background:#0b0b12; color:#7ee787; font-family:ui-monospace,Menlo,Consolas,monospace;
+           font-size:13px; padding:10px 12px; border-radius:6px; border:1px solid #23232f; overflow-x:auto; white-space:pre; }
+    button { background:#3b3b52; color:#fff; border:0; border-radius:6px; padding:0 14px; font-size:13px;
+             cursor:pointer; white-space:nowrap; transition:background .15s; }
+    button:hover { background:#4a4a66; }
+    button.ok { background:#2f7d4f; }
+    details { margin-top:22px; }
+    summary { cursor:pointer; color:#888; font-size:13px; }
+    pre.det { background:#0b0b12; color:#a88; border:1px solid #23232f; border-radius:6px;
+              padding:12px; font-size:11px; overflow:auto; max-height:200px; margin-top:10px; white-space:pre-wrap; }
+    .tip { margin-top:20px; color:#7a7a90; font-size:12.5px; }
   </style>
 </head>
 <body>
   <div class="box">
-    <h1>⚠️ Kan de app-server niet bereiken</h1>
-    <p>Herstart de applicatie. Als het probleem aanhoudt, controleer of poort 3000 vrij is.</p>
+    <h1 id="titel">⚠️ Kan de app-server niet bereiken</h1>
+    <p class="uitleg" id="uitleg">Herstart de applicatie. Als het probleem aanhoudt, controleer of poort 3000 vrij is.</p>
+
+    <h2>Wat je kunt doen</h2>
+    <div id="oplossingen"></div>
+
+    <details id="detailsBlok" style="display:none">
+      <summary>Technische details (voor het foutrapport)</summary>
+      <pre class="det" id="details"></pre>
+    </details>
+
+    <p class="tip">Tip: voer deze commando's uit in een terminal in de FotoApp-map. Een volledig logboek staat in <code style="display:inline;padding:2px 6px">electron-fout.log</code> in je app-datamap.</p>
   </div>
+
+  <script>
+    // Diagnose-info komt binnen via de URL-hash (door electron/main.js)
+    function leesInfo() {
+      try {
+        const raw = decodeURIComponent(location.hash.replace(/^#/, ''));
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) { return null; }
+    }
+
+    function maakStap(opl) {
+      const wrap = document.createElement('div');
+      wrap.className = 'stap';
+
+      const p = document.createElement('p');
+      p.textContent = opl.tekst;
+      wrap.appendChild(p);
+
+      const rij = document.createElement('div');
+      rij.className = 'cmdrij';
+
+      const code = document.createElement('code');
+      code.textContent = opl.cmd;
+      rij.appendChild(code);
+
+      const knop = document.createElement('button');
+      knop.textContent = 'Kopieer';
+      knop.onclick = () => {
+        navigator.clipboard.writeText(opl.cmd).then(() => {
+          knop.textContent = '✓ Gekopieerd';
+          knop.classList.add('ok');
+          setTimeout(() => { knop.textContent = 'Kopieer'; knop.classList.remove('ok'); }, 1500);
+        }).catch(() => { knop.textContent = 'Selecteer handmatig'; });
+      };
+      rij.appendChild(knop);
+
+      wrap.appendChild(rij);
+      return wrap;
+    }
+
+    const info = leesInfo();
+    if (info) {
+      document.getElementById('titel').textContent  = '⚠️ ' + info.titel;
+      document.getElementById('uitleg').textContent = info.uitleg;
+
+      const lijst = document.getElementById('oplossingen');
+      lijst.innerHTML = '';
+      (info.oplossingen || []).forEach(opl => lijst.appendChild(maakStap(opl)));
+
+      if (info.details) {
+        document.getElementById('detailsBlok').style.display = 'block';
+        document.getElementById('details').textContent = info.details;
+      }
+    }
+  </script>
 </body>
 </html>

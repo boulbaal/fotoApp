@@ -10,3 +10,9 @@ magweg/
 # Electron build output
 dist/
 node_modules/
+
+# Runtime / PID / logs
+.pid
+.electron.pid
+electron-uitvoer.log
+electron-fout.log
