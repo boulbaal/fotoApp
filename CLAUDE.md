@@ -62,13 +62,13 @@ api("PATCH", f"/repos/{OWNER}/{REPO}/git/refs/heads/main", {"sha": new_commit, "
 print(f"✅ Gepusht: https://github.com/{OWNER}/{REPO}")
 ```
 
-Huidig testresultaat bij schrijven van deze regel: **148/148 geslaagd**
+Huidig testresultaat bij schrijven van deze regel: **153/153 geslaagd** (1 overgeslagen door omgeving)
 
 ---
 
 ## 🎯 Wat is dit project?
 
-Een **lokale foto-beheer webapplicatie** voor Ali. Draait op `localhost:3000`. Geen cloud, geen externe diensten, alles blijft op de eigen machine.
+Een **lokale foto- én videobeheer-applicatie** voor Ali. Draait als webapp op `localhost:3000` en is ook als desktop-app (Electron) verpakt voor Windows/macOS/Linux. Geen cloud, geen externe diensten, alles blijft op de eigen machine.
 
 **Het probleem dat opgelost wordt:**
 Ali heeft ~27.000+ foto's verspreid over meerdere locaties (Linux PC, externe SSD, usb-sticks, etc.). Hij wil ze kunnen vinden, filteren, organiseren en duplicaten opsporen — zonder technische kennis nodig te hebben voor dagelijks gebruik.
@@ -94,8 +94,8 @@ Ali heeft ~27.000+ foto's verspreid over meerdere locaties (Linux PC, externe SS
 |---|---|
 | `index.js` | HTTP server + WebSocket (folder picker + live logs) |
 | `src/database.js` | SQLite schema: bronnen, fotos, scan_log + automatische migraties |
-| `src/scanner.js` | Recursief scannen, EXIF, GPS (EN), MD5 hash, thumbnails (sharp+exiftool), duplicaatdetectie, wachtrij, stop-vlag, **post-scan geocode pass** |
-| `src/api.js` | REST API: bronnen CRUD, fotos paginering, scan beheer, stats, duplicaten, mapbrowser, **export endpoints** |
+| `src/scanner.js` | Recursief scannen van **foto's én video's**, EXIF, GPS (EN), MD5 hash, thumbnails (sharp+exiftool voor foto's, ffmpeg+ffprobe voor video's), video-duur, video-GPS via exiftool, duplicaatdetectie, wachtrij, stop-vlag, **post-scan geocode pass** |
+| `src/api.js` | REST API (~46 endpoints): bronnen CRUD, fotos/video's paginering, scan beheer, stats, **wrapped**, duplicaten, mapbrowser, **kaart-locaties**, **GPS-bulk**, video-thumbnails/GPS, fase-beheer, **export endpoints** |
 | `src/export.js` | Export logica: selectie, bestandsnaam generatie, kopiëren, schijfruimte check, hervatten |
 
 ### Frontend
@@ -107,7 +107,13 @@ Ali heeft ~27.000+ foto's verspreid over meerdere locaties (Linux PC, externe SS
 | `public/js/bronnen.js` | Bronnen beheren, scan starten, bewerken modal |
 | `public/js/dashboard.js` | Statistieken + klikbare grafieken + **vlag emoji per land** |
 | `public/js/fotos.js` | Foto-gallerij, filters, paginering, detail modal (datum_bron, vlag) |
+| `public/js/videos.js` | Video-gallerij: thumbnails, duur-badge, filters, detail modal |
 | `public/js/duplicaten.js` | Duplicaten-overzicht |
+| `public/js/kaart.js` | Leaflet kaartweergave van alle geotagde foto's/video's (CARTO dark tiles, type-filter foto/video) |
+| `public/js/gpsbulk.js` | GPS in bulk toewijzen aan groepen foto's zonder locatie |
+| `public/js/negeren.js` | Negeren-pagina: klik=toggle, hover-preview, DUP/NEGEREN/MEENEMEN badges |
+| `public/js/wrapped.js` | "Jouw foto-leven" deelscherm + PNG-export (story-formaat 1080×1350) |
+| `public/js/i18n.js` | Vertalingen NL/EN/FR/DE + taalkiezer rechtsboven (localStorage) |
 | `public/js/scanner.js` | Scan UI: voortgangsbalk, polling, ticker, stop, **geocode-voortgangsbalk** |
 | `public/js/mapkiezer.js` | WebSocket client: folder picker + twee log-panelen (client/server) |
 | `public/js/gpskaart.js` | Leaflet kaart voor handmatig GPS toewijzen (Nominatim reverse geocoding) |
@@ -118,7 +124,13 @@ Ali heeft ~27.000+ foto's verspreid over meerdere locaties (Linux PC, externe SS
 - **Dashboard**: statistieken kaarten + klikbare balkgrafieken (jaar, camera, landen met 🏳️ vlag, per bron)
 - **Bronnen**: bronnen toevoegen/bewerken/verwijderen, scan starten, wachtrij
 - **Foto's**: 200/pagina, filter op jaar/camera/bron/land, detail modal met GPS kaart, datum_bron label
+- **Video's**: aparte gallerij met thumbnails (ffmpeg-frame), duur-badge en filters
+- **Kaart**: Leaflet-wereldkaart met alle geotagde media, filter op foto/video
+- **GPS-bulk**: locatie in één keer toewijzen aan groepen media zonder GPS
+- **Foto-leven** (✨): deelbaar "Wrapped"-overzicht, exporteerbaar als PNG met repo-link
 - **Duplicaten**: groepen tonen
+- **Negeren / Genegeerd**: media uitsluiten van export (klik-toggle, cascade over duplicaatgroep)
+- **Taalkiezer** (rechtsboven): NL / EN / FR / DE, keuze onthouden via localStorage
 - **Onderbalk** (altijd zichtbaar, fixed bottom, hoogte instelbaar):
   - Scan voortgangsbalk (filmstrip stijl, 📷 camera icoon)
   - Geocode voortgangsbalk (verschijnt na scan, toont locaties ophalen)
@@ -149,6 +161,10 @@ Ali heeft ~27.000+ foto's verspreid over meerdere locaties (Linux PC, externe SS
 "chokidar": "^5.x",
 "node-cron": "^4.x"
 ```
+
+Plus desktop-verpakking via `electron` + `electron-builder` (devDependencies) — builds voor Windows/macOS/Linux.
+
+**Externe systeemtools (geen npm):** `exiftool` (RAW + video GPS), `ffmpeg` + `ffprobe` (video-thumbnails + duur), `zenity` (folder picker). Moeten op de machine aanwezig zijn.
 
 ---
 
@@ -188,12 +204,22 @@ Ali heeft ~27.000+ foto's verspreid over meerdere locaties (Linux PC, externe SS
   - Voortgangsbalk met huidig bestand
   - Hervatten na onderbreking (geexporteerd per foto bijgehouden)
 
+### ✅ Fase 4 — Video, kaart, meertaligheid & desktop (voltooid)
+- Video-ondersteuning: scannen van ~20 video-formaten, ffmpeg-thumbnails, ffprobe-duur, video-GPS via exiftool ✅
+- Aparte Video's-gallerij met duur-badge ✅
+- Kaartweergave: Leaflet-wereldkaart met alle geotagde media + foto/video-filter ✅
+- GPS-bulk toewijzen aan groepen zonder locatie ✅
+- Meertalige UI (NL/EN/FR/DE) met taalkiezer + localStorage ✅
+- "Jouw foto-leven" deelscherm met PNG-export ✅
+- Desktop-app via Electron (Windows .exe, macOS .dmg, Linux .AppImage/.deb), release v1.0.1 ✅
+
 ### 🔮 Toekomstige uitbreiding (niet gepland)
 - Foto detail lightbox (volledige EXIF weergave)
 - Batchbewerkingen
 - Geplande auto-scan (cron)
 - Tekstzoekfunctie
 - Mobiel-vriendelijke layout
+- Extra UI-talen (ES/AR ooit genoemd; nu 4 talen: NL/EN/FR/DE)
 
 ---
 
@@ -279,7 +305,7 @@ git commit -m "type: korte beschrijving
 - `docs:` — documentatie
 
 **Regels:**
-- Alleen lokale commits — **nooit pushen** tenzij expliciet gevraagd
+- **Na elke taak altijd committen én pushen** (zie de testregel bovenaan) — `git push` timed out in de sandbox, dus pushen via `python3 /tmp/github_push.py`
 - Git config is ingesteld: `Ali <aboulbahaiem@gmail.com>`
 - Eén commit per logische wijziging — niet alles samenvoegen
 
