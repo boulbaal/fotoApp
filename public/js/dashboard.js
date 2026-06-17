@@ -50,14 +50,16 @@ async function laadStats() {
     return { ...r, label: (vlag ? vlag + ' ' : '') + r.gps_land };
   });
   tekenBalk('grafiekLand', landenMetVlag, 'label', 'aantal', (rij) => {
-    toonPagina('fotos', { land: rij.gps_land, _label: rij.label });
+    toonPagina('kaart', { land: rij.gps_land, is_video: '0' });
   }, null, 10);
 
   const landenVideoMetVlag = (data.perLandVideo || []).map(r => {
     const vlag = r.gps_land_code ? landVlag(r.gps_land_code) : landVlagVanNaam(r.gps_land);
     return { ...r, label: (vlag ? vlag + ' ' : '') + r.gps_land };
   });
-  tekenBalk('grafiekLandVideo', landenVideoMetVlag, 'label', 'aantal', null, null, 10);
+  tekenBalk('grafiekLandVideo', landenVideoMetVlag, 'label', 'aantal', (rij) => {
+    toonPagina('kaart', { land: rij.gps_land, is_video: '1' });
+  }, null, 10);
 
   tekenBalk('grafiekBron', data.perBron.map(b => ({
     label: b.icoon + ' ' + b.naam,

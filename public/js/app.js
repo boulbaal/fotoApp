@@ -131,7 +131,7 @@ function toonPagina(naam, extraFilter) {
 
   if (naam === 'dashboard')  { laadStats(); laadFase1Todo(); laadFase2LocatieTip(); }
   if (naam === 'bronnen')    laadBronnen();
-  if (naam === 'kaart')      laadKaart();
+  if (naam === 'kaart')      laadKaart(extraFilter);
   if (naam === 'gpsbulk')   laadGpsBulk();
   if (naam === 'negeren')   laadNegeren(1);
   if (naam === 'genegeerd') laadGenegeerd(1);

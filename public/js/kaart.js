@@ -3,12 +3,22 @@ let alleLocaties     = [];
 let markerGroep      = null;
 let actieveLocatie   = null;
 let kaartTypeFilter  = ''; // '' = alles, '0' = foto's, '1' = video's
+let kaartGewensteLand = null; // gewenst land bij openen vanuit dashboard
 
 // ─── INITIALISATIE ────────────────────────────────────────────────────────────
 
-async function laadKaart() {
+async function laadKaart(extraFilter) {
+  // Vanuit dashboard: type-filter (foto/video) + gewenst land instellen
+  if (extraFilter && extraFilter.is_video !== undefined) {
+    kaartTypeFilter = String(extraFilter.is_video);
+  }
+  if (extraFilter && extraFilter.land) {
+    kaartGewensteLand = extraFilter.land;
+  }
+
   if (kaartInstantie) {
     kaartInstantie.invalidateSize();
+    updateKaartTypeKnoppen();
     await herlaadLocaties();
     return;
   }
@@ -37,6 +47,16 @@ async function herlaadLocaties() {
   alleLocaties = await fetch('/api/kaart/locaties' + params).then(r => r.json());
   vulJaarFilter();
   vulLandFilter();
+
+  // Vanuit dashboard geopend op een specifiek land → dropdown zetten en filteren
+  if (kaartGewensteLand) {
+    const sel = document.getElementById('kaartLandFilter');
+    if (sel) sel.value = kaartGewensteLand;
+    kaartGewensteLand = null;
+    filterKaart();
+    return;
+  }
+
   tekenMarkers(alleLocaties);
 }
 
@@ -72,14 +92,17 @@ function vulLandFilter() {
 
 // ─── FILTERS ──────────────────────────────────────────────────────────────────
 
-function setKaartTypeFilter(type) {
-  kaartTypeFilter = type;
-  // Update knop-stijlen
+function updateKaartTypeKnoppen() {
   document.querySelectorAll('.kaart-type-btn').forEach(b => b.classList.remove('actief'));
   const actief = document.getElementById(
-    type === '0' ? 'kaartTypeFotos' : type === '1' ? 'kaartTypeVideos' : 'kaartTypeAlles'
+    kaartTypeFilter === '0' ? 'kaartTypeFotos' : kaartTypeFilter === '1' ? 'kaartTypeVideos' : 'kaartTypeAlles'
   );
   if (actief) actief.classList.add('actief');
+}
+
+function setKaartTypeFilter(type) {
+  kaartTypeFilter = type;
+  updateKaartTypeKnoppen();
   herlaadLocaties();
 }
 

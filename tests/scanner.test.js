@@ -1026,5 +1026,38 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Dashboard JS: Landen-grafieken openen de kaart op het land', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/dashboard.js'), 'utf8');
+    if (!code.includes("toonPagina('kaart'")) {
+      throw new Error('Landen-grafiek opent de kaart niet (toonPagina(\'kaart\'))');
+    }
+    if (!/toonPagina\('kaart',\s*\{\s*land:[^}]*is_video:\s*'0'/.test(code)) {
+      throw new Error('Landen (foto\'s)-grafiek geeft land + is_video 0 niet door');
+    }
+    if (!/toonPagina\('kaart',\s*\{\s*land:[^}]*is_video:\s*'1'/.test(code)) {
+      throw new Error('Landen (video\'s)-grafiek geeft land + is_video 1 niet door');
+    }
+  });
+
+  test('App JS: toonPagina geeft extraFilter door aan laadKaart', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+    if (!code.includes('laadKaart(extraFilter)')) {
+      throw new Error('toonPagina geeft extraFilter niet door aan laadKaart');
+    }
+  });
+
+  test('Kaart JS: laadKaart past gewenst land vanuit dashboard toe', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/kaart.js'), 'utf8');
+    if (!code.includes('kaartGewensteLand')) {
+      throw new Error('kaart.js verwerkt geen gewenst land vanuit dashboard');
+    }
+    if (!code.includes('function laadKaart(extraFilter)')) {
+      throw new Error('laadKaart accepteert geen extraFilter');
+    }
+    if (!code.includes('filterKaart()')) {
+      throw new Error('laadKaart past het landfilter niet toe via filterKaart()');
+    }
+  });
+
   return resultaten;
 };
