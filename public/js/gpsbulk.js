@@ -4,6 +4,14 @@ let gpsBulkGekozen = {};   // groepId → locatieobject
 let gpsBulkZoekTimers = {};
 let geselecteerd = new Set(); // Set van "groepId:fotoId" strings
 let volgendGroepId = 10000;   // voor handmatig aangemaakte groepen
+let gpsBulkType = '';         // '' = alles, '0' = foto's, '1' = video's
+
+// Type-filter knop: Alles / Foto's / Video's
+// laadGpsBulk() synchroniseert zelf de actief-markering van de knoppen.
+function setGpsBulkType(type) {
+  gpsBulkType = type;
+  laadGpsBulk();
+}
 
 // Bulk kaart modal state
 let bulkKaartInstantie = null;
@@ -21,8 +29,16 @@ async function laadGpsBulk() {
   info.textContent = '';
   geselecteerd.clear();
 
+  // Synchroniseer de type-filter knoppen met de huidige staat
+  ['gpsTypeAlles', 'gpsTypeFotos', 'gpsTypeVideos'].forEach(id => {
+    document.getElementById(id)?.classList.remove('actief');
+  });
+  const actiefId = gpsBulkType === '1' ? 'gpsTypeVideos' : gpsBulkType === '0' ? 'gpsTypeFotos' : 'gpsTypeAlles';
+  document.getElementById(actiefId)?.classList.add('actief');
+
   try {
-    gpsBulkGroepen = await fetch('/api/gps/groepen').then(r => r.json());
+    const qs = gpsBulkType ? `?is_video=${gpsBulkType}` : '';
+    gpsBulkGroepen = await fetch('/api/gps/groepen' + qs).then(r => r.json());
   } catch (e) {
     container.innerHTML = '<div style="color:#f87171;padding:24px">Fout bij laden. Probeer opnieuw.</div>';
     return;
@@ -32,7 +48,8 @@ async function laadGpsBulk() {
   gpsBulkGroepen.push({ groep_id: 'hold', datum_start: null, datum_eind: null, ids: [], voorbeelden: [], isHold: true });
 
   if (gpsBulkGroepen.filter(g => !g.isHold).length === 0) {
-    container.innerHTML = '<div class="leeg" style="padding:48px;text-align:center;font-size:16px">✅ Alle foto\'s en video\'s hebben al een GPS-locatie!</div>';
+    const wat = gpsBulkType === '1' ? "video's" : gpsBulkType === '0' ? "foto's" : "foto's en video's";
+    container.innerHTML = `<div class="leeg" style="padding:48px;text-align:center;font-size:16px">✅ Alle ${wat} hebben al een GPS-locatie!</div>`;
     return;
   }
 
@@ -43,8 +60,9 @@ async function laadGpsBulk() {
 function bijwerkInfo() {
   const totaal = gpsBulkGroepen.filter(g => !g.isHold).reduce((s, g) => s + g.ids.length, 0);
   const aantalGroepen = gpsBulkGroepen.filter(g => !g.isHold).length;
+  const wat = gpsBulkType === '1' ? "video's" : gpsBulkType === '0' ? "foto's" : "foto's en video's";
   document.getElementById('gpsBulkInfo').textContent =
-    totaal > 0 ? `${aantalGroepen} groepen · ${totaal.toLocaleString()} foto's en video's zonder locatie` : '';
+    totaal > 0 ? `${aantalGroepen} groepen · ${totaal.toLocaleString()} ${wat} zonder locatie` : '';
 }
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────

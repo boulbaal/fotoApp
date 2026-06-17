@@ -570,6 +570,26 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('API: /gps/groepen ondersteunt is_video type-filter', () => {
+    const blok = apiCode.slice(apiCode.indexOf("'/gps/groepen'"), apiCode.indexOf("'/gps/bulk-toewijzen'"));
+    if (!blok.includes('is_video')) throw new Error('is_video type-filter ontbreekt in /gps/groepen');
+    if (!blok.includes('f.is_video = 1')) throw new Error('video-filter (f.is_video = 1) ontbreekt in /gps/groepen');
+  });
+
+  test('HTML: GPS-pagina heeft type-filter knoppen (Alles/Foto/Video)', () => {
+    const htmlCode = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    ['gpsTypeAlles', 'gpsTypeFotos', 'gpsTypeVideos'].forEach(id => {
+      if (!htmlCode.includes(id)) throw new Error(id + ' ontbreekt in index.html');
+    });
+    if (!htmlCode.includes("setGpsBulkType('1')")) throw new Error('setGpsBulkType-aanroep voor video ontbreekt');
+  });
+
+  test('GPS Bulk JS: setGpsBulkType stuurt is_video mee in fetch', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!code.includes('function setGpsBulkType')) throw new Error('setGpsBulkType() ontbreekt in gpsbulk.js');
+    if (!code.includes('is_video=')) throw new Error('is_video querystring ontbreekt in gpsbulk.js fetch');
+  });
+
   test('GPS Bulk JS: gpsbulk.js bestand bestaat', () => {
     const p = path.join(__dirname, '../public/js/gpsbulk.js');
     if (!fs.existsSync(p)) throw new Error('gpsbulk.js niet gevonden');

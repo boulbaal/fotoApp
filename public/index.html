@@ -337,6 +337,11 @@
     <div class="gpsbulk-kop">
       <h2 data-i18n="gps_titel">📍 GPS locaties groepsgewijs toewijzen</h2>
       <p data-i18n="gps_uitleg">Foto's en video's zonder GPS worden gegroepeerd op tijdstip — meer dan 2 uur verschil = nieuwe groep. Wijs per groep één locatie toe.</p>
+      <div class="kaart-type-groep" style="margin:8px 0 4px">
+        <button id="gpsTypeAlles"  class="kaart-type-btn actief" onclick="setGpsBulkType('')">Alles</button>
+        <button id="gpsTypeFotos"  class="kaart-type-btn"        onclick="setGpsBulkType('0')">📷 Foto's</button>
+        <button id="gpsTypeVideos" class="kaart-type-btn"        onclick="setGpsBulkType('1')">🎬 Video's</button>
+      </div>
       <div id="gpsBulkInfo" class="gpsbulk-info"></div>
     </div>
     <div id="gpsBulkGroepen"></div>

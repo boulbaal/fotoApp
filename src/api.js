@@ -797,6 +797,12 @@ router.get('/kaart/fotos', (req, res) => {
 router.get('/gps/groepen', (req, res) => {
   const db = getDb();
 
+  // Type-filter: '' = alles, '0' = alleen foto's, '1' = alleen video's
+  const { is_video } = req.query;
+  let typeFilter = '';
+  if (is_video === '1') typeFilter = 'AND f.is_video = 1';
+  else if (is_video === '0') typeFilter = 'AND (f.is_video IS NULL OR f.is_video = 0)';
+
   // Alleen originelen tonen — kopieën worden via GPS propagatie meegewijzigd
   const origineelFilter = `
     AND (f.duplicaat_groep IS NULL
@@ -808,6 +814,7 @@ router.get('/gps/groepen', (req, res) => {
     FROM fotos f
     WHERE (f.gps_lat IS NULL OR f.gps_lat = 0)
       AND f.datum_foto IS NOT NULL AND f.datum_foto != ''
+      ${typeFilter}
       ${origineelFilter}
     ORDER BY f.datum_foto ASC
   `).all();
@@ -817,6 +824,7 @@ router.get('/gps/groepen', (req, res) => {
     FROM fotos f
     WHERE (f.gps_lat IS NULL OR f.gps_lat = 0)
       AND (f.datum_foto IS NULL OR f.datum_foto = '')
+      ${typeFilter}
       ${origineelFilter}
     ORDER BY f.id ASC
   `).all();
