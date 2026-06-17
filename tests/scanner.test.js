@@ -1002,5 +1002,25 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('HTML: dashboard stat-kaarten sturen dup/locatie filter mee', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    // Klikbare kaarten zetten de juiste filter via toonPagina(..., { dup/locatie })
+    if (!html.includes("dup: 'uniek'") || !html.includes("dup: 'dubbel'")) {
+      throw new Error('dashboard Uniek/Dubbel-kaarten zetten geen dup-filter');
+    }
+    if (!html.includes("locatie: 'met'") || !html.includes("locatie: 'zonder'")) {
+      throw new Error('dashboard Met/Zonder locatie-kaarten zetten geen locatie-filter');
+    }
+  });
+
+  test('App JS: toonPagina verwerkt dup en locatie extraFilter (foto + video)', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+    ['filterLocatie', 'filterDup', 'filterLocatieVideo', 'filterDupVideo']
+      .forEach(id => { if (!code.includes(id)) throw new Error(id + ' niet gezet in toonPagina'); });
+    if (!code.includes('extraFilter?.dup') || !code.includes('extraFilter?.locatie')) {
+      throw new Error('toonPagina leest extraFilter.dup/locatie niet uit');
+    }
+  });
+
   return resultaten;
 };

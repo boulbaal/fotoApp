@@ -116,18 +116,18 @@
     <div class="stat-sectie-label" data-i18n="dash_fotos_label">📷 Foto's</div>
     <div class="stat-grid">
       <div class="stat-kaart klikbaar" onclick="toonPagina('fotos')" title="Bekijk alle foto's"><div class="getal" id="statTotaal">—</div><div class="label" data-i18n="lbl_total">Totaal</div></div>
-      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { zonder_kopien: true, _label: '📷 Unieke foto\'s' })" title="Unieke foto's (excl. duplicaten)"><div class="getal" id="statFotosUniek">—</div><div class="label" data-i18n="lbl_unique">Uniek</div></div>
-      <div class="stat-kaart"><div class="getal" id="statFotosDubbel">—</div><div class="label" data-i18n="lbl_duplicate">Dubbel</div></div>
-      <div class="stat-kaart"><div class="getal" id="statFotosMetGps">—</div><div class="label" data-i18n="lbl_with_location">Met locatie</div></div>
-      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { zonder_gps: true, _label: '📍 Foto\'s zonder locatie' })" title="Foto's zonder GPS"><div class="getal" id="statFotosZonderGps">—</div><div class="label" data-i18n="lbl_without_location">Zonder locatie</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { dup: 'uniek', _label: '📷 Unieke foto\'s' })" title="Unieke foto's (excl. duplicaten)"><div class="getal" id="statFotosUniek">—</div><div class="label" data-i18n="lbl_unique">Uniek</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { dup: 'dubbel', _label: '📋 Foto\'s met duplicaten' })" title="Foto's die duplicaten hebben"><div class="getal" id="statFotosDubbel">—</div><div class="label" data-i18n="lbl_duplicate">Dubbel</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { locatie: 'met', _label: '📍 Foto\'s met locatie' })" title="Foto's met GPS-locatie"><div class="getal" id="statFotosMetGps">—</div><div class="label" data-i18n="lbl_with_location">Met locatie</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('fotos', { locatie: 'zonder', zonder_gps: true, _label: '📍 Foto\'s zonder locatie' })" title="Foto's zonder GPS"><div class="getal" id="statFotosZonderGps">—</div><div class="label" data-i18n="lbl_without_location">Zonder locatie</div></div>
     </div>
     <div class="stat-sectie-label" data-i18n="dash_videos_label">🎬 Video's</div>
     <div class="stat-grid">
       <div class="stat-kaart klikbaar" onclick="toonPagina('videos')" title="Bekijk alle video's"><div class="getal" id="statVideos">—</div><div class="label" data-i18n="lbl_total">Totaal</div></div>
-      <div class="stat-kaart"><div class="getal" id="statVideosUniek">—</div><div class="label" data-i18n="lbl_unique">Uniek</div></div>
-      <div class="stat-kaart"><div class="getal" id="statVideosDubbel">—</div><div class="label" data-i18n="lbl_duplicate">Dubbel</div></div>
-      <div class="stat-kaart"><div class="getal" id="statVideosMetGps">—</div><div class="label" data-i18n="lbl_with_location">Met locatie</div></div>
-      <div class="stat-kaart klikbaar" onclick="toonPagina('videos', { zonder_gps: true, _label: '📍 Video\'s zonder locatie' })" title="Video's zonder GPS"><div class="getal" id="statVideosZonderGps">—</div><div class="label" data-i18n="lbl_without_location">Zonder locatie</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('videos', { dup: 'uniek', _label: '🎬 Unieke video\'s' })" title="Unieke video's (excl. duplicaten)"><div class="getal" id="statVideosUniek">—</div><div class="label" data-i18n="lbl_unique">Uniek</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('videos', { dup: 'dubbel', _label: '📋 Video\'s met duplicaten' })" title="Video's die duplicaten hebben"><div class="getal" id="statVideosDubbel">—</div><div class="label" data-i18n="lbl_duplicate">Dubbel</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('videos', { locatie: 'met', _label: '📍 Video\'s met locatie' })" title="Video's met GPS-locatie"><div class="getal" id="statVideosMetGps">—</div><div class="label" data-i18n="lbl_with_location">Met locatie</div></div>
+      <div class="stat-kaart klikbaar" onclick="toonPagina('videos', { locatie: 'zonder', zonder_gps: true, _label: '📍 Video\'s zonder locatie' })" title="Video's zonder GPS"><div class="getal" id="statVideosZonderGps">—</div><div class="label" data-i18n="lbl_without_location">Zonder locatie</div></div>
     </div>
     <div class="stat-grid stat-grid-enkel">
       <div class="stat-kaart"><div class="getal" id="statGrootte">—</div><div class="label" data-i18n="lbl_total_size">Totale grootte</div></div>

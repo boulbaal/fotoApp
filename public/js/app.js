@@ -149,9 +149,17 @@ function toonPagina(naam, extraFilter) {
         const sel = document.getElementById('filterLand');
         if (sel) sel.value = extraFilter.land;
       }
+      if (extraFilter?.locatie) {
+        const sel = document.getElementById('filterLocatie');
+        if (sel) sel.value = extraFilter.locatie;
+      }
       if (extraFilter?.zonder_gps) {
         const sel = document.getElementById('filterLocatie');
         if (sel) sel.value = 'zonder';
+      }
+      if (extraFilter?.dup) {
+        const sel = document.getElementById('filterDup');
+        if (sel) sel.value = extraFilter.dup;
       }
       if (extraFilter?.camera_merk || extraFilter?.camera_model) {
         const sel = document.getElementById('filterCamera');
@@ -162,11 +170,40 @@ function toonPagina(naam, extraFilter) {
   }
   if (naam === 'videos') {
     laadBronnenFilterVideo().then(() => {
+      // Reset alle video filter-dropdowns
+      ['filterJaarVideo', 'filterBronVideo', 'filterCameraVideo', 'filterLandVideo', 'filterLocatieVideo', 'filterDupVideo']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+      setVideoZonderGps(false);
+
       if (extraFilter?.jaar) {
         const sel = document.getElementById('filterJaarVideo');
         if (sel) { sel.value = extraFilter.jaar; sel.dataset.gevuld = ''; }
       }
-      if (extraFilter?.zonder_gps) setVideoZonderGps(true);
+      if (extraFilter?.bron_id) {
+        const sel = document.getElementById('filterBronVideo');
+        if (sel) sel.value = extraFilter.bron_id;
+      }
+      if (extraFilter?.land) {
+        const sel = document.getElementById('filterLandVideo');
+        if (sel) sel.value = extraFilter.land;
+      }
+      if (extraFilter?.locatie) {
+        const sel = document.getElementById('filterLocatieVideo');
+        if (sel) sel.value = extraFilter.locatie;
+      }
+      if (extraFilter?.zonder_gps) {
+        const sel = document.getElementById('filterLocatieVideo');
+        if (sel) sel.value = 'zonder';
+        setVideoZonderGps(true);
+      }
+      if (extraFilter?.dup) {
+        const sel = document.getElementById('filterDupVideo');
+        if (sel) sel.value = extraFilter.dup;
+      }
+      if (extraFilter?.camera_merk || extraFilter?.camera_model) {
+        const sel = document.getElementById('filterCameraVideo');
+        if (sel) sel.value = `${extraFilter.camera_merk || ''}${CAMERA_SEP}${extraFilter.camera_model || ''}`;
+      }
       laadVideos(1);
     });
     controleerVideoThumbBanner();
