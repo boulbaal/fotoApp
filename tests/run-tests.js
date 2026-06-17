@@ -64,6 +64,7 @@ async function main() {
   const suites = [
     { naam: 'Database',  fn: require('./database.test.js') },
     { naam: 'Scanner',   fn: require('./scanner.test.js')  },
+    { naam: 'Scripts',   fn: require('./scripts.test.js')  },
   ];
 
   if (metApi) {
