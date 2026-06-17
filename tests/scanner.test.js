@@ -1031,11 +1031,27 @@ module.exports = async function testScanner() {
     if (!code.includes("toonPagina('kaart'")) {
       throw new Error('Landen-grafiek opent de kaart niet (toonPagina(\'kaart\'))');
     }
+    // Foto's: type-filter foto's op dat land
     if (!/toonPagina\('kaart',\s*\{\s*land:[^}]*is_video:\s*'0'/.test(code)) {
       throw new Error('Landen (foto\'s)-grafiek geeft land + is_video 0 niet door');
     }
-    if (!/toonPagina\('kaart',\s*\{\s*land:[^}]*is_video:\s*'1'/.test(code)) {
-      throw new Error('Landen (video\'s)-grafiek geeft land + is_video 1 niet door');
+    // Video's: gecombineerde kaart met video-nadruk op dat land
+    if (!/toonPagina\('kaart',\s*\{\s*land:[^}]*video_nadruk:\s*true/.test(code)) {
+      throw new Error('Landen (video\'s)-grafiek geeft land + video_nadruk niet door');
+    }
+  });
+
+  test('Kaart JS: video-nadruk licht video-locaties uit (gecombineerde kaart)', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/kaart.js'), 'utf8');
+    if (!code.includes('kaartVideoNadruk')) {
+      throw new Error('kaart.js kent geen video-nadruk');
+    }
+    if (!code.includes('km-video-nadruk')) {
+      throw new Error('video-locaties krijgen geen km-video-nadruk klasse');
+    }
+    const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
+    if (!css.includes('.km-marker.km-video-nadruk')) {
+      throw new Error('CSS voor km-video-nadruk ontbreekt');
     }
   });
 

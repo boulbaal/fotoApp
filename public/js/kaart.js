@@ -4,12 +4,17 @@ let markerGroep      = null;
 let actieveLocatie   = null;
 let kaartTypeFilter  = ''; // '' = alles, '0' = foto's, '1' = video's
 let kaartGewensteLand = null; // gewenst land bij openen vanuit dashboard
+let kaartVideoNadruk  = false; // video-locaties extra uitlichten (vanuit Landen video-grafiek)
 
 // ─── INITIALISATIE ────────────────────────────────────────────────────────────
 
 async function laadKaart(extraFilter) {
   // Vanuit dashboard: type-filter (foto/video) + gewenst land instellen
-  if (extraFilter && extraFilter.is_video !== undefined) {
+  kaartVideoNadruk = !!(extraFilter && extraFilter.video_nadruk);
+  if (kaartVideoNadruk) {
+    // Gecombineerde weergave: alle media tonen, video's uitgelicht
+    kaartTypeFilter = '';
+  } else if (extraFilter && extraFilter.is_video !== undefined) {
     kaartTypeFilter = String(extraFilter.is_video);
   }
   if (extraFilter && extraFilter.land) {
@@ -102,6 +107,7 @@ function updateKaartTypeKnoppen() {
 
 function setKaartTypeFilter(type) {
   kaartTypeFilter = type;
+  kaartVideoNadruk = false; // handmatige typewissel heft de video-nadruk op
   updateKaartTypeKnoppen();
   herlaadLocaties();
 }
@@ -175,9 +181,12 @@ function maakFotoIcon(loc) {
                    : gemengd   ? '<div class="km-video-badge km-gemengd">▶/📷</div>'
                    : '';
 
+  // Video-nadruk: locaties met video's krijgen een uitgelichte ring
+  const nadruk = (kaartVideoNadruk && loc.aantal_videos > 0) ? ' km-video-nadruk' : '';
+
   return L.divIcon({
     className: '',
-    html: `<div class="km-marker ${heeftThumbnail ? 'km-heeft-thumb' : ''}"
+    html: `<div class="km-marker ${heeftThumbnail ? 'km-heeft-thumb' : ''}${nadruk}"
                 style="${heeftThumbnail ? `background-image:url('/api/fotos/${loc.voorbeeld_id}/thumbnail')` : ''}">
              ${badge}${videoBadge}
            </div>`,

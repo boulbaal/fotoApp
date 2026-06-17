@@ -58,7 +58,8 @@ async function laadStats() {
     return { ...r, label: (vlag ? vlag + ' ' : '') + r.gps_land };
   });
   tekenBalk('grafiekLandVideo', landenVideoMetVlag, 'label', 'aantal', (rij) => {
-    toonPagina('kaart', { land: rij.gps_land, is_video: '1' });
+    // Gecombineerde kaart: type 'Alles' op dat land, met video-locaties uitgelicht
+    toonPagina('kaart', { land: rij.gps_land, video_nadruk: true });
   }, null, 10);
 
   tekenBalk('grafiekBron', data.perBron.map(b => ({
