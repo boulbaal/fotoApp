@@ -906,6 +906,23 @@ module.exports = async function testScanner() {
     if (!negerenCode.includes('toggleNegeer')) throw new Error('toggleNegeer() ontbreekt');
   });
 
+  test('Negeren JS: genegeerde foto verdwijnt uit de review-lijst', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/negeren.js'), 'utf8');
+    if (!code.includes("classList.add('verdwijnt')")) throw new Error('fade-out (verdwijnt) ontbreekt in toggleNegeerItem');
+    if (!code.includes('el.remove()')) throw new Error('genegeerd item wordt niet uit de DOM verwijderd');
+    if (!code.includes('verlaagNegerenTeller')) throw new Error('teller wordt niet bijgewerkt na negeren');
+  });
+
+  test('CSS: .negeer-item.verdwijnt fade-out aanwezig', () => {
+    const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
+    if (!css.includes('.negeer-item.verdwijnt')) throw new Error('verdwijnt fade-out CSS ontbreekt');
+  });
+
+  test('HTML: Negeren-pagina opent in review-queue (Nog te beoordelen)', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!/value="nog-niet"\s+selected/.test(html)) throw new Error('Negeren-filter staat niet standaard op "Nog te beoordelen"');
+  });
+
   test('CSS: fase-stepper stijlen aanwezig', () => {
     const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
     if (!css.includes('fase-stepper')) throw new Error('fase-stepper CSS ontbreekt');

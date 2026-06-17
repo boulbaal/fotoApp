@@ -2,7 +2,7 @@
 
 async function laadNegeren(pagina = 1) {
   const zoek = document.getElementById('negerenZoek')?.value || '';
-  const filter = document.getElementById('negerenFilter')?.value || 'alle';
+  const filter = document.getElementById('negerenFilter')?.value || 'nog-niet';
 
   const params = new URLSearchParams({
     pagina, per_pagina: 200,
@@ -78,13 +78,37 @@ async function toggleNegeerItem(id, el) {
     body: JSON.stringify({ genegeerd: nieuwGenegeerd })
   });
 
-  if (r.ok) {
-    el.classList.toggle('foto-genegeerd', nieuwGenegeerd);
+  if (!r.ok) return;
+
+  if (nieuwGenegeerd) {
+    // Genegeerd → laat de foto uit de review-lijst verdwijnen (staat nu bij Genegeerd)
+    el.classList.add('verdwijnt');
+    verlaagNegerenTeller();
+    setTimeout(() => {
+      el.remove();
+      const grid = document.getElementById('negerenGrid');
+      if (grid && grid.querySelectorAll('.negeer-item').length === 0) {
+        grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">' + window.i18n.t('geen_negeren') + '</div>';
+      }
+    }, 320);
+  } else {
+    // MEENEMEN → blijft staan, alleen de badge terugzetten
+    el.classList.remove('foto-genegeerd');
     const badge = el.querySelector('.badge-negeren, .badge-meenemen');
     if (badge) {
-      badge.className = `status-badge ${nieuwGenegeerd ? 'badge-negeren' : 'badge-meenemen'}`;
-      badge.textContent = nieuwGenegeerd ? 'NEGEREN' : 'MEENEMEN';
+      badge.className = 'status-badge badge-meenemen';
+      badge.textContent = 'MEENEMEN';
     }
+  }
+}
+
+// Verlaag de "X foto's"-teller met 1 (min. 0)
+function verlaagNegerenTeller() {
+  const teller = document.getElementById('negerenTeller');
+  if (!teller) return;
+  const huidig = parseInt((teller.textContent || '').replace(/[^\d]/g, ''), 10);
+  if (!isNaN(huidig) && huidig > 0) {
+    teller.textContent = `${(huidig - 1).toLocaleString()} foto's`;
   }
 }
 

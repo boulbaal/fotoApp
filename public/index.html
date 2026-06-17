@@ -363,8 +363,8 @@
     <div class="filters">
       <input type="text" id="negerenZoek" placeholder="🔍 Zoeken..." data-i18n-placeholder="zoek_ph" oninput="laadNegeren(1)">
       <select id="negerenFilter" onchange="laadNegeren(1)">
-        <option value="alle">Alle foto's</option>
-        <option value="nog-niet">Nog te beoordelen</option>
+        <option value="nog-niet" selected>Nog te beoordelen</option>
+        <option value="alle">Alle foto's (incl. genegeerd)</option>
       </select>
       <span id="negerenTeller" style="margin-left:auto; color:#888; font-size:13px;"></span>
     </div>

@@ -587,6 +587,12 @@ main { flex: 1; min-width: 0; padding: 24px; max-width: 1216px; }
 .negeer-item { cursor: pointer; }
 .negeer-item:hover { outline: 2px solid #7c6af7; outline-offset: -2px; }
 .negeer-item.foto-genegeerd:hover { outline-color: #dc2626; }
+.negeer-item.verdwijnt {
+  opacity: 0 !important;
+  transform: scale(0.8);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
 .foto-genegeerd { opacity: 0.5; }
 .foto-genegeerd:hover { opacity: 0.75; }
 
