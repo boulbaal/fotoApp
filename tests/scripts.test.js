@@ -86,6 +86,13 @@ module.exports = async function testScripts() {
     }
   });
 
+  // De gebruiker start met "sh ..." (= dash op Ubuntu): geen bash-only syntax.
+  test('start-electron.sh is POSIX-veilig (geen process-substitutie of &>)', () => {
+    if (start.includes('>(') || /[^0-9]&>/.test(start) || start.includes("$'")) {
+      throw new Error('bevat bash-only syntax die met sh/dash crasht');
+    }
+  });
+
   // ─── STOP-ELECTRON INHOUD ───────────────────────────────────────────────────
 
   const stop = lees('stop-electron.sh');
@@ -100,6 +107,12 @@ module.exports = async function testScripts() {
 
   test('stop-electron.sh heeft poort-fallback', () => {
     if (!stop.includes('tcp:3000')) throw new Error('poort-fallback ontbreekt');
+  });
+
+  test('stop-electron.sh is POSIX-veilig (geen process-substitutie of &>)', () => {
+    if (stop.includes('>(') || /[^0-9]&>/.test(stop) || stop.includes("$'")) {
+      throw new Error('bevat bash-only syntax die met sh/dash crasht');
+    }
   });
 
   // ─── ISOLATIE T.O.V. WEB-SCRIPTS ────────────────────────────────────────────

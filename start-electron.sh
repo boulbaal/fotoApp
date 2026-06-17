@@ -22,7 +22,7 @@ fi
 # === STAP 2: ELECTRON AANWEZIG? ===
 if [ -x "./node_modules/.bin/electron" ]; then
   ELECTRON="./node_modules/.bin/electron"
-elif command -v electron &>/dev/null; then
+elif command -v electron >/dev/null 2>&1; then
   ELECTRON="electron"
 else
   echo "❌ Electron niet gevonden."
@@ -48,7 +48,7 @@ if [ $? -ne 0 ]; then
   echo ""
   echo "   Daarna opnieuw: sh start-electron.sh"
   echo ""
-  echo "   (technisch detail: ${NATIVE_FOUT%%$'\n'*})"
+  echo "   (technisch detail: $(printf '%s' "$NATIVE_FOUT" | head -n1))"
   exit 1
 fi
 echo "   ✓ Database-module is Electron-compatibel."
@@ -96,16 +96,23 @@ LOG="electron-uitvoer.log"
 : > "$LOG"
 echo ""
 echo "🚀 Desktop-app starten..."
-# Output naar console én logboek, zodat we na afsluiten kunnen diagnosticeren.
-ELECTRON_RUN=1 "$ELECTRON" . > >(tee "$LOG") 2>&1 &
+# Output naar logboek (POSIX-veilig, werkt ook met 'sh'/dash) zodat we na
+# afsluiten kunnen diagnosticeren. We spiegelen het live mee in de terminal.
+ELECTRON_RUN=1 "$ELECTRON" . >"$LOG" 2>&1 &
 APP_PID=$!
 echo $APP_PID > .electron.pid
+
+# Live meekijken: stopt vanzelf zodra de app sluit (--pid). Best-effort.
+tail -n +1 -f "$LOG" --pid="$APP_PID" 2>/dev/null &
+TAIL_PID=$!
+
 echo ""
 echo "✅ FotoApp desktop draait  (PID $APP_PID)"
 echo "   Stop met: sh stop-electron.sh"
 echo ""
 
-wait $APP_PID
+wait "$APP_PID"
+kill "$TAIL_PID" 2>/dev/null
 rm -f .electron.pid
 
 # === STAP 7: POST-MORTEM DIAGNOSE ===
