@@ -85,13 +85,7 @@ async function laadBronnenFilter() {
 }
 
 // Toon/verberg het uitklap-filterpaneel (Optie C)
-function toggleFilterPaneel(type) {
-  const paneel = document.getElementById(type === 'video' ? 'filterPaneelVideo' : 'filterPaneel');
-  if (!paneel) return;
-  paneel.style.display = (paneel.style.display === 'none' || !paneel.style.display) ? 'flex' : 'none';
-}
-
-// Tel actieve filters en werk de badge op de Filters-knop bij
+// Tel actieve filters en werk de badge op de Filters-knop bij (badge optioneel)
 function updateFilterBadge(type) {
   const v = type === 'video' ? 'Video' : '';
   const ids = ['filterJaar'+v, 'filterCamera'+v, 'filterLand'+v, 'filterBron'+v, 'filterLocatie'+v, 'filterDup'+v];

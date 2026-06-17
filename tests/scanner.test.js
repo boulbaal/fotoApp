@@ -945,21 +945,25 @@ module.exports = async function testScanner() {
     }
   });
 
-  test('HTML: foto-pagina heeft uitklap-filterpaneel met 6 filters', () => {
+  test('HTML: foto-pagina heeft altijd-zichtbaar filterpaneel met 6 filters', () => {
     const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
-    ['filterPaneel', 'filterToggle', 'filterCamera', 'filterLand', 'filterLocatie', 'filterDup']
+    ['filterPaneel', 'filterCamera', 'filterLand', 'filterLocatie', 'filterDup']
       .forEach(id => { if (!html.includes(id)) throw new Error(id + ' ontbreekt in index.html'); });
+    // Filterpaneel mag niet meer verborgen worden achter een toggle-knop
+    if (html.includes('id="filterToggle"')) throw new Error('filterToggle-knop hoort verwijderd te zijn');
+    if (/id="filterPaneel"[^>]*display:\s*none/.test(html)) throw new Error('filterPaneel mag niet verborgen zijn');
   });
 
-  test('HTML: video-pagina heeft uitklap-filterpaneel met 6 filters', () => {
+  test('HTML: video-pagina heeft altijd-zichtbaar filterpaneel met 6 filters', () => {
     const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
-    ['filterPaneelVideo', 'filterToggleVideo', 'filterCameraVideo', 'filterLandVideo', 'filterLocatieVideo', 'filterDupVideo']
+    ['filterPaneelVideo', 'filterCameraVideo', 'filterLandVideo', 'filterLocatieVideo', 'filterDupVideo']
       .forEach(id => { if (!html.includes(id)) throw new Error(id + ' ontbreekt in index.html'); });
+    if (html.includes('id="filterToggleVideo"')) throw new Error('filterToggleVideo-knop hoort verwijderd te zijn');
+    if (/id="filterPaneelVideo"[^>]*display:\s*none/.test(html)) throw new Error('filterPaneelVideo mag niet verborgen zijn');
   });
 
-  test('Fotos JS: toggleFilterPaneel en wisAlleFilters aanwezig', () => {
+  test('Fotos JS: wisAlleFilters en updateFilterBadge aanwezig', () => {
     const code = fs.readFileSync(path.join(__dirname, '../public/js/fotos.js'), 'utf8');
-    if (!code.includes('function toggleFilterPaneel')) throw new Error('toggleFilterPaneel ontbreekt');
     if (!code.includes('function wisAlleFilters')) throw new Error('wisAlleFilters ontbreekt');
     if (!code.includes('function updateFilterBadge')) throw new Error('updateFilterBadge ontbreekt');
   });

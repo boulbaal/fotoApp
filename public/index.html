@@ -201,14 +201,10 @@
   <div class="pagina" id="paginaFotos">
     <div class="filters">
       <input type="text" id="zoekInput" placeholder="🔍 Zoeken op naam, stad, camera..." data-i18n-placeholder="zoek_fotos_ph" oninput="laadFotos(1)">
-      <button type="button" id="filterToggle" class="filter-toggle" onclick="toggleFilterPaneel('foto')">
-        <span>⚙️ <span data-i18n="filter_titel">Filters</span></span>
-        <span id="filterBadge" class="filter-badge" style="display:none">0</span>
-      </button>
       <div id="actieveFilters"></div>
       <span id="fotosTeller" style="margin-left:auto; color:#888; font-size:13px;"></span>
     </div>
-    <div class="filter-paneel" id="filterPaneel" style="display:none">
+    <div class="filter-paneel" id="filterPaneel">
       <div class="filter-veld">
         <label data-i18n="filter_jaar">Jaar</label>
         <select id="filterJaar" onchange="laadFotos(1)"><option value="">Alle jaren</option></select>
@@ -251,13 +247,9 @@
   <div class="pagina" id="paginaVideos">
     <div class="filters">
       <input type="text" id="zoekInputVideo" placeholder="🔍 Zoeken op naam, stad..." data-i18n-placeholder="zoek_videos_ph" oninput="laadVideos(1)">
-      <button type="button" id="filterToggleVideo" class="filter-toggle" onclick="toggleFilterPaneel('video')">
-        <span>⚙️ <span data-i18n="filter_titel">Filters</span></span>
-        <span id="filterBadgeVideo" class="filter-badge" style="display:none">0</span>
-      </button>
       <span id="videosTeller" style="margin-left:auto; color:#888; font-size:13px;"></span>
     </div>
-    <div class="filter-paneel" id="filterPaneelVideo" style="display:none">
+    <div class="filter-paneel" id="filterPaneelVideo">
       <div class="filter-veld">
         <label data-i18n="filter_jaar">Jaar</label>
         <select id="filterJaarVideo" onchange="laadVideos(1)"><option value="">Alle jaren</option></select>
