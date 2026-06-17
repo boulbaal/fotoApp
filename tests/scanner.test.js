@@ -922,5 +922,85 @@ module.exports = async function testScanner() {
     if (!css.includes('wrapped-kaart')) throw new Error('wrapped-kaart CSS ontbreekt');
   });
 
+  // ─── UITGEBREIDE FILTERS (Optie C: uitklap-paneel) ───────────────────────────
+
+  test('API: /fotos ondersteunt met_gps filter (met locatie)', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!code.includes('met_gps') || !code.includes('gps_lat IS NOT NULL')) {
+      throw new Error('met_gps filter ontbreekt in /fotos endpoint');
+    }
+  });
+
+  test('API: /fotos ondersteunt alleen_dubbel filter', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!code.includes('alleen_dubbel') || !code.includes('f.is_duplicaat = 1')) {
+      throw new Error('alleen_dubbel filter ontbreekt in /fotos endpoint');
+    }
+  });
+
+  test('API: /fotos ondersteunt alleen_uniek filter', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!code.includes('alleen_uniek')) {
+      throw new Error('alleen_uniek filter ontbreekt in /fotos endpoint');
+    }
+  });
+
+  test('HTML: foto-pagina heeft uitklap-filterpaneel met 6 filters', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    ['filterPaneel', 'filterToggle', 'filterCamera', 'filterLand', 'filterLocatie', 'filterDup']
+      .forEach(id => { if (!html.includes(id)) throw new Error(id + ' ontbreekt in index.html'); });
+  });
+
+  test('HTML: video-pagina heeft uitklap-filterpaneel met 6 filters', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    ['filterPaneelVideo', 'filterToggleVideo', 'filterCameraVideo', 'filterLandVideo', 'filterLocatieVideo', 'filterDupVideo']
+      .forEach(id => { if (!html.includes(id)) throw new Error(id + ' ontbreekt in index.html'); });
+  });
+
+  test('Fotos JS: toggleFilterPaneel en wisAlleFilters aanwezig', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/fotos.js'), 'utf8');
+    if (!code.includes('function toggleFilterPaneel')) throw new Error('toggleFilterPaneel ontbreekt');
+    if (!code.includes('function wisAlleFilters')) throw new Error('wisAlleFilters ontbreekt');
+    if (!code.includes('function updateFilterBadge')) throw new Error('updateFilterBadge ontbreekt');
+  });
+
+  test('Fotos JS: laadFotos stuurt nieuwe filter-parameters mee', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/fotos.js'), 'utf8');
+    ['met_gps', 'zonder_gps', 'alleen_uniek', 'alleen_dubbel', 'camera_merk', 'land']
+      .forEach(p => { if (!code.includes(p)) throw new Error(p + ' ontbreekt in laadFotos'); });
+  });
+
+  test('Fotos JS: laadBronnenFilter vult camera- en land-dropdown', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/fotos.js'), 'utf8');
+    if (!code.includes('filterCamera') || !code.includes('filterLand')) {
+      throw new Error('camera/land dropdown-vulling ontbreekt in laadBronnenFilter');
+    }
+    if (!code.includes('perCamera') || !code.includes('perLand')) {
+      throw new Error('stats perCamera/perLand niet gebruikt voor dropdowns');
+    }
+  });
+
+  test('Videos JS: laadVideos stuurt nieuwe filter-parameters mee', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/videos.js'), 'utf8');
+    ['met_gps', 'alleen_uniek', 'alleen_dubbel', 'camera_merk', 'land']
+      .forEach(p => { if (!code.includes(p)) throw new Error(p + ' ontbreekt in laadVideos'); });
+  });
+
+  test('CSS: filter-paneel en filter-toggle stijlen aanwezig', () => {
+    const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
+    if (!css.includes('.filter-paneel') || !css.includes('.filter-toggle') || !css.includes('.filter-badge')) {
+      throw new Error('filter-paneel/toggle/badge CSS ontbreekt');
+    }
+  });
+
+  test('i18n: nieuwe filter-sleutels aanwezig in alle 4 talen', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/i18n.js'), 'utf8');
+    const matches = code.match(/filter_dup_dubbel/g) || [];
+    if (matches.length < 4) throw new Error('filter_dup_dubbel niet in alle 4 talen aanwezig');
+    if (!code.includes('filter_locatie_met') || !code.includes('filter_alle_cameras')) {
+      throw new Error('filter i18n-sleutels ontbreken');
+    }
+  });
+
   return resultaten;
 };

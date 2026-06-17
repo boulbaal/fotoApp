@@ -35,30 +35,102 @@ function clearActieveFilter() {
   laadFotos(1);
 }
 
+// Scheidingsteken om camera_merk + camera_model in één dropdown-waarde te coderen
+const CAMERA_SEP = '|::|';
+
 async function laadBronnenFilter() {
   const [bronnen, stats] = await Promise.all([
     fetch('/api/bronnen').then(r => r.json()),
     fetch('/api/stats').then(r => r.json())
   ]);
 
+  const t = (k, val) => (window.i18n ? window.i18n.t(k) : val);
+
   const selBron = document.getElementById('filterBron');
-  selBron.innerHTML = '<option value="">Alle bronnen</option>' +
+  selBron.innerHTML = `<option value="">${t('filter_alle_bronnen', 'Alle bronnen')}</option>` +
     bronnen.map(b => `<option value="${b.id}">${b.icoon} ${b.naam}</option>`).join('');
 
   const selJaar = document.getElementById('filterJaar');
   const huidigJaar = selJaar.value;
-  selJaar.innerHTML = '<option value="">Alle jaren</option>' +
+  selJaar.innerHTML = `<option value="">${t('filter_alle_jaren', 'Alle jaren')}</option>` +
     (stats.perJaar || []).sort((a, b) => b.jaar - a.jaar)
       .map(j => `<option value="${j.jaar}">${j.jaar} (${j.aantal.toLocaleString()})</option>`)
       .join('');
   if (huidigJaar) selJaar.value = huidigJaar;
+
+  // Camera-filter (merk + model gecodeerd in de waarde)
+  const selCamera = document.getElementById('filterCamera');
+  if (selCamera) {
+    const huidigeCamera = selCamera.value;
+    selCamera.innerHTML = `<option value="">${t('filter_alle_cameras', "Alle camera's")}</option>` +
+      (stats.perCamera || []).map(c => {
+        const label = [c.camera_merk, c.camera_model].filter(Boolean).join(' ') || '?';
+        const waarde = `${c.camera_merk || ''}${CAMERA_SEP}${c.camera_model || ''}`;
+        return `<option value="${waarde}">${label} (${(c.aantal || 0).toLocaleString()})</option>`;
+      }).join('');
+    if (huidigeCamera) selCamera.value = huidigeCamera;
+  }
+
+  // Land-filter (met vlag-emoji)
+  const selLand = document.getElementById('filterLand');
+  if (selLand) {
+    const huidigLand = selLand.value;
+    selLand.innerHTML = `<option value="">${t('filter_alle_landen', 'Alle landen')}</option>` +
+      (stats.perLand || []).map(r => {
+        const vlag = r.gps_land_code ? landVlag(r.gps_land_code) : landVlagVanNaam(r.gps_land);
+        return `<option value="${r.gps_land}">${vlag ? vlag + ' ' : ''}${r.gps_land} (${(r.aantal || 0).toLocaleString()})</option>`;
+      }).join('');
+    if (huidigLand) selLand.value = huidigLand;
+  }
+}
+
+// Toon/verberg het uitklap-filterpaneel (Optie C)
+function toggleFilterPaneel(type) {
+  const paneel = document.getElementById(type === 'video' ? 'filterPaneelVideo' : 'filterPaneel');
+  if (!paneel) return;
+  paneel.style.display = (paneel.style.display === 'none' || !paneel.style.display) ? 'flex' : 'none';
+}
+
+// Tel actieve filters en werk de badge op de Filters-knop bij
+function updateFilterBadge(type) {
+  const v = type === 'video' ? 'Video' : '';
+  const ids = ['filterJaar'+v, 'filterCamera'+v, 'filterLand'+v, 'filterBron'+v, 'filterLocatie'+v, 'filterDup'+v];
+  let n = 0;
+  ids.forEach(id => { const el = document.getElementById(id); if (el && el.value) n++; });
+  const badge = document.getElementById(type === 'video' ? 'filterBadgeVideo' : 'filterBadge');
+  if (badge) {
+    badge.textContent = n;
+    badge.style.display = n > 0 ? 'inline-flex' : 'none';
+  }
+}
+
+// Wis alle filters van de foto- of videopagina
+function wisAlleFilters(type) {
+  const v = type === 'video' ? 'Video' : '';
+  ['filterJaar'+v, 'filterCamera'+v, 'filterLand'+v, 'filterBron'+v, 'filterLocatie'+v, 'filterDup'+v]
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  if (type === 'video') {
+    setVideoZonderGps(false);
+    laadVideos(1);
+  } else {
+    setActieveFilter(null);
+    laadFotos(1);
+  }
 }
 
 async function laadFotos(pagina = 1) {
   huidigePagina = pagina;
-  const zoek = document.getElementById('zoekInput').value;
-  const bron = document.getElementById('filterBron').value;
-  const jaar = document.getElementById('filterJaar').value;
+  const zoek    = document.getElementById('zoekInput').value;
+  const bron    = document.getElementById('filterBron').value;
+  const jaar    = document.getElementById('filterJaar').value;
+  const camera  = document.getElementById('filterCamera')?.value  || '';
+  const land    = document.getElementById('filterLand')?.value    || '';
+  const locatie = document.getElementById('filterLocatie')?.value || '';
+  const dup     = document.getElementById('filterDup')?.value     || '';
+
+  // Camera-waarde "merkmodel" splitsen
+  let cameraMerk = '', cameraModel = '';
+  if (camera) { [cameraMerk, cameraModel] = camera.split(CAMERA_SEP); }
 
   const actieveFilter = getActieveFilter();
 
@@ -68,8 +140,17 @@ async function laadFotos(pagina = 1) {
     ...(zoek && { zoek }),
     ...(bron && { bron_id: bron }),
     ...(jaar && { jaar }),
+    ...(cameraMerk  && { camera_merk:  cameraMerk }),
+    ...(cameraModel && { camera_model: cameraModel }),
+    ...(land && { land }),
+    ...(locatie === 'met'    && { met_gps: 1 }),
+    ...(locatie === 'zonder' && { zonder_gps: 1 }),
+    ...(dup === 'uniek'  && { alleen_uniek: 1 }),
+    ...(dup === 'dubbel' && { alleen_dubbel: 1 }),
     ...(actieveFilter?.params || {})
   });
+
+  updateFilterBadge('foto');
 
   // Toon actieve filter chip
   const chipEl = document.getElementById('actieveFilters');

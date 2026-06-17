@@ -200,15 +200,48 @@
   <!-- FOTO'S -->
   <div class="pagina" id="paginaFotos">
     <div class="filters">
-      <input type="text" id="zoekInput" placeholder="🔍 Zoeken op naam, stad, camera..." oninput="laadFotos(1)">
-      <select id="filterBron" onchange="laadFotos(1)">
-        <option value="">Alle bronnen</option>
-      </select>
-      <select id="filterJaar" onchange="laadFotos(1)">
-        <option value="">Alle jaren</option>
-      </select>
+      <input type="text" id="zoekInput" placeholder="🔍 Zoeken op naam, stad, camera..." data-i18n-placeholder="zoek_fotos_ph" oninput="laadFotos(1)">
+      <button type="button" id="filterToggle" class="filter-toggle" onclick="toggleFilterPaneel('foto')">
+        <span>⚙️ <span data-i18n="filter_titel">Filters</span></span>
+        <span id="filterBadge" class="filter-badge" style="display:none">0</span>
+      </button>
       <div id="actieveFilters"></div>
       <span id="fotosTeller" style="margin-left:auto; color:#888; font-size:13px;"></span>
+    </div>
+    <div class="filter-paneel" id="filterPaneel" style="display:none">
+      <div class="filter-veld">
+        <label data-i18n="filter_jaar">Jaar</label>
+        <select id="filterJaar" onchange="laadFotos(1)"><option value="">Alle jaren</option></select>
+      </div>
+      <div class="filter-veld">
+        <label data-i18n="filter_camera">Camera</label>
+        <select id="filterCamera" onchange="laadFotos(1)"><option value="">Alle camera's</option></select>
+      </div>
+      <div class="filter-veld">
+        <label data-i18n="filter_land">Land</label>
+        <select id="filterLand" onchange="laadFotos(1)"><option value="">Alle landen</option></select>
+      </div>
+      <div class="filter-veld">
+        <label data-i18n="filter_bron">Bron</label>
+        <select id="filterBron" onchange="laadFotos(1)"><option value="">Alle bronnen</option></select>
+      </div>
+      <div class="filter-veld">
+        <label data-i18n="filter_locatie">Locatie</label>
+        <select id="filterLocatie" onchange="laadFotos(1)">
+          <option value="" data-i18n="filter_locatie_alle">Met of zonder locatie</option>
+          <option value="met" data-i18n="filter_locatie_met">Met locatie</option>
+          <option value="zonder" data-i18n="filter_locatie_zonder">Zonder locatie</option>
+        </select>
+      </div>
+      <div class="filter-veld">
+        <label data-i18n="filter_dup">Duplicaten</label>
+        <select id="filterDup" onchange="laadFotos(1)">
+          <option value="" data-i18n="filter_dup_alle">Alle</option>
+          <option value="uniek" data-i18n="filter_dup_uniek">Alleen uniek</option>
+          <option value="dubbel" data-i18n="filter_dup_dubbel">Alleen dubbel</option>
+        </select>
+      </div>
+      <button type="button" class="filter-wis" onclick="wisAlleFilters('foto')" data-i18n="filter_wis">Filters wissen</button>
     </div>
     <div class="foto-grid" id="fotoGrid"></div>
     <div class="paginering" id="fotosPaginering"></div>
@@ -218,13 +251,46 @@
   <div class="pagina" id="paginaVideos">
     <div class="filters">
       <input type="text" id="zoekInputVideo" placeholder="🔍 Zoeken op naam, stad..." data-i18n-placeholder="zoek_videos_ph" oninput="laadVideos(1)">
-      <select id="filterBronVideo" onchange="laadVideos(1)">
-        <option value="">Alle bronnen</option>
-      </select>
-      <select id="filterJaarVideo" onchange="laadVideos(1)">
-        <option value="">Alle jaren</option>
-      </select>
+      <button type="button" id="filterToggleVideo" class="filter-toggle" onclick="toggleFilterPaneel('video')">
+        <span>⚙️ <span data-i18n="filter_titel">Filters</span></span>
+        <span id="filterBadgeVideo" class="filter-badge" style="display:none">0</span>
+      </button>
       <span id="videosTeller" style="margin-left:auto; color:#888; font-size:13px;"></span>
+    </div>
+    <div class="filter-paneel" id="filterPaneelVideo" style="display:none">
+      <div class="filter-veld">
+        <label data-i18n="filter_jaar">Jaar</label>
+        <select id="filterJaarVideo" onchange="laadVideos(1)"><option value="">Alle jaren</option></select>
+      </div>
+      <div class="filter-veld">
+        <label data-i18n="filter_camera">Camera</label>
+        <select id="filterCameraVideo" onchange="laadVideos(1)"><option value="">Alle camera's</option></select>
+      </div>
+      <div class="filter-veld">
+        <label data-i18n="filter_land">Land</label>
+        <select id="filterLandVideo" onchange="laadVideos(1)"><option value="">Alle landen</option></select>
+      </div>
+      <div class="filter-veld">
+        <label data-i18n="filter_bron">Bron</label>
+        <select id="filterBronVideo" onchange="laadVideos(1)"><option value="">Alle bronnen</option></select>
+      </div>
+      <div class="filter-veld">
+        <label data-i18n="filter_locatie">Locatie</label>
+        <select id="filterLocatieVideo" onchange="laadVideos(1)">
+          <option value="" data-i18n="filter_locatie_alle">Met of zonder locatie</option>
+          <option value="met" data-i18n="filter_locatie_met">Met locatie</option>
+          <option value="zonder" data-i18n="filter_locatie_zonder">Zonder locatie</option>
+        </select>
+      </div>
+      <div class="filter-veld">
+        <label data-i18n="filter_dup">Duplicaten</label>
+        <select id="filterDupVideo" onchange="laadVideos(1)">
+          <option value="" data-i18n="filter_dup_alle">Alle</option>
+          <option value="uniek" data-i18n="filter_dup_uniek">Alleen uniek</option>
+          <option value="dubbel" data-i18n="filter_dup_dubbel">Alleen dubbel</option>
+        </select>
+      </div>
+      <button type="button" class="filter-wis" onclick="wisAlleFilters('video')" data-i18n="filter_wis">Filters wissen</button>
     </div>
     <!-- Thumbnails achtergrond banner -->
     <div id="videoThumbBanner" style="display:none; background:#111827; border:1px solid #1f2937; border-radius:8px; padding:12px 18px; margin-bottom:16px; align-items:center; gap:14px; flex-wrap:wrap;">

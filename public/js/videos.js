@@ -67,41 +67,81 @@ async function startVideoThumbnails() {
 }
 
 async function laadBronnenFilterVideo() {
-  const bronnen = await fetch('/api/bronnen').then(r => r.json());
+  const [bronnen, stats] = await Promise.all([
+    fetch('/api/bronnen').then(r => r.json()),
+    fetch('/api/stats').then(r => r.json())
+  ]);
+  const t = (k, val) => (window.i18n ? window.i18n.t(k) : val);
+
   const sel = document.getElementById('filterBronVideo');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">Alle bronnen</option>' +
-    bronnen.map(b => `<option value="${b.id}">${b.icoon} ${b.naam}</option>`).join('');
+  if (sel) {
+    sel.innerHTML = `<option value="">${t('filter_alle_bronnen', 'Alle bronnen')}</option>` +
+      bronnen.map(b => `<option value="${b.id}">${b.icoon} ${b.naam}</option>`).join('');
+  }
+
+  const selJaar = document.getElementById('filterJaarVideo');
+  if (selJaar) {
+    const huidigJaar = selJaar.value;
+    selJaar.innerHTML = `<option value="">${t('filter_alle_jaren', 'Alle jaren')}</option>` +
+      (stats.perJaarVideo || stats.perJaar || []).sort((a, b) => b.jaar - a.jaar)
+        .map(j => `<option value="${j.jaar}">${j.jaar}</option>`).join('');
+    if (huidigJaar) selJaar.value = huidigJaar;
+    selJaar.dataset.gevuld = '1';
+  }
+
+  const selCamera = document.getElementById('filterCameraVideo');
+  if (selCamera) {
+    selCamera.innerHTML = `<option value="">${t('filter_alle_cameras', "Alle camera's")}</option>` +
+      (stats.perCameraVideo || []).map(c => {
+        const label = [c.camera_merk, c.camera_model].filter(Boolean).join(' ') || '?';
+        const waarde = `${c.camera_merk || ''}${CAMERA_SEP}${c.camera_model || ''}`;
+        return `<option value="${waarde}">${label} (${(c.aantal || 0).toLocaleString()})</option>`;
+      }).join('');
+  }
+
+  const selLand = document.getElementById('filterLandVideo');
+  if (selLand) {
+    selLand.innerHTML = `<option value="">${t('filter_alle_landen', 'Alle landen')}</option>` +
+      (stats.perLandVideo || []).map(r => {
+        const vlag = r.gps_land_code ? landVlag(r.gps_land_code) : landVlagVanNaam(r.gps_land);
+        return `<option value="${r.gps_land}">${vlag ? vlag + ' ' : ''}${r.gps_land} (${(r.aantal || 0).toLocaleString()})</option>`;
+      }).join('');
+  }
 }
 
 async function laadVideos(pagina = 1) {
   huidigePaginaVideo = pagina;
-  const zoek = document.getElementById('zoekInputVideo')?.value || '';
-  const bron = document.getElementById('filterBronVideo')?.value || '';
-  const jaar = document.getElementById('filterJaarVideo')?.value || '';
+  const zoek    = document.getElementById('zoekInputVideo')?.value    || '';
+  const bron    = document.getElementById('filterBronVideo')?.value    || '';
+  const jaar    = document.getElementById('filterJaarVideo')?.value    || '';
+  const camera  = document.getElementById('filterCameraVideo')?.value  || '';
+  const land    = document.getElementById('filterLandVideo')?.value    || '';
+  const locatie = document.getElementById('filterLocatieVideo')?.value || '';
+  const dup     = document.getElementById('filterDupVideo')?.value     || '';
+
+  let cameraMerk = '', cameraModel = '';
+  if (camera) { [cameraMerk, cameraModel] = camera.split(CAMERA_SEP); }
+
+  // videoZonderGpsFilter (vanuit dashboard) telt mee als 'zonder locatie'
+  const zonderGps = locatie === 'zonder' || videoZonderGpsFilter;
 
   const params = new URLSearchParams({
     pagina, per_pagina: 100, is_video: 1, zonder_kopien: 1,
     ...(zoek && { zoek }),
     ...(bron && { bron_id: bron }),
     ...(jaar && { jaar }),
-    ...(videoZonderGpsFilter && { zonder_gps: '1' }),
+    ...(cameraMerk  && { camera_merk:  cameraMerk }),
+    ...(cameraModel && { camera_model: cameraModel }),
+    ...(land && { land }),
+    ...(locatie === 'met' && { met_gps: 1 }),
+    ...(zonderGps && { zonder_gps: 1 }),
+    ...(dup === 'uniek'  && { alleen_uniek: 1 }),
+    ...(dup === 'dubbel' && { alleen_dubbel: 1 }),
   });
 
-  const data = await fetch('/api/fotos?' + params).then(r => r.json());
+  if (typeof updateFilterBadge === 'function') updateFilterBadge('video');
 
-  // Bijwerk jaar-filter opties
-  const selJaar = document.getElementById('filterJaarVideo');
-  if (selJaar && !selJaar.dataset.gevuld) {
-    const stats = await fetch('/api/stats').then(r => r.json());
-    const huidigJaar = selJaar.value;
-    selJaar.innerHTML = '<option value="">Alle jaren</option>' +
-      (stats.perJaar || []).sort((a, b) => b.jaar - a.jaar)
-        .map(j => `<option value="${j.jaar}">${j.jaar}</option>`)
-        .join('');
-    if (huidigJaar) selJaar.value = huidigJaar;
-    selJaar.dataset.gevuld = '1';
-  }
+  const data = await fetch('/api/fotos?' + params).then(r => r.json());
 
   const teller = document.getElementById('videosTeller');
   if (teller) teller.textContent = `${data.totaal.toLocaleString()} video${data.totaal === 1 ? '' : "'s"}`;

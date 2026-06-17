@@ -233,7 +233,7 @@ router.get('/wrapped', (req, res) => {
 
 router.get('/fotos', (req, res) => {
   const db = getDb();
-  const { pagina = 1, per_pagina = 50, bron_id, jaar, zoek, zonder_thumbnail, land, camera_merk, camera_model, zonder_kopien, zonder_gps, genegeerd, is_video } = req.query;
+  const { pagina = 1, per_pagina = 50, bron_id, jaar, zoek, zonder_thumbnail, land, camera_merk, camera_model, zonder_kopien, zonder_gps, met_gps, alleen_dubbel, alleen_uniek, genegeerd, is_video } = req.query;
   const offset = (parseInt(pagina) - 1) * parseInt(per_pagina);
 
   let waar = '1=1';
@@ -246,6 +246,9 @@ router.get('/fotos', (req, res) => {
   if (camera_model) { waar += ' AND f.camera_model = ?';  params.push(camera_model); }
   if (zoek) { waar += ' AND (f.bestandsnaam LIKE ? OR f.gps_stad LIKE ? OR f.camera_model LIKE ?)'; params.push(`%${zoek}%`, `%${zoek}%`, `%${zoek}%`); }
   if (zonder_gps === '1') { waar += ' AND (f.gps_lat IS NULL OR f.gps_lat = 0)'; }
+  if (met_gps === '1')    { waar += ' AND f.gps_lat IS NOT NULL AND f.gps_lat != 0'; }
+  if (alleen_dubbel === '1') { waar += ' AND f.is_duplicaat = 1'; }
+  if (alleen_uniek === '1')  { waar += ' AND COALESCE(f.is_duplicaat,0) = 0'; }
   if (genegeerd === '1')  { waar += ' AND f.genegeerd = 1'; }
   if (genegeerd === '0')  { waar += ' AND (f.genegeerd IS NULL OR f.genegeerd = 0)'; }
   if (is_video === '1')   { waar += ' AND f.is_video = 1'; }

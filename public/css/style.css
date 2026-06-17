@@ -424,6 +424,78 @@ main { flex: 1; min-width: 0; padding: 24px; max-width: 1216px; }
 }
 .filter-chip button:hover { color: #fff; }
 
+/* === FILTER-KNOP + UITKLAP-PANEEL (Optie C) === */
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: #e0e0e0;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.filter-toggle:hover { border-color: #7c6af7; background: #20202e; }
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: #7c6af7;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.filter-paneel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+  background: #15151f;
+  border: 1px solid #2a2a3a;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.filter-veld {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.filter-veld label {
+  font-size: 12px;
+  color: #8a8a9a;
+  font-weight: 500;
+}
+.filter-veld select {
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #e0e0e0;
+  font-size: 14px;
+  min-width: 150px;
+}
+.filter-veld select:hover { border-color: #3a3a4a; }
+.filter-wis {
+  background: none;
+  border: 1px solid #2a2a3a;
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: #a99af7;
+  font-size: 13px;
+  cursor: pointer;
+  height: 37px;
+  align-self: flex-end;
+}
+.filter-wis:hover { border-color: #7c6af7; color: #fff; }
+
 .bar-rij.klikbaar:hover .bar-fill { background: #9d8ef9; }
 
 .foto-grid {

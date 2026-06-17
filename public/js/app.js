@@ -137,26 +137,25 @@ function toonPagina(naam, extraFilter) {
   if (naam === 'genegeerd') laadGenegeerd(1);
   if (naam === 'fotos') {
     laadBronnenFilter().then(() => {
-      document.getElementById('filterJaar').value = '';
-      document.getElementById('filterBron').value = '';
+      // Reset alle filter-dropdowns
+      ['filterJaar', 'filterBron', 'filterCamera', 'filterLand', 'filterLocatie', 'filterDup']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
       setActieveFilter(null);
 
+      // Klik vanaf dashboard → zet de juiste dropdown, zodat het paneel de staat toont
       if (extraFilter?.jaar)    document.getElementById('filterJaar').value = extraFilter.jaar;
       if (extraFilter?.bron_id) document.getElementById('filterBron').value = extraFilter.bron_id;
       if (extraFilter?.land) {
-        setActieveFilter({ params: { land: extraFilter.land }, label: extraFilter._label });
+        const sel = document.getElementById('filterLand');
+        if (sel) sel.value = extraFilter.land;
       }
       if (extraFilter?.zonder_gps) {
-        setActieveFilter({ params: { zonder_gps: '1' }, label: extraFilter._label || '📍 Zonder locatie' });
+        const sel = document.getElementById('filterLocatie');
+        if (sel) sel.value = 'zonder';
       }
       if (extraFilter?.camera_merk || extraFilter?.camera_model) {
-        setActieveFilter({
-          params: {
-            ...(extraFilter.camera_merk  && { camera_merk:  extraFilter.camera_merk }),
-            ...(extraFilter.camera_model && { camera_model: extraFilter.camera_model })
-          },
-          label: extraFilter._label
-        });
+        const sel = document.getElementById('filterCamera');
+        if (sel) sel.value = `${extraFilter.camera_merk || ''}${CAMERA_SEP}${extraFilter.camera_model || ''}`;
       }
       laadFotos(1);
     });
