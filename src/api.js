@@ -644,12 +644,16 @@ router.get('/duplicaten', (req, res) => {
            MIN(datum_foto) as datum, MIN(bestandsnaam) as voorbeeld_naam
     FROM fotos WHERE duplicaat_groep IS NOT NULL
     GROUP BY duplicaat_groep
+    HAVING COUNT(*) > 1
     ORDER BY aantal DESC
     LIMIT ? OFFSET ?
   `).all(parseInt(per_pagina), offset);
 
   const totaalGroepen = db.prepare(`
-    SELECT COUNT(DISTINCT duplicaat_groep) as n FROM fotos WHERE duplicaat_groep IS NOT NULL
+    SELECT COUNT(*) as n FROM (
+      SELECT duplicaat_groep FROM fotos WHERE duplicaat_groep IS NOT NULL
+      GROUP BY duplicaat_groep HAVING COUNT(*) > 1
+    )
   `).get().n;
 
   // Per groep de foto's ophalen
@@ -714,6 +718,20 @@ function verzamelDuplicaatPlan(db, bronVolgorde, handmatig, groepFilter) {
   return { teWissen, keuzeNodig, groepenKlaar };
 }
 
+// Schoon duplicaat-restanten op: als een groep nog maar <= 1 foto telt,
+// is die foto geen duplicaat meer → is_duplicaat=0 en duplicaat_groep=NULL.
+// groepen: array van duplicaat_groep-hashes die mogelijk opgeschoond moeten worden.
+function schoonDuplicaatGroepenOp(db, groepen) {
+  let opgeschoond = 0;
+  const uniek = [...new Set((groepen || []).filter(Boolean))];
+  const telPrep = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE duplicaat_groep = ?');
+  const wisPrep = db.prepare('UPDATE fotos SET is_duplicaat = 0, duplicaat_groep = NULL WHERE duplicaat_groep = ?');
+  for (const g of uniek) {
+    if (telPrep.get(g).n <= 1) opgeschoond += wisPrep.run(g).changes;
+  }
+  return opgeschoond;
+}
+
 // Voorbeeld van wat er gewist zou worden (voor de bevestiging) — wist niets.
 router.post('/duplicaten/wis-preview', (req, res) => {
   const db = getDb();
@@ -772,6 +790,11 @@ router.post('/duplicaten/wis', async (req, res) => {
       const ph = teVerwijderen.map(() => '?').join(',');
       db.prepare(`DELETE FROM fotos WHERE id IN (${ph})`).run(...teVerwijderen);
     }
+
+    // Keeper(s) van getroffen groepen opschonen: geen kopie meer = geen duplicaat meer
+    const verwijderdeSet = new Set(teVerwijderen);
+    const getroffenGroepen = teWissen.filter(f => verwijderdeSet.has(f.id)).map(f => f.duplicaat_groep);
+    schoonDuplicaatGroepenOp(db, getroffenGroepen);
 
     db.close();
     res.json({
@@ -1149,6 +1172,9 @@ router.post('/genegeerd/verwijder', async (req, res) => {
       db.prepare(`DELETE FROM fotos WHERE id IN (${ph})`).run(...teVerwijderen);
     }
 
+    // Eventuele restanten van betrokken groepen opschonen (bv. bij mislukte trash)
+    schoonDuplicaatGroepenOp(db, groepen);
+
     db.close();
     res.json({
       ok: true,
@@ -1168,7 +1194,7 @@ router.post('/genegeerd/verwijder', async (req, res) => {
 router.post('/fotos/:id/verwijder', async (req, res) => {
   const db = getDb();
   try {
-    const foto = db.prepare('SELECT id, volledig_pad FROM fotos WHERE id = ?').get(req.params.id);
+    const foto = db.prepare('SELECT id, volledig_pad, duplicaat_groep FROM fotos WHERE id = ?').get(req.params.id);
     if (!foto) { db.close(); return res.status(404).json({ fout: 'niet gevonden' }); }
 
     let naarPrullenbak = false;
@@ -1181,6 +1207,8 @@ router.post('/fotos/:id/verwijder', async (req, res) => {
     }
 
     db.prepare('DELETE FROM fotos WHERE id = ?').run(foto.id);
+    // Restant van de duplicaatgroep opschonen: 1 over = geen duplicaat meer
+    if (foto.duplicaat_groep) schoonDuplicaatGroepenOp(db, [foto.duplicaat_groep]);
     db.close();
     res.json({ ok: true, naarPrullenbak, ontbrak: !naarPrullenbak });
   } catch (e) {

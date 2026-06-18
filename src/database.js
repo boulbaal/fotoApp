@@ -141,6 +141,21 @@ function initDb() {
     console.log('✅ Migratie: is_video kolom toegevoegd');
   }
 
+  // Opschoning: verweesde duplicaat-restanten herstellen.
+  // Na het wissen van een duplicaatgroep kan er een enkele foto overblijven
+  // die nog is_duplicaat=1 en een duplicaat_groep had. Die is geen duplicaat meer.
+  const verweesd = db.prepare(`
+    UPDATE fotos SET is_duplicaat = 0, duplicaat_groep = NULL
+    WHERE duplicaat_groep IN (
+      SELECT duplicaat_groep FROM fotos
+      WHERE duplicaat_groep IS NOT NULL
+      GROUP BY duplicaat_groep HAVING COUNT(*) <= 1
+    )
+  `).run();
+  if (verweesd.changes > 0) {
+    console.log(`✅ Migratie: ${verweesd.changes} verweesde duplicaat-restant(en) opgeschoond`);
+  }
+
   // Standaard fase instellen
   db.prepare("INSERT OR IGNORE INTO instellingen (sleutel, waarde) VALUES ('fase', '1')").run();
 

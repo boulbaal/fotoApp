@@ -1016,6 +1016,28 @@ module.exports = async function testScanner() {
     if (!css.includes('.prio-modal')) throw new Error('prioriteit-modal stijl ontbreekt');
   });
 
+  test('API: keeper opschonen na wissen (geen verweesde DUP-restant)', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes('function schoonDuplicaatGroepenOp')) throw new Error('opschoon-helper ontbreekt');
+    if (!apiCode.includes('is_duplicaat = 0, duplicaat_groep = NULL')) throw new Error('keeper wordt niet ontmarkeerd');
+    // De drie wis-routes moeten de opschoning aanroepen
+    const aantal = (apiCode.match(/schoonDuplicaatGroepenOp\(db,/g) || []).length;
+    if (aantal < 3) throw new Error('opschoning niet overal aangeroepen (verwacht >= 3)');
+  });
+
+  test('API: duplicaten-overzicht toont geen 1-lid-groepen', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    const blok = apiCode.slice(apiCode.indexOf("router.get('/duplicaten'"));
+    if (!blok.includes('HAVING COUNT(*) > 1')) throw new Error('1-lid-groepen worden niet uitgefilterd');
+  });
+
+  test('DB: migratie schoont verweesde duplicaat-restanten op', () => {
+    const dbCode = fs.readFileSync(path.join(__dirname, '../src/database.js'), 'utf8');
+    if (!dbCode.includes('verweesde duplicaat-restant')) throw new Error('opschoon-migratie ontbreekt');
+    if (!dbCode.includes('HAVING COUNT(*) <= 1')) throw new Error('migratie selecteert geen 1-lid-groepen');
+    if (!dbCode.includes('is_duplicaat = 0, duplicaat_groep = NULL')) throw new Error('migratie ontmarkeert niet');
+  });
+
   test('CSS: fase-stepper stijlen aanwezig', () => {
     const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
     if (!css.includes('fase-stepper')) throw new Error('fase-stepper CSS ontbreekt');
