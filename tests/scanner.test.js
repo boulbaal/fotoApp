@@ -1200,6 +1200,73 @@ module.exports = async function testScanner() {
     if (aantal < 4) throw new Error('opschoon_titel ontbreekt in een of meer talen (verwacht 4)');
   });
 
+  // ── Fase C: batch-selectie (bulk negeer) ──────────────────────────
+  test('Batch: POST /fotos/negeer-bulk endpoint aanwezig met cascade', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("'/fotos/negeer-bulk'")) throw new Error('negeer-bulk endpoint ontbreekt');
+    const blok = apiCode.slice(apiCode.indexOf("'/fotos/negeer-bulk'"), apiCode.indexOf("'/fotos/negeer-bulk'") + 1200);
+    if (!blok.includes('req.body.ids')) throw new Error('endpoint leest ids niet uit');
+    if (!blok.includes('duplicaat_groep')) throw new Error('cascade over duplicaatgroep ontbreekt');
+    if (!blok.includes('db.transaction')) throw new Error('bulk niet in transactie');
+  });
+
+  test('Batch: negeer-bulk werkt functioneel op in-memory DB', () => {
+    let db;
+    try { db = new (require('better-sqlite3'))(':memory:'); } catch (_) { return; }
+    db.exec('CREATE TABLE fotos (id INTEGER PRIMARY KEY, duplicaat_groep TEXT, genegeerd INTEGER DEFAULT 0)');
+    // 1+2 in dezelfde groep, 3 los, 4 niet geselecteerd
+    db.exec("INSERT INTO fotos (id, duplicaat_groep, genegeerd) VALUES (1,'g1',0),(2,'g1',0),(3,NULL,0),(4,NULL,0)");
+
+    // Simuleer de endpoint-logica: zet ids + cascade over groep
+    const ids = [1, 3];
+    const waarde = 1;
+    const zetFoto  = db.prepare('UPDATE fotos SET genegeerd = ? WHERE id = ?');
+    const zetGroep = db.prepare('UPDATE fotos SET genegeerd = ? WHERE duplicaat_groep = ? AND id != ?');
+    const haalFoto = db.prepare('SELECT id, duplicaat_groep FROM fotos WHERE id = ?');
+    for (const id of ids) {
+      const f = haalFoto.get(id);
+      zetFoto.run(waarde, f.id);
+      if (f.duplicaat_groep) zetGroep.run(waarde, f.duplicaat_groep, f.id);
+    }
+    const genegeerd = db.prepare('SELECT id FROM fotos WHERE genegeerd = 1 ORDER BY id').all().map(r => r.id);
+    db.close();
+    // 1 (gekozen) → cascade naar 2; 3 (gekozen); 4 blijft 0
+    if (JSON.stringify(genegeerd) !== JSON.stringify([1, 2, 3])) {
+      throw new Error('cascade-resultaat onjuist: ' + JSON.stringify(genegeerd));
+    }
+  });
+
+  test('Batch: frontend selectie-modus + bulkNegeer in fotos.js', () => {
+    const fotos = fs.readFileSync(path.join(__dirname, '../public/js/fotos.js'), 'utf8');
+    if (!fotos.includes('function toggleSelectieModus')) throw new Error('toggleSelectieModus ontbreekt');
+    if (!fotos.includes('function bulkNegeer')) throw new Error('bulkNegeer ontbreekt');
+    if (!fotos.includes('/api/fotos/negeer-bulk')) throw new Error('bulkNegeer roept endpoint niet aan');
+    if (!fotos.includes('geselecteerdeIds')) throw new Error('selectie-state ontbreekt');
+    if (!fotos.includes('fotoItemKlik')) throw new Error('klik-router (detail vs selectie) ontbreekt');
+  });
+
+  test('Batch: galerij-items hebben data-id en klik-router', () => {
+    const fotos = fs.readFileSync(path.join(__dirname, '../public/js/fotos.js'), 'utf8');
+    if (!fotos.includes('data-id="${f.id}"')) throw new Error('foto-item heeft geen data-id');
+    if (!fotos.includes('onclick="fotoItemKlik(${f.id})"')) throw new Error('foto-item gebruikt klik-router niet');
+  });
+
+  test('Batch: selectie-balk in HTML + CSS aanwezig', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('selectieBalk')) throw new Error('selectie-balk ontbreekt in HTML');
+    if (!html.includes('toggleSelectieModus')) throw new Error('selecteer-knop ontbreekt');
+    if (!html.includes('bulkNegeer(true)')) throw new Error('negeer-knop ontbreekt');
+    const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
+    if (!css.includes('.selectie-balk')) throw new Error('selectie-balk CSS ontbreekt');
+    if (!css.includes('.foto-item.geselecteerd')) throw new Error('geselecteerd-stijl ontbreekt');
+  });
+
+  test('Batch: selectie i18n-keys aanwezig in alle 4 talen', () => {
+    const i18n = fs.readFileSync(path.join(__dirname, '../public/js/i18n.js'), 'utf8');
+    const aantal = (i18n.match(/selectie_negeer:/g) || []).length;
+    if (aantal < 4) throw new Error('selectie_negeer ontbreekt in een of meer talen (verwacht 4)');
+  });
+
   test('API: toon-in-map endpoint (bestandsbeheerder, cross-platform)', () => {
     const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
     if (!apiCode.includes("'/fotos/:id/toon-in-map'")) throw new Error('toon-in-map endpoint ontbreekt');

@@ -221,6 +221,16 @@
       <input type="text" id="zoekInput" placeholder="🔍 Zoeken op naam, stad, camera..." data-i18n-placeholder="zoek_fotos_ph" oninput="laadFotos(1)">
       <div id="actieveFilters"></div>
       <span id="fotosTeller" style="margin-left:auto; color:#888; font-size:13px;"></span>
+      <button type="button" id="selectieKnop" class="btn btn-secundair" style="font-size:13px"
+        onclick="toggleSelectieModus()" data-i18n="selectie_start">☑️ Selecteren</button>
+    </div>
+    <div class="selectie-balk" id="selectieBalk" style="display:none">
+      <span id="selectieTeller" class="selectie-teller">0 geselecteerd</span>
+      <button type="button" class="btn btn-secundair" style="font-size:13px" onclick="selecteerAlleZichtbaar()" data-i18n="selectie_alle">Alles op pagina</button>
+      <button type="button" class="btn btn-secundair" style="font-size:13px" onclick="wisSelectie()" data-i18n="selectie_wis">Wis selectie</button>
+      <span style="flex:1"></span>
+      <button type="button" class="btn btn-secundair" style="font-size:13px" onclick="bulkNegeer(true)" data-i18n="selectie_negeer">🚫 Negeer geselecteerde</button>
+      <button type="button" class="btn btn-secundair" style="font-size:13px" onclick="bulkNegeer(false)" data-i18n="selectie_meenemen">✅ Toch meenemen</button>
     </div>
     <div class="filter-paneel" id="filterPaneel">
       <div class="filter-veld">

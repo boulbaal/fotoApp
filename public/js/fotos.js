@@ -1,6 +1,82 @@
 let huidigePagina = 1;
 // Altijd originelen tonen — kopieën worden nooit getoond in de galerij
 
+// ── Selectie-modus (Fase C batch) ───────────────────────────────────
+// Wanneer aan: klikken op een foto selecteert i.p.v. detail openen.
+let selectieModus = false;
+const geselecteerdeIds = new Set();
+
+function tt(k, f) { return (window.i18n ? window.i18n.t(k) : f) || f; }
+
+function toggleSelectieModus() {
+  selectieModus = !selectieModus;
+  if (!selectieModus) geselecteerdeIds.clear();
+  const balk = document.getElementById('selectieBalk');
+  if (balk) balk.style.display = selectieModus ? 'flex' : 'none';
+  const knop = document.getElementById('selectieKnop');
+  if (knop) {
+    knop.textContent = selectieModus ? '✕ ' + tt('selectie_stop', 'Stop selecteren') : '☑️ ' + tt('selectie_start', 'Selecteren');
+    knop.classList.toggle('actief', selectieModus);
+  }
+  werkSelectieUiBij();
+  herstelSelectieMarkering();
+}
+
+function wisSelectie() {
+  geselecteerdeIds.clear();
+  werkSelectieUiBij();
+  herstelSelectieMarkering();
+}
+
+function selecteerAlleZichtbaar() {
+  document.querySelectorAll('#fotoGrid .foto-item[data-id]').forEach(el => {
+    geselecteerdeIds.add(Number(el.dataset.id));
+  });
+  werkSelectieUiBij();
+  herstelSelectieMarkering();
+}
+
+function toggleSelectie(id) {
+  if (geselecteerdeIds.has(id)) geselecteerdeIds.delete(id);
+  else geselecteerdeIds.add(id);
+  werkSelectieUiBij();
+  herstelSelectieMarkering();
+}
+
+function werkSelectieUiBij() {
+  const t = document.getElementById('selectieTeller');
+  if (t) t.textContent = `${geselecteerdeIds.size} ${tt('selectie_geselecteerd', 'geselecteerd')}`;
+}
+
+function herstelSelectieMarkering() {
+  document.querySelectorAll('#fotoGrid .foto-item[data-id]').forEach(el => {
+    el.classList.toggle('geselecteerd', geselecteerdeIds.has(Number(el.dataset.id)));
+  });
+}
+
+// Centrale klik-afhandeling: in selectiemodus toggelen, anders detail tonen.
+function fotoItemKlik(id) {
+  if (selectieModus) toggleSelectie(id);
+  else toonDetail(id);
+}
+
+async function bulkNegeer(negeren) {
+  const ids = [...geselecteerdeIds];
+  if (ids.length === 0) {
+    alert(tt('selectie_niets', 'Selecteer eerst een of meer foto\'s.'));
+    return;
+  }
+  const r = await fetch('/api/fotos/negeer-bulk', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, genegeerd: negeren })
+  });
+  if (!r.ok) { alert(tt('selectie_fout', 'Bulk-actie mislukt')); return; }
+  geselecteerdeIds.clear();
+  werkSelectieUiBij();
+  await laadFotos(huidigePagina);
+}
+
 // Actieve filter opgeslagen in DOM (hidden inputs) — robuuster dan JS variabele
 function setActieveFilter(filter) {
   const el = document.getElementById('actieveFilters');
@@ -166,7 +242,8 @@ async function laadFotos(pagina = 1) {
   }
 
   grid.innerHTML = data.fotos.map(f => `
-    <div class="foto-item" onclick="toonDetail(${f.id})">
+    <div class="foto-item${geselecteerdeIds.has(f.id) ? ' geselecteerd' : ''}" data-id="${f.id}" onclick="fotoItemKlik(${f.id})">
+      <div class="selectie-vink">✓</div>
       ${f.is_duplicaat ? '<div class="dup-badge">DUP</div>' : ''}
       ${f.geexporteerd ? '<div class="export-badge">✓</div>' : ''}
       ${f.is_video ? `<div class="video-badge">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>` : ''}

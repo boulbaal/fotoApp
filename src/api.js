@@ -1228,6 +1228,40 @@ router.post('/fotos/:id/negeer', (req, res) => {
   res.json({ ok: true, genegeerd: waarde === 1, aantalGewijzigd });
 });
 
+// Bulk: markeer meerdere foto's tegelijk als genegeerd / niet-genegeerd (fase C batch).
+// Body: { ids: [..], genegeerd: true|false }. Cascadeert per foto over de duplicaatgroep,
+// zodat een hele groep consistent mee-genegeerd wordt (zelfde regel als /fotos/:id/negeer).
+router.post('/fotos/negeer-bulk', (req, res) => {
+  const db = getDb();
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number).filter(Boolean) : [];
+    if (ids.length === 0) { return res.status(400).json({ fout: 'geen ids' }); }
+    const waarde = req.body.genegeerd !== false ? 1 : 0;
+
+    const zetFoto   = db.prepare('UPDATE fotos SET genegeerd = ? WHERE id = ?');
+    const zetGroep  = db.prepare('UPDATE fotos SET genegeerd = ? WHERE duplicaat_groep = ? AND id != ?');
+    const haalFoto  = db.prepare('SELECT id, duplicaat_groep FROM fotos WHERE id = ?');
+
+    let aantalGewijzigd = 0;
+    const tx = db.transaction(() => {
+      for (const id of ids) {
+        const foto = haalFoto.get(id);
+        if (!foto) continue;
+        zetFoto.run(waarde, foto.id);
+        aantalGewijzigd += 1;
+        if (foto.duplicaat_groep) {
+          aantalGewijzigd += zetGroep.run(waarde, foto.duplicaat_groep, foto.id).changes;
+        }
+      }
+    });
+    tx();
+
+    res.json({ ok: true, genegeerd: waarde === 1, aantalGevraagd: ids.length, aantalGewijzigd });
+  } finally {
+    db.close();
+  }
+});
+
 // Verwijder ALLE genegeerde foto's definitief: naar prullenbak + uit database
 // - selecteert alle genegeerd=1 foto's
 // - cascade: hele duplicaatgroep van elke genegeerde foto wordt meegenomen

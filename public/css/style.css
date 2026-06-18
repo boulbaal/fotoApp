@@ -568,6 +568,27 @@ main { flex: 1; min-width: 0; padding: 24px; max-width: 1216px; }
   position: relative;
 }
 .foto-item:hover { border-color: #7c6af7; transform: translateY(-2px); }
+
+/* Selectie-modus (Fase C batch) */
+.selectie-balk {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; margin-bottom: 10px;
+  background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 8px;
+}
+.selectie-teller { font-size: 13px; color: #cbd5e1; font-weight: 600; min-width: 110px; }
+.btn.actief { background: #7c6af7; color: #fff; }
+.foto-item .selectie-vink {
+  display: none;
+  position: absolute; top: 6px; left: 6px; z-index: 3;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #7c6af7; color: #fff;
+  align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  box-shadow: 0 0 0 2px #0d0d14;
+}
+.foto-item.geselecteerd { border-color: #7c6af7; box-shadow: 0 0 0 2px #7c6af7; }
+.foto-item.geselecteerd .selectie-vink { display: flex; }
+.foto-item.geselecteerd img, .foto-item.geselecteerd .no-img { opacity: 0.75; }
 .foto-item img {
   width: 100%;
   height: 160px;
