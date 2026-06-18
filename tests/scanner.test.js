@@ -961,6 +961,19 @@ module.exports = async function testScanner() {
     if (!code.includes('verwijderFotoKnop')) throw new Error('verwijderknop wordt niet beheerd in modal');
   });
 
+  test('Fotos JS: verwijderen herlaadt juiste lijst (foto vs video)', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/fotos.js'), 'utf8');
+    if (!code.includes('huidigeItemIsVideo') || !code.includes('laadVideos(1)')) {
+      throw new Error('verwijderen herlaadt niet de video-lijst voor video-items');
+    }
+  });
+
+  test('Videos JS: verwijderknop in video-detailvenster aanwezig', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/videos.js'), 'utf8');
+    if (!code.includes('verwijderFotoKnop')) throw new Error('verwijderknop ontbreekt in video-modal');
+    if (!code.includes('verwijderFotoDefinitief(')) throw new Error('onclick verwijderFotoDefinitief ontbreekt in video-modal');
+  });
+
   test('HTML: Negeren-pagina opent in review-queue (Nog te beoordelen)', () => {
     const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
     if (!/value="nog-niet"\s+selected/.test(html)) throw new Error('Negeren-filter staat niet standaard op "Nog te beoordelen"');

@@ -460,7 +460,12 @@ async function verwijderFotoDefinitief(id) {
     origStad = ''; origLand = ''; origDatum = '';
     document.querySelectorAll('#modalOverlay video').forEach(v => { v.pause(); v.src = ''; });
     document.getElementById('modalOverlay').classList.remove('open');
-    laadFotos(1);
+    // Herlaad de juiste lijst (foto's of video's)
+    if (typeof huidigeItemIsVideo !== 'undefined' && huidigeItemIsVideo && typeof laadVideos === 'function') {
+      laadVideos(1);
+    } else {
+      laadFotos(1);
+    }
   } catch (e) {
     alert('Verwijderen mislukt: ' + e.message);
     if (knop) { knop.disabled = false; knop.textContent = '🗑️ Definitief verwijderen'; }

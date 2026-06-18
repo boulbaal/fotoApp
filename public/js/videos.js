@@ -265,6 +265,10 @@ function renderVideoModal(f) {
       <button class="btn btn-secundair" style="font-size:13px" onclick="openGpsKaart(${f.gps_lat || 'null'}, ${f.gps_lon || 'null'})">📍 GPS kiezen</button>
     </div>
     <div id="bewerkStatus" style="font-size:12px;color:#888;margin-top:6px"></div>
+    <button id="verwijderFotoKnop" class="verwijder-definitief-knop" style="width:100%;margin-top:10px"
+      onclick="verwijderFotoDefinitief(${f.id})" data-i18n="foto_verwijder">
+      🗑️ Definitief verwijderen
+    </button>
   `;
 }
 
