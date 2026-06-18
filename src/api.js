@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { getDb } = require('./database');
-const { startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen, stopScan, verwijderUitWachtrij, startVideoThumbnailPass, getVideoThumbStatus, startVideoGpsPass, getVideoGpsStatus } = require('./scanner');
+const { startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen, stopScan, stopGeocode, verwijderUitWachtrij, startVideoThumbnailPass, getVideoThumbStatus, startVideoGpsPass, getVideoGpsStatus } = require('./scanner');
 const { berekenPreview, startExport, stopExport, getStatus: getExportStatus, resetExport } = require('./export');
 const { leesPrioriteit, schrijfPrioriteit, bepaalKeeper } = require('./keeper');
 
@@ -90,6 +90,12 @@ router.get('/scan/geocode', (req, res) => {
 router.post('/scan/geocode', async (req, res) => {
   startGeocodePass(); // start op achtergrond, return meteen
   res.json({ ok: true, bericht: 'Geocode pass gestart' });
+});
+
+// Stopt enkel de geocode-achtergrondpass — een lopende scan blijft draaien.
+router.post('/scan/geocode/stop', (req, res) => {
+  stopGeocode();
+  res.json({ ok: true, bericht: 'Geocode pass stoppen aangevraagd' });
 });
 
 // Video thumbnail pass — start handmatig of wordt automatisch gestart na scan

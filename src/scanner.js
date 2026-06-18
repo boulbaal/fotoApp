@@ -71,6 +71,9 @@ const SKIP_MAPPEN = [
 ];
 
 let scanStoppen = false;
+// Aparte stop-vlag voor de geocode-pass: stoppen van een scan en stoppen van
+// de (langlopende) geocode-achtergrondpass zijn losgekoppeld.
+let geocodeStoppen = false;
 let wachtrij = [];
 
 let scanStatus = {
@@ -106,6 +109,7 @@ function getGeocodeStatus() {
 // Deelt GPS-data (stad/land/code) van één exemplaar naar alle andere in dezelfde duplicaatgroep
 function propageerGpsInGroepen() {
   const db = getDb();
+  try {
   const groepen = db.prepare(`
     SELECT duplicaat_groep,
            MAX(gps_lat) as lat, MAX(gps_lon) as lon,
@@ -129,14 +133,17 @@ function propageerGpsInGroepen() {
     const info = propageer.run(g.lat, g.lon, g.stad, g.land, g.land_code, g.adres, g.duplicaat_groep);
     bijgewerkt += info.changes;
   }
-  db.close();
   if (bijgewerkt > 0) console.log(`🔗 GPS gedeeld in ${groepen.length} duplicaatgroepen: ${bijgewerkt} foto's bijgewerkt`);
   return bijgewerkt;
+  } finally {
+    db.close();
+  }
 }
 
 // Start geocoding pass op de achtergrond — vult gps_land/stad in voor alle foto's die dat missen
 async function startGeocodePass() {
   if (geocodeStatus.bezig) return; // al bezig
+  geocodeStoppen = false; // verse start — eigen vlag, los van scanStoppen
   geocodeStatus.bezig = true;
   geocodeStatus.gedaan = 0;
   geocodeStatus.huidig_land = '';
@@ -168,16 +175,19 @@ async function startGeocodePass() {
   const updateLocatie = (adres, lat, lon) => {
     if (!adres || !adres.gps_land) return;
     const db2 = getDb();
-    db2.prepare(`
-      UPDATE fotos SET gps_stad = ?, gps_land = ?, gps_land_code = ?, gps_adres = ?
-      WHERE ROUND(gps_lat, 3) = ? AND ROUND(gps_lon, 3) = ?
-        AND (gps_land IS NULL OR gps_land = '')
-    `).run(adres.gps_stad || null, adres.gps_land, adres.gps_land_code || null, adres.gps_adres || null, lat, lon);
-    db2.close();
+    try {
+      db2.prepare(`
+        UPDATE fotos SET gps_stad = ?, gps_land = ?, gps_land_code = ?, gps_adres = ?
+        WHERE ROUND(gps_lat, 3) = ? AND ROUND(gps_lon, 3) = ?
+          AND (gps_land IS NULL OR gps_land = '')
+      `).run(adres.gps_stad || null, adres.gps_land, adres.gps_land_code || null, adres.gps_adres || null, lat, lon);
+    } finally {
+      db2.close();
+    }
   };
 
   for (const loc of locaties) {
-    if (scanStoppen) break; // Respect stop-vlag
+    if (geocodeStoppen) break; // Eigen geocode stop-vlag (niet de scan-vlag)
     const adres = await haalGpsAdresOp(loc.lat, loc.lon);
     geocodeStatus.gedaan++;
     geocodeStatus.huidig_land = adres?.gps_land || '';
@@ -275,11 +285,26 @@ function parseDatumUitBestandsnaam(naam) {
 }
 
 function berekenHash(bestandsPad) {
+  let fd;
   try {
-    const data = fs.readFileSync(bestandsPad);
-    return crypto.createHash('md5').update(data).digest('hex');
+    const stat = fs.statSync(bestandsPad);
+    // 0-byte bestanden krijgen géén hash: anders delen ze allemaal dezelfde
+    // lege-MD5 en zouden ze onterecht als duplicaten van elkaar gelden.
+    // detecteerDuplicaten negeert hash IS NULL, dus null = "niet meedoen".
+    if (!stat.size) return null;
+
+    const hash = crypto.createHash('md5');
+    fd = fs.openSync(bestandsPad, 'r');
+    const buffer = Buffer.alloc(1024 * 1024); // 1 MB chunks — streamt zonder hele bestand in geheugen
+    let gelezen;
+    while ((gelezen = fs.readSync(fd, buffer, 0, buffer.length, null)) > 0) {
+      hash.update(gelezen === buffer.length ? buffer : buffer.subarray(0, gelezen));
+    }
+    return hash.digest('hex');
   } catch (e) {
     return null;
+  } finally {
+    if (fd !== undefined) { try { fs.closeSync(fd); } catch (_) {} }
   }
 }
 
@@ -512,7 +537,7 @@ async function haalGpsAdresOp(lat, lon) {
 
   try {
     const https = require('https');
-    const resultaat = await new Promise((resolve) => {
+    const { resultaat, status } = await new Promise((resolve) => {
       const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=en`;
       const req = https.get(url, {
         headers: { 'User-Agent': 'FotoApp/1.0', 'Accept-Language': 'en' }
@@ -520,6 +545,11 @@ async function haalGpsAdresOp(lat, lon) {
         let data = '';
         res.on('data', chunk => data += chunk);
         res.on('end', () => {
+          // 429 (rate limit) of serverfout → tijdelijke fout, niet cachen
+          if (res.statusCode === 429 || res.statusCode >= 500) {
+            resolve({ resultaat: {}, status: res.statusCode });
+            return;
+          }
           try {
             const json = JSON.parse(data);
             const addr = json.address || {};
@@ -532,21 +562,28 @@ async function haalGpsAdresOp(lat, lon) {
               return ((latijn || delen[0] || s).trim()) || null;
             };
             resolve({
-              gps_adres: json.display_name || null,
-              gps_stad: reinigNaam(addr.city || addr.town || addr.village || addr.hamlet || addr.municipality || null),
-              gps_land: reinigNaam(addr.country || null),
-              gps_land_code: (addr.country_code || '').toUpperCase() || null
+              resultaat: {
+                gps_adres: json.display_name || null,
+                gps_stad: reinigNaam(addr.city || addr.town || addr.village || addr.hamlet || addr.municipality || null),
+                gps_land: reinigNaam(addr.country || null),
+                gps_land_code: (addr.country_code || '').toUpperCase() || null
+              },
+              status: res.statusCode
             });
-          } catch { resolve({}); }
+          } catch { resolve({ resultaat: {}, status: res.statusCode }); }
         });
       });
-      req.on('error', () => resolve({}));
-      req.setTimeout(8000, () => { req.destroy(); resolve({}); });
+      req.on('error', () => resolve({ resultaat: {}, status: 0 }));
+      req.setTimeout(8000, () => { req.destroy(); resolve({ resultaat: {}, status: 0 }); });
     });
 
-    gpsCache.set(sleutel, resultaat);
-    // Nominatim policy: max 1 request per seconde — wacht alleen als het geen cache-hit was
-    await new Promise(r => setTimeout(r, 1100));
+    // Alleen succesvolle resultaten (met een land) cachen. Lege antwoorden door
+    // 429/timeout/netwerkfout NIET cachen, zodat een latere geocode-pass het opnieuw probeert.
+    if (resultaat && resultaat.gps_land) {
+      gpsCache.set(sleutel, resultaat);
+    }
+    // Nominatim policy: max 1 request per seconde. Bij 429 extra lang afkoelen.
+    await new Promise(r => setTimeout(r, status === 429 ? 5000 : 1100));
     return resultaat;
   } catch (e) {
     return {};
@@ -783,6 +820,12 @@ function stopScan(leegWachtrij = false) {
   console.log('⏹ Stop aangevraagd');
 }
 
+// Stopt alleen de geocode-achtergrondpass, zonder een lopende scan te raken.
+function stopGeocode() {
+  geocodeStoppen = true;
+  console.log('⏹ Geocode-pass stoppen aangevraagd');
+}
+
 // === VIDEO THUMBNAIL PASS ===
 
 let videoThumbPassStatus = { bezig: false, gedaan: 0, totaal: 0, fout: 0 };
@@ -913,7 +956,7 @@ async function startVideoGpsPass() {
 
 module.exports = {
   startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen,
-  stopScan, verwijderUitWachtrij,
+  stopScan, stopGeocode, berekenHash, verwijderUitWachtrij,
   maakThumbnailVoorVideo: maakVideoThumbnail, startVideoThumbnailPass, getVideoThumbStatus,
   startVideoGpsPass, getVideoGpsStatus
 };

@@ -1267,6 +1267,69 @@ module.exports = async function testScanner() {
     if (aantal < 4) throw new Error('selectie_negeer ontbreekt in een of meer talen (verwacht 4)');
   });
 
+  // ── Fase D: robuustheid ───────────────────────────────────────────
+  test('Robuust: berekenHash streamt en geeft null bij 0-byte', () => {
+    let scanner;
+    try { scanner = require('../src/scanner'); } catch (_) { return; } // native module mist in sandbox
+    if (typeof scanner.berekenHash !== 'function') throw new Error('berekenHash niet geëxporteerd');
+    const os = require('os');
+    const tmp = path.join(os.tmpdir(), 'fa_hash_' + Date.now());
+    const leeg = tmp + '_leeg.bin';
+    const vol  = tmp + '_vol.bin';
+    fs.writeFileSync(leeg, '');
+    fs.writeFileSync(vol, 'hallo wereld');
+    try {
+      if (scanner.berekenHash(leeg) !== null) throw new Error('0-byte bestand moet null geven (geen lege-MD5)');
+      const h = scanner.berekenHash(vol);
+      const crypto = require('crypto');
+      const verwacht = crypto.createHash('md5').update('hallo wereld').digest('hex');
+      if (h !== verwacht) throw new Error('streaming-hash komt niet overeen met md5');
+    } finally {
+      try { fs.unlinkSync(leeg); } catch (_) {}
+      try { fs.unlinkSync(vol); } catch (_) {}
+    }
+  });
+
+  test('Robuust: berekenHash gebruikt streaming (geen readFileSync hele bestand)', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../src/scanner.js'), 'utf8');
+    const blok = code.slice(code.indexOf('function berekenHash'), code.indexOf('function berekenHash') + 800);
+    if (!blok.includes('readSync')) throw new Error('berekenHash streamt niet (readSync ontbreekt)');
+    if (!blok.includes('stat.size')) throw new Error('berekenHash controleert 0-byte niet');
+    if (blok.includes('readFileSync')) throw new Error('berekenHash laadt nog hele bestand in geheugen');
+  });
+
+  test('Robuust: geocode cachet geen lege/429-resultaten', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../src/scanner.js'), 'utf8');
+    const blok = code.slice(code.indexOf('async function haalGpsAdresOp'), code.indexOf('async function haalGpsAdresOp') + 3000);
+    if (!blok.includes('429')) throw new Error('429-afhandeling ontbreekt');
+    if (!blok.includes('if (resultaat && resultaat.gps_land)')) throw new Error('lege resultaten worden nog gecachet');
+  });
+
+  test('Robuust: aparte geocode stop-vlag (los van scan)', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../src/scanner.js'), 'utf8');
+    if (!code.includes('let geocodeStoppen')) throw new Error('geocodeStoppen vlag ontbreekt');
+    if (!code.includes('function stopGeocode')) throw new Error('stopGeocode functie ontbreekt');
+    // De geocode-lus moet de eigen vlag gebruiken, niet de scan-vlag
+    const lus = code.slice(code.indexOf('for (const loc of locaties)'), code.indexOf('for (const loc of locaties)') + 120);
+    if (!lus.includes('geocodeStoppen')) throw new Error('geocode-lus gebruikt eigen stop-vlag niet');
+  });
+
+  test('Robuust: stop-geocode endpoint + export aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("'/scan/geocode/stop'")) throw new Error('stop-geocode endpoint ontbreekt');
+    if (!apiCode.includes('stopGeocode')) throw new Error('api importeert stopGeocode niet');
+    const sc = fs.readFileSync(path.join(__dirname, '../src/scanner.js'), 'utf8');
+    if (!sc.includes('stopGeocode, ') && !sc.includes('stopGeocode,')) throw new Error('stopGeocode niet geëxporteerd');
+  });
+
+  test('Robuust: db.close in try/finally bij geocode-helpers', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../src/scanner.js'), 'utf8');
+    const prop = code.slice(code.indexOf('function propageerGpsInGroepen'), code.indexOf('function propageerGpsInGroepen') + 1400);
+    if (!prop.includes('finally')) throw new Error('propageerGpsInGroepen sluit db niet in finally');
+    const upd = code.slice(code.indexOf('const updateLocatie'), code.indexOf('const updateLocatie') + 700);
+    if (!upd.includes('finally')) throw new Error('updateLocatie sluit db2 niet in finally');
+  });
+
   test('API: toon-in-map endpoint (bestandsbeheerder, cross-platform)', () => {
     const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
     if (!apiCode.includes("'/fotos/:id/toon-in-map'")) throw new Error('toon-in-map endpoint ontbreekt');
