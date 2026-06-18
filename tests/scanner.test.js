@@ -1606,6 +1606,18 @@ module.exports = async function testScanner() {
     if (!blok.includes('vervolg()')) throw new Error('bewaarPrio voert vervolg-actie niet uit');
   });
 
+  test('Fotos UI: verwijderen ververst ook het open kaart-popup', () => {
+    const i = fotosCode.indexOf('async function verwijderFotoDefinitief');
+    if (i === -1) throw new Error('verwijderFotoDefinitief niet gevonden');
+    const blok = fotosCode.slice(i, i + 2500);
+    if (!blok.includes('kaartPanelOverlay') || !blok.includes('laadPanelFotos')) {
+      throw new Error('verwijderen ververst het kaart-popup niet (laadPanelFotos ontbreekt)');
+    }
+    if (!blok.includes('herlaadLocaties')) {
+      throw new Error('verwijderen ververst de kaart-markers niet (herlaadLocaties ontbreekt)');
+    }
+  });
+
   test('API: keeper-functies die gebruikt worden zijn ook geïmporteerd', () => {
     const importMatch = apiCode.match(/const \{([^}]*)\} = require\('\.\/keeper'\)/);
     if (!importMatch) throw new Error("api.js importeert ./keeper niet via destructuring");

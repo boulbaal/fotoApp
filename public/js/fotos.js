@@ -564,6 +564,14 @@ async function verwijderFotoDefinitief(id) {
     } else {
       laadFotos(1);
     }
+    // Was het detail vanuit het kaart-popup geopend? Dan dat paneel + de
+    // marker-tellingen ook verversen, anders blijft de verwijderde foto staan.
+    const kaartPanel = document.getElementById('kaartPanelOverlay');
+    if (kaartPanel && kaartPanel.classList.contains('open') &&
+        typeof actieveLocatie !== 'undefined' && actieveLocatie) {
+      if (typeof laadPanelFotos === 'function') laadPanelFotos();
+      if (typeof herlaadLocaties === 'function') herlaadLocaties();
+    }
   } catch (e) {
     alert('Verwijderen mislukt: ' + e.message);
     if (knop) { knop.disabled = false; knop.textContent = '🗑️ Definitief verwijderen'; }
