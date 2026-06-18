@@ -1031,6 +1031,34 @@ module.exports = async function testScanner() {
     if (!blok.includes('HAVING COUNT(*) > 1')) throw new Error('1-lid-groepen worden niet uitgefilterd');
   });
 
+  test('API: toon-in-map endpoint (bestandsbeheerder, cross-platform)', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("'/fotos/:id/toon-in-map'")) throw new Error('toon-in-map endpoint ontbreekt');
+    const blok = apiCode.slice(apiCode.indexOf("'/fotos/:id/toon-in-map'"));
+    if (!blok.includes('electronRevealInFolder')) throw new Error('Electron reveal-pad ontbreekt');
+    if (!blok.includes("'/select,'") && !blok.includes('/select,')) throw new Error('Windows explorer /select ontbreekt');
+    if (!blok.includes("'-R'")) throw new Error('macOS open -R ontbreekt');
+    if (!blok.includes('FileManager1.ShowItems')) throw new Error('Linux dbus ShowItems ontbreekt');
+    if (!blok.includes('xdg-open')) throw new Error('Linux xdg-open fallback ontbreekt');
+  });
+
+  test('Electron: showItemInFolder beschikbaar als global', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
+    if (!code.includes('electronRevealInFolder')) throw new Error('reveal-global ontbreekt');
+    if (!code.includes('shell.showItemInFolder')) throw new Error('showItemInFolder niet gebruikt');
+  });
+
+  test('Foto/Video JS: padlinks openen de bestandsbeheerder (toonInMap)', () => {
+    const fotos = fs.readFileSync(path.join(__dirname, '../public/js/fotos.js'), 'utf8');
+    const videos = fs.readFileSync(path.join(__dirname, '../public/js/videos.js'), 'utf8');
+    if (!fotos.includes('function toonInMap')) throw new Error('toonInMap functie ontbreekt');
+    if (!fotos.includes('toon-in-map')) throw new Error('fotos roept toon-in-map endpoint niet aan');
+    // Hoofdpad én duplicaat-locaties moeten beide toonInMap aanroepen
+    const aantalFoto = (fotos.match(/toonInMap\(event,/g) || []).length;
+    if (aantalFoto < 2) throw new Error('niet alle padlinks (pad + duplicaten) gebruiken toonInMap');
+    if (!videos.includes('toonInMap(event,')) throw new Error('video-padlink gebruikt toonInMap niet');
+  });
+
   test('DB: migratie schoont verweesde duplicaat-restanten op', () => {
     const dbCode = fs.readFileSync(path.join(__dirname, '../src/database.js'), 'utf8');
     if (!dbCode.includes('verweesde duplicaat-restant')) throw new Error('opschoon-migratie ontbreekt');

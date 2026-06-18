@@ -460,6 +460,70 @@ router.post('/fotos/:id/open-extern', (req, res) => {
   res.json({ ok: true, vlc: vlcBeschikbaar });
 });
 
+// Toon een bestand in de bestandsbeheerder (map openen + bestand geselecteerd).
+// Werkt voor het hoofdpad én elke duplicaat-locatie. Cross-platform.
+router.post('/fotos/:id/toon-in-map', (req, res) => {
+  const db = getDb();
+  const foto = db.prepare('SELECT volledig_pad FROM fotos WHERE id = ?').get(req.params.id);
+  db.close();
+  if (!foto) return res.status(404).json({ fout: 'Foto niet gevonden' });
+
+  const doelPad = foto.volledig_pad;
+  const bestaat = doelPad && fs.existsSync(doelPad);
+  // Als het bestand zelf weg is, openen we de map eromheen zodat de gebruiker
+  // toch de locatie ziet en kan kijken wat er nog staat.
+  const mapPad = bestaat ? path.dirname(doelPad) : (doelPad ? path.dirname(doelPad) : null);
+  if (!mapPad || !fs.existsSync(mapPad)) {
+    return res.status(404).json({ fout: 'Locatie niet gevonden op deze computer', pad: doelPad });
+  }
+
+  // Electron: shell.showItemInFolder selecteert het bestand in de verkenner
+  if (global.electronRevealInFolder && bestaat) {
+    try { global.electronRevealInFolder(doelPad); return res.json({ ok: true, methode: 'electron', geselecteerd: true }); }
+    catch (e) { console.warn('reveal fout:', e.message); }
+  }
+
+  const { spawn, spawnSync } = require('child_process');
+  const env = {
+    ...process.env,
+    DISPLAY: process.env.DISPLAY || ':0',
+    DBUS_SESSION_BUS_ADDRESS: process.env.DBUS_SESSION_BUS_ADDRESS
+      || `unix:path=/run/user/${process.getuid?.() || 1000}/bus`,
+  };
+
+  const platform = process.platform;
+  try {
+    if (platform === 'win32') {
+      // Windows: verkenner openen met het bestand geselecteerd
+      if (bestaat) spawn('explorer', ['/select,', doelPad], { detached: true, stdio: 'ignore' }).unref();
+      else spawn('explorer', [mapPad], { detached: true, stdio: 'ignore' }).unref();
+      return res.json({ ok: true, methode: 'explorer', geselecteerd: bestaat });
+    }
+    if (platform === 'darwin') {
+      // macOS: Finder openen met het bestand geselecteerd (-R = reveal)
+      if (bestaat) spawn('open', ['-R', doelPad], { detached: true, stdio: 'ignore' }).unref();
+      else spawn('open', [mapPad], { detached: true, stdio: 'ignore' }).unref();
+      return res.json({ ok: true, methode: 'open', geselecteerd: bestaat });
+    }
+    // Linux: probeer via de freedesktop-standaard het bestand te selecteren
+    if (bestaat) {
+      const uri = 'file://' + encodeURI(doelPad).replace(/#/g, '%23');
+      const dbus = spawnSync('dbus-send', [
+        '--session', '--print-reply', '--dest=org.freedesktop.FileManager1',
+        '--type=method_call', '/org/freedesktop/FileManager1',
+        'org.freedesktop.FileManager1.ShowItems',
+        `array:string:${uri}`, 'string:',
+      ], { env, stdio: 'ignore', timeout: 4000 });
+      if (dbus.status === 0) return res.json({ ok: true, methode: 'dbus', geselecteerd: true });
+    }
+    // Fallback (Linux of als dbus faalt): map openen zonder selectie
+    spawn('xdg-open', [mapPad], { detached: true, stdio: 'ignore', env }).unref();
+    return res.json({ ok: true, methode: 'xdg-open', geselecteerd: false });
+  } catch (e) {
+    return res.status(500).json({ fout: 'kon bestandsbeheerder niet openen', detail: e.message });
+  }
+});
+
 // === FOTO BEWERKEN ===
 
 router.put('/fotos/:id', (req, res) => {

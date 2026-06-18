@@ -238,7 +238,7 @@ function renderModal(f) {
   const padEscaped = f.volledig_pad.replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const velden = [
     ['Bron',        f.bron_icoon + ' ' + f.bron_naam],
-    ['Pad',         `<a href="/api/fotos/${f.id}/bestand" target="_blank" class="pad-link">${padEscaped}</a>`],
+    ['Pad',         `<a href="#" class="pad-link" title="Toon in bestandsbeheerder" onclick="toonInMap(event, ${f.id})">📂 ${padEscaped}</a>`],
     ['Datum foto',  formatDatum(f.datum_foto) + (f.datum_bron ? ` <span style="color:#6b7280;font-size:11px">(${f.datum_bron})</span>` : '')],
     ['Camera',      [f.camera_merk, f.camera_model].filter(Boolean).join(' ') || '—'],
     ['Lens',        f.lens || '—'],
@@ -287,7 +287,7 @@ function renderModal(f) {
                 <span class="dup-bron">${d.bron_icoon} ${d.bron_naam}</span>
                 ${badge}
               </div>
-              <a href="/api/fotos/${d.id}/bestand" target="_blank" class="pad-link dup-pad">${padEsc}</a>
+              <a href="#" class="pad-link dup-pad" title="Toon in bestandsbeheerder" onclick="toonInMap(event, ${d.id})">📂 ${padEsc}</a>
               <span class="dup-grootte">${formatGrootte(d.bestandsgrootte)}</span>
             </div>`;
           }).join('')}
@@ -433,6 +433,27 @@ function sluitModal(e) {
     document.getElementById('modalOverlay').classList.remove('open');
     origStad = ''; origLand = ''; origDatum = '';
   }
+}
+
+// Toon een foto (hoofdpad of duplicaat-locatie) in de bestandsbeheerder
+async function toonInMap(event, id) {
+  if (event) event.preventDefault();
+  const link = event && event.currentTarget;
+  const oudeTitel = link ? link.getAttribute('title') : null;
+  if (link) link.setAttribute('title', 'Bestandsbeheerder openen...');
+  try {
+    const r = await fetch('/api/fotos/' + id + '/toon-in-map', { method: 'POST' });
+    const data = await r.json();
+    if (!r.ok || !data.ok) {
+      alert('Kon de locatie niet openen: ' + (data.fout || 'onbekende fout') +
+        (data.pad ? '\n\n' + data.pad : ''));
+    }
+  } catch (e) {
+    alert('Kon de bestandsbeheerder niet openen: ' + e.message);
+  } finally {
+    if (link && oudeTitel) link.setAttribute('title', oudeTitel);
+  }
+  return false;
 }
 
 // Verwijder de getoonde foto definitief: naar prullenbak + uit database

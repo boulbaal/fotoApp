@@ -105,6 +105,12 @@ global.electronOpenExtern = async function(bestandsPad) {
   return shell.openPath(bestandsPad);
 };
 
+// ── Bestand tonen in bestandsbeheerder (map openen + bestand selecteren) ─────
+global.electronRevealInFolder = function(bestandsPad) {
+  shell.showItemInFolder(bestandsPad);
+  return true;
+};
+
 // ── BrowserWindow ───────────────────────────────────────────────────────────
 let mainWindow = null;
 

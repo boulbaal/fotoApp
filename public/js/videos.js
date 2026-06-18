@@ -223,7 +223,7 @@ function renderVideoModal(f) {
   const padEscaped = f.volledig_pad.replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const velden = [
     ['Bron',      f.bron_icoon + ' ' + f.bron_naam],
-    ['Pad',       `<a href="/api/fotos/${f.id}/bestand" target="_blank" class="pad-link">${padEscaped}</a>`],
+    ['Pad',       `<a href="#" class="pad-link" title="Toon in bestandsbeheerder" onclick="toonInMap(event, ${f.id})">📂 ${padEscaped}</a>`],
     ['Datum',     formatDatum(f.datum_foto) + (f.datum_bron ? ` <span style="color:#6b7280;font-size:11px">(${f.datum_bron})</span>` : '')],
     ['Duur',      f.duur ? formatDuur(f.duur) : '—'],
     ['Grootte',   formatGrootte(f.bestandsgrootte)],
