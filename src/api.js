@@ -1043,6 +1043,32 @@ router.post('/genegeerd/verwijder', async (req, res) => {
   }
 });
 
+// Verwijder ÉÉN foto definitief: bestand naar prullenbak + DB-record weg
+// (herstelbaar via systeem-prullenbak, niet permanent gewist)
+router.post('/fotos/:id/verwijder', async (req, res) => {
+  const db = getDb();
+  try {
+    const foto = db.prepare('SELECT id, volledig_pad FROM fotos WHERE id = ?').get(req.params.id);
+    if (!foto) { db.close(); return res.status(404).json({ fout: 'niet gevonden' }); }
+
+    let naarPrullenbak = false;
+    if (foto.volledig_pad && fs.existsSync(foto.volledig_pad)) {
+      let trash;
+      try { trash = require('trash'); }
+      catch (e) { db.close(); return res.status(500).json({ fout: 'prullenbak-module niet beschikbaar', detail: e.message }); }
+      try { await trash(foto.volledig_pad); naarPrullenbak = true; }
+      catch (e) { db.close(); return res.status(500).json({ fout: 'kon bestand niet naar prullenbak verplaatsen', detail: e.message }); }
+    }
+
+    db.prepare('DELETE FROM fotos WHERE id = ?').run(foto.id);
+    db.close();
+    res.json({ ok: true, naarPrullenbak, ontbrak: !naarPrullenbak });
+  } catch (e) {
+    try { db.close(); } catch (_) {}
+    res.status(500).json({ fout: 'verwijderen mislukt', detail: e.message });
+  }
+});
+
 // Stats voor fase 1 todo
 router.get('/fase1/todo', (req, res) => {
   const db = getDb();

@@ -322,6 +322,10 @@ function renderModal(f) {
       <button class="btn btn-secundair" style="font-size:13px" onclick="openGpsKaart(${f.gps_lat || 'null'}, ${f.gps_lon || 'null'})">📍 GPS kiezen</button>
     </div>
     <div id="bewerkStatus" style="font-size:12px;color:#888;margin-top:6px"></div>
+    <button id="verwijderFotoKnop" class="verwijder-definitief-knop" style="width:100%;margin-top:10px"
+      onclick="verwijderFotoDefinitief(${f.id})" data-i18n="foto_verwijder">
+      🗑️ Definitief verwijderen
+    </button>
   `;
 
   // Sla originelen op voor unsaved-changes detectie
@@ -428,5 +432,37 @@ function sluitModal(e) {
     document.querySelectorAll('#modalOverlay video').forEach(v => { v.pause(); v.src = ''; });
     document.getElementById('modalOverlay').classList.remove('open');
     origStad = ''; origLand = ''; origDatum = '';
+  }
+}
+
+// Verwijder de getoonde foto definitief: naar prullenbak + uit database
+async function verwijderFotoDefinitief(id) {
+  const bevestig = confirm(
+    "LET OP — deze foto wordt ECHT verwijderd:\n\n" +
+    "• Het bestand gaat naar de prullenbak van je computer (herstelbaar)\n" +
+    "• Het wordt uit de database gewist, zodat het niet opnieuw gescand wordt\n\n" +
+    "Weet je het zeker?"
+  );
+  if (!bevestig) return;
+
+  const knop = document.getElementById('verwijderFotoKnop');
+  if (knop) { knop.disabled = true; knop.textContent = '🗑️ Bezig met verwijderen...'; }
+
+  try {
+    const r = await fetch('/api/fotos/' + id + '/verwijder', { method: 'POST' });
+    const data = await r.json();
+    if (!r.ok || !data.ok) {
+      alert('Verwijderen mislukt: ' + (data.fout || data.detail || 'onbekende fout'));
+      if (knop) { knop.disabled = false; knop.textContent = '🗑️ Definitief verwijderen'; }
+      return;
+    }
+    // Geen onopgeslagen-waarschuwing meer tonen
+    origStad = ''; origLand = ''; origDatum = '';
+    document.querySelectorAll('#modalOverlay video').forEach(v => { v.pause(); v.src = ''; });
+    document.getElementById('modalOverlay').classList.remove('open');
+    laadFotos(1);
+  } catch (e) {
+    alert('Verwijderen mislukt: ' + e.message);
+    if (knop) { knop.disabled = false; knop.textContent = '🗑️ Definitief verwijderen'; }
   }
 }

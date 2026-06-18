@@ -945,6 +945,22 @@ module.exports = async function testScanner() {
     if (!code.includes('/api/genegeerd/verwijder')) throw new Error('endpoint wordt niet aangeroepen');
   });
 
+  test('API: POST /fotos/:id/verwijder endpoint aanwezig (prullenbak + DB delete)', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("'/fotos/:id/verwijder'")) throw new Error('POST /fotos/:id/verwijder endpoint ontbreekt');
+    const blok = apiCode.slice(apiCode.indexOf("'/fotos/:id/verwijder'"));
+    if (!blok.includes("require('trash')")) throw new Error('trash (prullenbak) wordt niet gebruikt bij enkele verwijdering');
+    if (!blok.includes('DELETE FROM fotos WHERE id = ?')) throw new Error('DB-record wordt niet verwijderd');
+  });
+
+  test('Fotos JS: verwijderFotoDefinitief met bevestiging en endpoint-call', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/fotos.js'), 'utf8');
+    if (!code.includes('function verwijderFotoDefinitief')) throw new Error('verwijderFotoDefinitief() ontbreekt');
+    if (!code.includes('confirm(')) throw new Error('bevestigingsdialoog ontbreekt');
+    if (!code.includes("/verwijder'") && !code.includes('/verwijder`')) throw new Error('verwijder-endpoint wordt niet aangeroepen');
+    if (!code.includes('verwijderFotoKnop')) throw new Error('verwijderknop wordt niet beheerd in modal');
+  });
+
   test('HTML: Negeren-pagina opent in review-queue (Nog te beoordelen)', () => {
     const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
     if (!/value="nog-niet"\s+selected/.test(html)) throw new Error('Negeren-filter staat niet standaard op "Nog te beoordelen"');
