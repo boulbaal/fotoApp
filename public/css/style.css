@@ -655,6 +655,70 @@ main { flex: 1; min-width: 0; padding: 24px; max-width: 1216px; }
 .dup-foto .pad { padding: 8px; font-size: 11px; color: #888; word-break: break-all; }
 .dup-foto .bron { font-size: 12px; color: #7c6af7; padding: 0 8px 8px; }
 
+/* DUPLICATEN: opruimen op prioriteit */
+.dup-toolbar {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.dup-toolbar-knoppen { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.dup-foto { position: relative; display: flex; flex-direction: column; }
+.dup-foto.is-keeper { border-color: #22c55e; box-shadow: 0 0 0 1px #22c55e44; }
+.dup-badge {
+  position: absolute; top: 6px; left: 6px; z-index: 2;
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px;
+  letter-spacing: .5px;
+}
+.dup-badge-origineel { background: #22c55e; color: #04210f; }
+.dup-badge-kopie { background: #3a3a4a; color: #cbd5e1; }
+.dup-keuze-nodig { color: #fbbf24 !important; }
+.dup-groep-keuze { border-color: #fbbf2455; }
+.dup-maak-origineel {
+  margin: 0 8px 8px; padding: 5px 8px; font-size: 11px; cursor: pointer;
+  background: #1f2937; color: #9ca3af; border: 1px solid #374151; border-radius: 6px;
+}
+.dup-maak-origineel:hover { background: #22c55e22; color: #22c55e; border-color: #22c55e; }
+.dup-groep-wis {
+  margin-top: 12px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+  background: #ef444422; color: #f87171; border: 1px solid #ef444455; border-radius: 7px;
+}
+.dup-groep-wis:hover { background: #ef4444; color: #fff; }
+.dup-groep-actie { margin-top: 12px; }
+.dup-groep-wacht { font-size: 12px; color: #fbbf24; }
+
+/* Prioriteit modal */
+.prio-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.6); align-items: center; justify-content: center; padding: 20px;
+}
+.prio-overlay.open { display: flex; }
+.prio-modal {
+  background: #16161f; border: 1px solid #2a2a3a; border-radius: 14px;
+  width: 100%; max-width: 640px; max-height: 86vh; overflow: auto; padding: 20px;
+}
+.prio-kop { display: flex; justify-content: space-between; align-items: center; }
+.prio-kop h3 { font-size: 16px; }
+.prio-sluit { background: none; border: none; color: #888; font-size: 18px; cursor: pointer; }
+.prio-uitleg { font-size: 13px; color: #9ca3af; margin: 8px 0 16px; line-height: 1.5; }
+.prio-kolommen { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.prio-kolom h4 { font-size: 12px; color: #888; margin-bottom: 8px; }
+.prio-lijst { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.prio-lijst li {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  background: #0f0f13; border: 1px solid #2a2a3a; border-radius: 8px; padding: 8px 10px; font-size: 13px;
+}
+.prio-lijst li.prio-leeg { justify-content: center; color: #555; border-style: dashed; }
+.prio-naam { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prio-knoppen { display: flex; gap: 4px; flex-shrink: 0; }
+.prio-btn {
+  background: #1f2937; color: #cbd5e1; border: 1px solid #374151; border-radius: 5px;
+  width: 26px; height: 26px; cursor: pointer; font-size: 12px;
+}
+.prio-btn:disabled { opacity: .35; cursor: not-allowed; }
+.prio-btn-in { color: #22c55e; border-color: #22c55e55; }
+.prio-btn-uit { color: #f87171; border-color: #ef444455; }
+.prio-acties { margin-top: 18px; text-align: right; }
+
 /* DETAIL MODAL */
 .modal-overlay {
   position: fixed;

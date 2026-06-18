@@ -979,6 +979,43 @@ module.exports = async function testScanner() {
     if (!/value="nog-niet"\s+selected/.test(html)) throw new Error('Negeren-filter staat niet standaard op "Nog te beoordelen"');
   });
 
+  test('API: duplicaten wis + preview endpoints aanwezig (trash + DB delete)', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("'/duplicaten/wis'")) throw new Error('POST /duplicaten/wis endpoint ontbreekt');
+    if (!apiCode.includes("'/duplicaten/wis-preview'")) throw new Error('POST /duplicaten/wis-preview endpoint ontbreekt');
+    const blok = apiCode.slice(apiCode.indexOf("'/duplicaten/wis'"));
+    if (!blok.includes("require('trash')")) throw new Error('duplicaten-wis gebruikt geen prullenbak');
+    if (!blok.includes('DELETE FROM fotos')) throw new Error('duplicaten-wis verwijdert geen DB-records');
+  });
+
+  test('API: bepaalOrigineel keeper-logica (prioriteit, handmatig, keuze nodig)', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes('function bepaalOrigineel')) throw new Error('bepaalOrigineel() ontbreekt');
+    if (!apiCode.includes('bronVolgorde')) throw new Error('prioriteit (bronVolgorde) wordt niet gebruikt');
+    if (!apiCode.includes('return null')) throw new Error('keuze-nodig (null) tak ontbreekt');
+  });
+
+  test('Duplicaten JS: prioriteit, keeper en handmatige override', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/duplicaten.js'), 'utf8');
+    if (!code.includes('bepaalOrigineelClient')) throw new Error('client keeper-logica ontbreekt');
+    if (!code.includes('dupBronVolgorde')) throw new Error('prioriteit wordt niet onthouden (localStorage)');
+    if (!code.includes('function maakOrigineel')) throw new Error('handmatige override ontbreekt');
+    if (!code.includes('wisAlleDuplicaten') || !code.includes('wisGroep')) throw new Error('wis-acties ontbreken');
+  });
+
+  test('HTML: prioriteit-modal en duplicaten-knoppen aanwezig', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('prioOverlay')) throw new Error('prioriteit-modal ontbreekt');
+    if (!html.includes('openPrioModal()')) throw new Error('knop "Prioriteit instellen" ontbreekt');
+    if (!html.includes('wisAlleDuplicaten()')) throw new Error('knop "Alle duplicaten wissen" ontbreekt');
+  });
+
+  test('CSS: duplicaten-badges en prioriteit-modal stijlen aanwezig', () => {
+    const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
+    if (!css.includes('.dup-badge-origineel')) throw new Error('ORIGINEEL-badge stijl ontbreekt');
+    if (!css.includes('.prio-modal')) throw new Error('prioriteit-modal stijl ontbreekt');
+  });
+
   test('CSS: fase-stepper stijlen aanwezig', () => {
     const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
     if (!css.includes('fase-stepper')) throw new Error('fase-stepper CSS ontbreekt');

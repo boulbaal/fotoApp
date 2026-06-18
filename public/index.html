@@ -349,9 +349,43 @@
 
   <!-- DUPLICATEN -->
   <div class="pagina" id="paginaDuplicaten">
-    <div style="margin-bottom:16px; color:#888; font-size:14px;" id="dupInfo"></div>
+    <div class="dup-toolbar">
+      <div id="dupInfo" style="color:#888; font-size:14px;"></div>
+      <div class="dup-toolbar-knoppen">
+        <button class="btn btn-secundair" style="font-size:12px" onclick="openPrioModal()" data-i18n="dup_prioriteit">⚙️ Prioriteit instellen</button>
+        <button class="btn btn-secundair" style="font-size:12px" onclick="deelGpsMetDuplicaten()" data-i18n="dup_gps_delen">🌍 GPS automatisch delen</button>
+        <button class="verwijder-definitief-knop" style="font-size:12px;margin:0" onclick="wisAlleDuplicaten()" data-i18n="dup_wis_alle">🗑️ Alle duplicaten naar prullenbak</button>
+      </div>
+    </div>
     <div id="duplicatenLijst"></div>
     <div class="paginering" id="dupPaginering"></div>
+  </div>
+
+  <!-- PRIORITEIT MODAL -->
+  <div class="prio-overlay" id="prioOverlay" onclick="sluitPrioModal(event)">
+    <div class="prio-modal" onclick="event.stopPropagation()">
+      <div class="prio-kop">
+        <h3 data-i18n="dup_prio_titel">⚙️ Waar bewaren we de originelen?</h3>
+        <button class="prio-sluit" onclick="sluitPrioModal()">✕</button>
+      </div>
+      <p class="prio-uitleg" data-i18n="dup_prio_uitleg">
+        Zet je bronnen op volgorde. Staat hetzelfde bestand op meerdere bronnen, dan blijft het exemplaar
+        op de hoogst geplaatste bron behouden. Bronnen die niet gerangschikt zijn, vragen om een handmatige keuze.
+      </p>
+      <div class="prio-kolommen">
+        <div class="prio-kolom">
+          <h4 data-i18n="dup_prio_gerangschikt">📌 Gerangschikt (hoogste eerst)</h4>
+          <ul id="prioGerangschikt" class="prio-lijst"></ul>
+        </div>
+        <div class="prio-kolom">
+          <h4 data-i18n="dup_prio_ongerangschikt">Niet gerangschikt</h4>
+          <ul id="prioOngerangschikt" class="prio-lijst"></ul>
+        </div>
+      </div>
+      <div class="prio-acties">
+        <button class="btn btn-primair" style="font-size:13px" onclick="bewaarPrio()" data-i18n="dup_prio_bewaar">💾 Bewaren & toepassen</button>
+      </div>
+    </div>
   </div>
 
   <!-- FASE 2: NEGEREN -->

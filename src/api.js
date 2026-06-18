@@ -656,7 +656,8 @@ router.get('/duplicaten', (req, res) => {
   const result = groepen.map(groep => {
     const fotos = db.prepare(`
       SELECT f.id, f.bestandsnaam, f.volledig_pad, f.bestandsgrootte,
-             f.datum_foto, f.thumbnail, b.naam as bron_naam, b.icoon as bron_icoon
+             f.datum_foto, f.thumbnail, f.bron_id, f.gps_lat, f.gps_stad, f.gps_land,
+             b.naam as bron_naam, b.icoon as bron_icoon, b.type as bron_type
       FROM fotos f JOIN bronnen b ON f.bron_id = b.id
       WHERE f.duplicaat_groep = ?
     `).all(groep.duplicaat_groep);
@@ -665,6 +666,125 @@ router.get('/duplicaten', (req, res) => {
 
   db.close();
   res.json({ groepen: result, totaal_groepen: totaalGroepen, pagina: parseInt(pagina) });
+});
+
+// Bepaal welk exemplaar in een duplicaatgroep het origineel (= behouden) is.
+// Volgorde van beslissen:
+//   1. handmatige keuze (override) als die in de groep zit
+//   2. hoogst gerangschikte bron die in de groep voorkomt (gelijkspel → laagste id)
+//   3. geen enkele bron in de groep is gerangschikt → null = "keuze nodig"
+// fotos: [{ id, bron_id }], bronVolgorde: [bron_id, ...] (beste eerst), handmatigId: number|undefined
+function bepaalOrigineel(fotos, bronVolgorde, handmatigId) {
+  if (handmatigId != null && fotos.some(f => f.id === handmatigId)) return handmatigId;
+  const rang = id => {
+    const i = bronVolgorde.indexOf(id);
+    return i === -1 ? Infinity : i;
+  };
+  const gerangschikt = fotos.filter(f => rang(f.bron_id) !== Infinity);
+  if (gerangschikt.length === 0) return null; // keuze nodig
+  gerangschikt.sort((a, b) => rang(a.bron_id) - rang(b.bron_id) || a.id - b.id);
+  return gerangschikt[0].id;
+}
+
+// Verzamel per groep de keeper + te-wissen kopieën, op basis van prioriteit/handmatige keuze.
+// groepFilter (optioneel): enkel deze hash verwerken.
+function verzamelDuplicaatPlan(db, bronVolgorde, handmatig, groepFilter) {
+  const waar = groepFilter
+    ? 'WHERE f.duplicaat_groep = ?'
+    : 'WHERE f.duplicaat_groep IS NOT NULL';
+  const rijen = groepFilter
+    ? db.prepare(`SELECT f.id, f.bron_id, f.duplicaat_groep, f.volledig_pad, f.bestandsgrootte FROM fotos f ${waar}`).all(groepFilter)
+    : db.prepare(`SELECT f.id, f.bron_id, f.duplicaat_groep, f.volledig_pad, f.bestandsgrootte FROM fotos f ${waar}`).all();
+
+  const perGroep = new Map();
+  for (const r of rijen) {
+    if (!perGroep.has(r.duplicaat_groep)) perGroep.set(r.duplicaat_groep, []);
+    perGroep.get(r.duplicaat_groep).push(r);
+  }
+
+  const teWissen = [];          // foto-objecten die naar de prullenbak gaan
+  let keuzeNodig = 0;           // aantal groepen dat nog een keuze vereist
+  let groepenKlaar = 0;
+  for (const [groep, fotos] of perGroep) {
+    const keeper = bepaalOrigineel(fotos, bronVolgorde, handmatig ? handmatig[groep] : undefined);
+    if (keeper == null) { keuzeNodig++; continue; }
+    groepenKlaar++;
+    for (const f of fotos) if (f.id !== keeper) teWissen.push(f);
+  }
+  return { teWissen, keuzeNodig, groepenKlaar };
+}
+
+// Voorbeeld van wat er gewist zou worden (voor de bevestiging) — wist niets.
+router.post('/duplicaten/wis-preview', (req, res) => {
+  const db = getDb();
+  try {
+    const { bronVolgorde = [], handmatig = {}, groep = null } = req.body || {};
+    const { teWissen, keuzeNodig, groepenKlaar } = verzamelDuplicaatPlan(db, bronVolgorde, handmatig, groep);
+    const bytes = teWissen.reduce((s, f) => s + (f.bestandsgrootte || 0), 0);
+    db.close();
+    res.json({ ok: true, bestanden: teWissen.length, bytes, groepenKlaar, keuzeNodig });
+  } catch (e) {
+    try { db.close(); } catch (_) {}
+    res.status(500).json({ fout: 'preview mislukt', detail: e.message });
+  }
+});
+
+// Wis de duplicaten (alle kopieën behalve het origineel) → prullenbak + uit database.
+// Groepen die nog een keuze vereisen worden overgeslagen.
+router.post('/duplicaten/wis', async (req, res) => {
+  const db = getDb();
+  try {
+    const { bronVolgorde = [], handmatig = {}, groep = null } = req.body || {};
+    const { teWissen, keuzeNodig } = verzamelDuplicaatPlan(db, bronVolgorde, handmatig, groep);
+
+    if (teWissen.length === 0) {
+      db.close();
+      return res.json({ ok: true, verwijderd: 0, naarPrullenbak: 0, bytesVrij: 0, overgeslagen: keuzeNodig });
+    }
+
+    // Splits bestaande vs. al ontbrekende bestanden
+    const bestaande = [], ontbrekendeIds = [];
+    for (const f of teWissen) {
+      if (f.volledig_pad && fs.existsSync(f.volledig_pad)) bestaande.push(f);
+      else ontbrekendeIds.push(f.id);
+    }
+
+    let trash;
+    try { trash = require('trash'); }
+    catch (e) { db.close(); return res.status(500).json({ fout: 'prullenbak-module niet beschikbaar', detail: e.message }); }
+
+    const naarPrullenbakIds = [];
+    let bytesVrij = 0;
+    if (bestaande.length) {
+      try {
+        await trash(bestaande.map(f => f.volledig_pad));
+        for (const f of bestaande) { naarPrullenbakIds.push(f.id); bytesVrij += f.bestandsgrootte || 0; }
+      } catch (batchErr) {
+        for (const f of bestaande) {
+          try { await trash(f.volledig_pad); naarPrullenbakIds.push(f.id); bytesVrij += f.bestandsgrootte || 0; }
+          catch (_) { /* dit bestand overslaan */ }
+        }
+      }
+    }
+
+    const teVerwijderen = [...naarPrullenbakIds, ...ontbrekendeIds];
+    if (teVerwijderen.length) {
+      const ph = teVerwijderen.map(() => '?').join(',');
+      db.prepare(`DELETE FROM fotos WHERE id IN (${ph})`).run(...teVerwijderen);
+    }
+
+    db.close();
+    res.json({
+      ok: true,
+      verwijderd: teVerwijderen.length,
+      naarPrullenbak: naarPrullenbakIds.length,
+      bytesVrij,
+      overgeslagen: keuzeNodig
+    });
+  } catch (e) {
+    try { db.close(); } catch (_) {}
+    res.status(500).json({ fout: 'wissen mislukt', detail: e.message });
+  }
 });
 
 // === DATABASE WIS ===
