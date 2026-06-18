@@ -4,9 +4,38 @@ let tickerSec      = 0;
 let vorigeBericht  = '';   // voorkom dubbele log-regels
 
 // === START SCAN ===
+// Eenmalige prioriteit-vraag: vóór de scan checken we of de bron-volgorde
+// (welke bron telt als "origineel" bij duplicaten) al is ingesteld. Zo niet,
+// en er zijn meerdere bronnen, dan vragen we die éénmalig via de prioriteit-modal
+// en starten de scan pas nadat de gebruiker heeft opgeslagen.
 async function startScan(bronId, bronNaam) {
   logClient(`🖱 Klik: Start scan — ${bronNaam || 'bron #' + bronId}`);
 
+  if (await prioriteitNodigVoorScan()) {
+    logClient('🏷 Eerst even instellen welke bron het origineel is bij duplicaten...');
+    openPrioModal(() => echtStartScan(bronId, bronNaam));
+    return;
+  }
+
+  echtStartScan(bronId, bronNaam);
+}
+
+// Is een eenmalige prioriteit-vraag nodig vóór deze scan?
+// Ja als er ≥2 bronnen zijn én er nog geen bron-volgorde is opgeslagen.
+async function prioriteitNodigVoorScan() {
+  try {
+    const [prio, bronnen] = await Promise.all([
+      fetch('/api/duplicaten/prioriteit').then(r => r.json()),
+      fetch('/api/bronnen').then(r => r.json())
+    ]);
+    const volgorde = Array.isArray(prio.bronVolgorde) ? prio.bronVolgorde : [];
+    return Array.isArray(bronnen) && bronnen.length >= 2 && volgorde.length === 0;
+  } catch (_) {
+    return false; // bij twijfel niet blokkeren — gewoon scannen
+  }
+}
+
+async function echtStartScan(bronId, bronNaam) {
   // Onmiddellijke visuele feedback — nog voor server antwoord
   const kaart = document.getElementById('bronKaart_' + bronId);
   if (kaart) {

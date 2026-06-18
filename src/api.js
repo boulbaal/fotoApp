@@ -957,9 +957,10 @@ router.post('/database/wis', (req, res) => {
     DELETE FROM fotos;
     DELETE FROM scan_log;
     UPDATE bronnen SET totaal_fotos = 0, laatste_scan = NULL;
+    DELETE FROM instellingen WHERE sleutel IN ('dup_bron_volgorde', 'dup_handmatig');
   `);
   db.close();
-  console.log('🗑️  Database gewist door gebruiker (bronnen behouden)');
+  console.log('🗑️  Database gewist door gebruiker (bronnen behouden, duplicaat-prioriteit gereset)');
   res.json({ ok: true });
 });
 

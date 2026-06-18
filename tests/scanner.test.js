@@ -1566,5 +1566,54 @@ module.exports = async function testScanner() {
     }
   });
 
+  // ─── EENMALIGE PRIORITEIT-VRAAG BIJ SCAN ──────────────────────────────────
+
+  test('Scan UI: startScan checkt prioriteit vóór de scan', () => {
+    if (!uiScannerCode.includes('prioriteitNodigVoorScan')) {
+      throw new Error('startScan checkt geen prioriteit vóór de scan');
+    }
+    if (!uiScannerCode.includes('openPrioModal(() => echtStartScan(')) {
+      throw new Error('Prioriteit-modal wordt niet geopend met scan-vervolg');
+    }
+    if (!uiScannerCode.includes('async function echtStartScan(')) {
+      throw new Error('echtStartScan (eigenlijke scan-start) ontbreekt');
+    }
+  });
+
+  test('Scan UI: prioriteitNodigVoorScan vraagt alleen bij ≥2 bronnen zonder volgorde', () => {
+    const i = uiScannerCode.indexOf('async function prioriteitNodigVoorScan');
+    if (i === -1) throw new Error('prioriteitNodigVoorScan niet gevonden');
+    const blok = uiScannerCode.slice(i, i + 600);
+    if (!blok.includes('bronnen.length >= 2')) throw new Error('Geen ≥2-bronnen-voorwaarde');
+    if (!blok.includes('volgorde.length === 0')) throw new Error('Vraagt niet alleen bij lege volgorde');
+  });
+
+  test('Duplicaten UI: openPrioModal accepteert vervolg-callback', () => {
+    const dupCode = fs.readFileSync(path.join(__dirname, '../public/js/duplicaten.js'), 'utf8');
+    if (!dupCode.includes('async function openPrioModal(vervolg)')) {
+      throw new Error('openPrioModal accepteert geen vervolg-parameter');
+    }
+    if (!dupCode.includes('let prioVervolg')) {
+      throw new Error('prioVervolg-state ontbreekt');
+    }
+  });
+
+  test('Duplicaten UI: bewaarPrio voert vervolg-actie uit', () => {
+    const dupCode = fs.readFileSync(path.join(__dirname, '../public/js/duplicaten.js'), 'utf8');
+    const i = dupCode.indexOf('function bewaarPrio()');
+    if (i === -1) throw new Error('bewaarPrio niet gevonden');
+    const blok = dupCode.slice(i, i + 300);
+    if (!blok.includes('vervolg()')) throw new Error('bewaarPrio voert vervolg-actie niet uit');
+  });
+
+  test('API: /database/wis reset de duplicaat-prioriteit', () => {
+    const i = apiCode.indexOf("'/database/wis'");
+    if (i === -1) throw new Error('/database/wis endpoint niet gevonden');
+    const blok = apiCode.slice(i, i + 500);
+    if (!blok.includes("DELETE FROM instellingen WHERE sleutel IN ('dup_bron_volgorde', 'dup_handmatig')")) {
+      throw new Error('Wis reset de duplicaat-prioriteit niet');
+    }
+  });
+
   return resultaten;
 };

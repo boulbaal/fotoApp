@@ -202,8 +202,10 @@ async function stuurWis(body) {
 // === PRIORITEIT MODAL ===
 
 let prioBronnen = []; // {id, naam, icoon, type}
+let prioVervolg = null; // optionele actie na opslaan (bv. scan starten)
 
-async function openPrioModal() {
+async function openPrioModal(vervolg) {
+  prioVervolg = typeof vervolg === 'function' ? vervolg : null;
   prioBronnen = await fetch('/api/bronnen').then(r => r.json());
   const opgeslagen = getBronVolgorde();
 
@@ -286,11 +288,19 @@ function prioNaarGerangschikt(id) {
 function bewaarPrio() {
   setBronVolgorde(prioStaat().g);
   sluitPrioModal();
-  laadDuplicaten(1);
+  const vervolg = prioVervolg;
+  prioVervolg = null;
+  if (vervolg) {
+    vervolg(); // bv. de scan starten die op deze keuze wachtte
+  } else {
+    laadDuplicaten(1);
+  }
 }
 
 function sluitPrioModal(e) {
   if (e && e.target !== document.getElementById('prioOverlay')) return;
+  // Sluiten zonder opslaan: een eventueel wachtende scan-actie laten vallen.
+  if (e) prioVervolg = null;
   document.getElementById('prioOverlay').classList.remove('open');
 }
 
