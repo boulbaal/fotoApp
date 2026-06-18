@@ -139,7 +139,7 @@ function huidigeDupPagina() {
 // === WISSEN ===
 
 async function wisGroep(groep, aantalKopien) {
-  const t = (k, f) => (window.i18n ? window.i18n.t(k) : f) || f;
+  const t = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
   if (!confirm(t('dup_wis_groep_bevestig',
     `LET OP — ${aantalKopien} kopie(ën) van deze groep gaan naar de prullenbak.\n\n` +
     `• Bestanden zijn herstelbaar via de prullenbak\n` +
@@ -150,7 +150,7 @@ async function wisGroep(groep, aantalKopien) {
 }
 
 async function wisAlleDuplicaten() {
-  const t = (k, f) => (window.i18n ? window.i18n.t(k) : f) || f;
+  const t = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
   const body = { bronVolgorde: getBronVolgorde(), handmatig: getHandmatig() };
 
   // Preview ophalen voor een eerlijke bevestiging
@@ -181,7 +181,7 @@ async function wisAlleDuplicaten() {
 }
 
 async function stuurWis(body) {
-  const t = (k, f) => (window.i18n ? window.i18n.t(k) : f) || f;
+  const t = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
   try {
     const data = await fetch('/api/duplicaten/wis', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
@@ -228,7 +228,7 @@ async function openPrioModal() {
 function bronById(id) { return prioBronnen.find(b => b.id === id); }
 
 function rendePrioLijsten(gerangschikt, ongerangschikt) {
-  const t = (k, f) => (window.i18n ? window.i18n.t(k) : f) || f;
+  const t = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
   const item = (id, inGerangschikt, idx, totaal) => {
     const b = bronById(id);
     if (!b) return '';

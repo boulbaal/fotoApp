@@ -735,10 +735,12 @@ const LABELS = { nl:"NL",   en:"EN",   fr:"FR",   de:"DE" };
 window.i18n = (function() {
   let lang = localStorage.getItem("fotoapp_lang") || "nl";
 
-  function t(key) {
+  function t(key, fallback) {
     const val = (APP_TRANSLATIONS[lang] && APP_TRANSLATIONS[lang][key]) ||
                 (APP_TRANSLATIONS.nl[key]);
-    return val !== undefined ? val : key;
+    if (val !== undefined) return val;
+    // Ontbrekende sleutel: gebruik de meegegeven fallback-tekst i.p.v. de ruwe sleutel
+    return fallback !== undefined ? fallback : key;
   }
 
   function applyAll() {

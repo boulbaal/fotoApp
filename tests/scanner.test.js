@@ -1200,6 +1200,18 @@ module.exports = async function testScanner() {
     if (aantal < 4) throw new Error('opschoon_titel ontbreekt in een of meer talen (verwacht 4)');
   });
 
+  test('i18n: t(key, fallback) gebruikt fallback bij ontbrekende sleutel', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/i18n.js'), 'utf8');
+    // t moet een fallback-parameter accepteren en die teruggeven i.p.v. de ruwe sleutel
+    if (!/function t\(key, fallback\)/.test(code)) throw new Error('t() accepteert geen fallback-parameter');
+    if (!code.includes('fallback !== undefined ? fallback : key')) throw new Error('t() geeft fallback niet terug bij ontbrekende sleutel');
+    // De fragiele "|| f" helper (die de ruwe sleutel toonde) mag nergens meer staan
+    for (const f of ['duplicaten.js', 'dashboard.js', 'fotos.js']) {
+      const js = fs.readFileSync(path.join(__dirname, '../public/js/' + f), 'utf8');
+      if (js.includes('i18n.t(k) : f) || f')) throw new Error('fragiele i18n-fallback nog aanwezig in ' + f);
+    }
+  });
+
   // ── Fase C: batch-selectie (bulk negeer) ──────────────────────────
   test('Batch: POST /fotos/negeer-bulk endpoint aanwezig met cascade', () => {
     const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');

@@ -6,7 +6,7 @@ let huidigePagina = 1;
 let selectieModus = false;
 const geselecteerdeIds = new Set();
 
-function tt(k, f) { return (window.i18n ? window.i18n.t(k) : f) || f; }
+function tt(k, f) { return window.i18n ? window.i18n.t(k, f) : f; }
 
 function toggleSelectieModus() {
   selectieModus = !selectieModus;

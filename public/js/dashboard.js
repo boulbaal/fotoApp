@@ -78,7 +78,7 @@ async function laadStats() {
 async function laadOpschoonOverzicht() {
   const kaart = document.getElementById('opschoonKaart');
   if (!kaart) return;
-  const t = (k, f) => (window.i18n ? window.i18n.t(k) : f) || f;
+  const t = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
   try {
     const d = await fetch('/api/opschoon/overzicht').then(r => r.json());
     const dupBestanden = d.duplicaten?.bestanden || 0;
