@@ -70,6 +70,48 @@ async function laadStats() {
   })), 'label', 'aantal', (rij) => {
     toonPagina('fotos', { bron_id: rij.bron_id, _label: rij.label });
   }, (rij) => rij.grootte ? ` · ${formatGrootte(rij.grootte)}` : '', 10);
+
+  laadOpschoonOverzicht();
+}
+
+// Opschoon-dashboard: toon hoeveel ruimte vrijgemaakt kan worden.
+async function laadOpschoonOverzicht() {
+  const kaart = document.getElementById('opschoonKaart');
+  if (!kaart) return;
+  const t = (k, f) => (window.i18n ? window.i18n.t(k) : f) || f;
+  try {
+    const d = await fetch('/api/opschoon/overzicht').then(r => r.json());
+    const dupBestanden = d.duplicaten?.bestanden || 0;
+    const genBestanden = d.genegeerd?.bestanden || 0;
+
+    // Niets op te schonen → kaart verborgen houden
+    if (dupBestanden === 0 && genBestanden === 0 && (d.duplicaten?.keuzeNodig || 0) === 0) {
+      kaart.style.display = 'none';
+      return;
+    }
+    kaart.style.display = '';
+
+    document.getElementById('opschoonTotaal').textContent =
+      formatGrootte(d.totaalVrijTeMaken || 0) + ' ' + t('opschoon_vrij', 'vrij te maken');
+
+    document.getElementById('opschoonDup').textContent = dupBestanden > 0
+      ? `${dupBestanden.toLocaleString()} · ${formatGrootte(d.duplicaten.bytes || 0)}`
+      : t('opschoon_niets', 'niets');
+    document.getElementById('opschoonGen').textContent = genBestanden > 0
+      ? `${genBestanden.toLocaleString()} · ${formatGrootte(d.genegeerd.bytes || 0)}`
+      : t('opschoon_niets', 'niets');
+
+    const keuze = document.getElementById('opschoonKeuze');
+    const keuzeNodig = d.duplicaten?.keuzeNodig || 0;
+    if (keuzeNodig > 0) {
+      keuze.style.display = '';
+      keuze.textContent = `⚠️ ${keuzeNodig} ${t('opschoon_keuze_nodig', 'duplicaatgroep(en) wachten nog op een keuze')}`;
+    } else {
+      keuze.style.display = 'none';
+    }
+  } catch (_) {
+    kaart.style.display = 'none';
+  }
 }
 
 function tekenBalk(containerId, data, labelVeld, aantalVeld, onClick, extraInfo, maxItems) {

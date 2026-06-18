@@ -132,6 +132,24 @@
     <div class="stat-grid stat-grid-enkel">
       <div class="stat-kaart"><div class="getal" id="statGrootte">—</div><div class="label" data-i18n="lbl_total_size">Totale grootte</div></div>
     </div>
+    <!-- Opschoon-dashboard: hoeveel ruimte kan vrijgemaakt worden? -->
+    <div id="opschoonKaart" class="opschoon-kaart" style="display:none">
+      <div class="opschoon-kop">
+        <span class="opschoon-titel" data-i18n="opschoon_titel">🧹 Ruimte vrijmaken</span>
+        <span class="opschoon-totaal" id="opschoonTotaal">—</span>
+      </div>
+      <div class="opschoon-rijen">
+        <button class="opschoon-rij klikbaar" onclick="toonPagina('duplicaten')">
+          <span class="opschoon-rij-label" data-i18n="opschoon_duplicaten">📋 Duplicaten opruimen</span>
+          <span class="opschoon-rij-waarde" id="opschoonDup">—</span>
+        </button>
+        <button class="opschoon-rij klikbaar" onclick="toonPagina('genegeerd')">
+          <span class="opschoon-rij-label" data-i18n="opschoon_genegeerd">🚫 Genegeerde verwijderen</span>
+          <span class="opschoon-rij-waarde" id="opschoonGen">—</span>
+        </button>
+      </div>
+      <div class="opschoon-keuze" id="opschoonKeuze" style="display:none"></div>
+    </div>
     <div class="grafiek-grid">
       <div class="grafiek-kaart"><h3 data-i18n="grafiek_fotos_jaar">📅 Foto's per jaar</h3><div id="grafiekJaar"></div></div>
       <div class="grafiek-kaart"><h3 data-i18n="grafiek_videos_jaar">🎬 Video's per jaar</h3><div id="grafiekJaarVideo"></div></div>

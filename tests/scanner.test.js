@@ -1160,6 +1160,46 @@ module.exports = async function testScanner() {
     if (!code.includes('bewaarPrioOpServer')) throw new Error('cache→server sync ontbreekt');
   });
 
+  // ─── FASE B: TEKSTZOEKEN + OPSCHOON-DASHBOARD ─────────────────────────────────
+
+  test('Zoeken: backend doorzoekt naam, locatie (stad+land) en camera (merk+model)', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    const zoekRegel = apiCode.slice(apiCode.indexOf('if (zoek)'), apiCode.indexOf('if (zoek)') + 320);
+    for (const veld of ['bestandsnaam', 'gps_stad', 'gps_land', 'camera_merk', 'camera_model']) {
+      if (!zoekRegel.includes(veld)) throw new Error(`zoekfilter dekt ${veld} niet`);
+    }
+  });
+
+  test('Zoeken: frontend stuurt zoekterm mee', () => {
+    const fotosCode = fs.readFileSync(path.join(__dirname, '../public/js/fotos.js'), 'utf8');
+    if (!fotosCode.includes("getElementById('zoekInput')")) throw new Error('zoekveld niet uitgelezen');
+    if (!fotosCode.includes('zoek')) throw new Error('zoekterm niet meegestuurd');
+  });
+
+  test('Opschoon: GET /opschoon/overzicht endpoint aanwezig en gebruikt keeper-plan', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("'/opschoon/overzicht'")) throw new Error('opschoon-overzicht endpoint ontbreekt');
+    const blok = apiCode.slice(apiCode.indexOf("'/opschoon/overzicht'"), apiCode.indexOf("'/opschoon/overzicht'") + 900);
+    if (!blok.includes('verzamelDuplicaatPlan')) throw new Error('opschoon gebruikt het keeper-plan niet');
+    if (!blok.includes('genegeerd = 1')) throw new Error('genegeerde bestanden niet meegeteld');
+    if (!blok.includes('totaalVrijTeMaken')) throw new Error('totaal vrij te maken ontbreekt');
+  });
+
+  test('Opschoon: dashboard-kaart in HTML + JS-render aanwezig', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('opschoonKaart')) throw new Error('opschoon-kaart ontbreekt in HTML');
+    if (!html.includes('opschoonTotaal')) throw new Error('totaal-element ontbreekt');
+    const dash = fs.readFileSync(path.join(__dirname, '../public/js/dashboard.js'), 'utf8');
+    if (!dash.includes('laadOpschoonOverzicht')) throw new Error('render-functie ontbreekt');
+    if (!dash.includes('/api/opschoon/overzicht')) throw new Error('dashboard haalt overzicht niet op');
+  });
+
+  test('Opschoon: i18n-keys aanwezig in alle 4 talen', () => {
+    const i18n = fs.readFileSync(path.join(__dirname, '../public/js/i18n.js'), 'utf8');
+    const aantal = (i18n.match(/opschoon_titel:/g) || []).length;
+    if (aantal < 4) throw new Error('opschoon_titel ontbreekt in een of meer talen (verwacht 4)');
+  });
+
   test('API: toon-in-map endpoint (bestandsbeheerder, cross-platform)', () => {
     const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
     if (!apiCode.includes("'/fotos/:id/toon-in-map'")) throw new Error('toon-in-map endpoint ontbreekt');

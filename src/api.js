@@ -192,6 +192,40 @@ router.get('/stats', (req, res) => {
   });
 });
 
+// === OPSCHOON-DASHBOARD ===
+// Overzicht van ruimte die vrijgemaakt kan worden: duplicaat-kopieën (op basis
+// van de opgeslagen keeper-prioriteit) + genegeerde bestanden. Puur lezen.
+router.get('/opschoon/overzicht', (req, res) => {
+  const db = getDb();
+  try {
+    const { bronVolgorde, handmatig } = leesPrioriteit(db);
+    const plan = verzamelDuplicaatPlan(db, bronVolgorde, handmatig);
+    const dupBytes = plan.teWissen.reduce((s, f) => s + (f.bestandsgrootte || 0), 0);
+
+    const gen = db.prepare(
+      'SELECT COUNT(*) as n, COALESCE(SUM(bestandsgrootte), 0) as bytes FROM fotos WHERE genegeerd = 1'
+    ).get();
+
+    res.json({
+      duplicaten: {
+        bestanden: plan.teWissen.length,   // kopieën die nu al weg kunnen
+        bytes: dupBytes,
+        groepenKlaar: plan.groepenKlaar,   // groepen met een gekozen keeper
+        keuzeNodig: plan.keuzeNodig        // groepen die nog een keuze vereisen
+      },
+      genegeerd: {
+        bestanden: gen.n,
+        bytes: gen.bytes
+      },
+      totaalVrijTeMaken: dupBytes + gen.bytes
+    });
+  } catch (e) {
+    res.status(500).json({ fout: 'overzicht mislukt', detail: e.message });
+  } finally {
+    db.close();
+  }
+});
+
 // === WRAPPED / FOTO-LEVEN (deelbaar samenvattingsscherm) ===
 router.get('/wrapped', (req, res) => {
   const db = getDb();
@@ -245,7 +279,12 @@ router.get('/fotos', (req, res) => {
   if (land)         { waar += ' AND f.gps_land = ?';      params.push(land); }
   if (camera_merk)  { waar += ' AND f.camera_merk = ?';   params.push(camera_merk); }
   if (camera_model) { waar += ' AND f.camera_model = ?';  params.push(camera_model); }
-  if (zoek) { waar += ' AND (f.bestandsnaam LIKE ? OR f.gps_stad LIKE ? OR f.camera_model LIKE ?)'; params.push(`%${zoek}%`, `%${zoek}%`, `%${zoek}%`); }
+  if (zoek) {
+    // Tekstzoeken over naam, locatie (stad + land) en camera (merk + model)
+    waar += ' AND (f.bestandsnaam LIKE ? OR f.gps_stad LIKE ? OR f.gps_land LIKE ? OR f.camera_merk LIKE ? OR f.camera_model LIKE ?)';
+    const q = `%${zoek}%`;
+    params.push(q, q, q, q, q);
+  }
   if (zonder_gps === '1') { waar += ' AND (f.gps_lat IS NULL OR f.gps_lat = 0)'; }
   if (met_gps === '1')    { waar += ' AND f.gps_lat IS NOT NULL AND f.gps_lat != 0'; }
   if (alleen_dubbel === '1') { waar += ' AND f.is_duplicaat = 1'; }
