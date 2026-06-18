@@ -4,6 +4,7 @@ const fs = require('fs');
 const { getDb } = require('./database');
 const { startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen, stopScan, verwijderUitWachtrij, startVideoThumbnailPass, getVideoThumbStatus, startVideoGpsPass, getVideoGpsStatus } = require('./scanner');
 const { berekenPreview, startExport, stopExport, getStatus: getExportStatus, resetExport } = require('./export');
+const { leesPrioriteit, schrijfPrioriteit, bepaalKeeper } = require('./keeper');
 
 const router = express.Router();
 
@@ -310,18 +311,17 @@ router.get('/fotos/:id', (req, res) => {
   let isOrigineel = false;
 
   if (foto.duplicaat_groep) {
-    // Prioriteit: pc > gsm > usb > extern (lokale schijf = origineel)
-    const bronPrioriteit = { pc: 1, gsm: 2, usb: 3, extern: 4 };
-
     const alleExemplaren = db.prepare(`
-      SELECT f.id, f.volledig_pad, f.bestandsgrootte, b.naam as bron_naam, b.icoon as bron_icoon, b.type as bron_type
+      SELECT f.id, f.bron_id, f.volledig_pad, f.bestandsgrootte, b.naam as bron_naam, b.icoon as bron_icoon, b.type as bron_type
       FROM fotos f JOIN bronnen b ON f.bron_id = b.id
       WHERE f.duplicaat_groep = ?
-      ORDER BY b.type = 'pc' DESC, b.type = 'gsm' DESC, f.volledig_pad ASC
     `).all(foto.duplicaat_groep);
 
-    // Eerste exemplaar = origineel (laagste prioriteitsnummer)
-    const origineelId = alleExemplaren[0]?.id;
+    // Behouden exemplaar bepalen via de gedeelde keeper-logica (dezelfde keuze
+    // als de duplicaten-pagina én de export). verplicht=true: er is altijd
+    // precies één behouden exemplaar, ook als er nog geen bron gerangschikt is.
+    const { bronVolgorde, handmatig } = leesPrioriteit(db);
+    const origineelId = bepaalKeeper(alleExemplaren, bronVolgorde, handmatig[foto.duplicaat_groep], { verplicht: true });
     isOrigineel = foto.id === origineelId;
 
     // Andere locaties = alle exemplaren behalve de huidige
@@ -737,21 +737,12 @@ router.get('/duplicaten', (req, res) => {
 });
 
 // Bepaal welk exemplaar in een duplicaatgroep het origineel (= behouden) is.
-// Volgorde van beslissen:
-//   1. handmatige keuze (override) als die in de groep zit
-//   2. hoogst gerangschikte bron die in de groep voorkomt (gelijkspel → laagste id)
-//   3. geen enkele bron in de groep is gerangschikt → null = "keuze nodig"
-// fotos: [{ id, bron_id }], bronVolgorde: [bron_id, ...] (beste eerst), handmatigId: number|undefined
+// Delegeert naar de gedeelde keeper-logica (src/keeper.js) zodat backend,
+// export én frontend exact dezelfde keuze maken. verplicht=false: geeft null
+// terug ("keuze nodig") als geen enkele bron in de groep gerangschikt is —
+// het wisflow slaat zulke groepen dan veilig over.
 function bepaalOrigineel(fotos, bronVolgorde, handmatigId) {
-  if (handmatigId != null && fotos.some(f => f.id === handmatigId)) return handmatigId;
-  const rang = id => {
-    const i = bronVolgorde.indexOf(id);
-    return i === -1 ? Infinity : i;
-  };
-  const gerangschikt = fotos.filter(f => rang(f.bron_id) !== Infinity);
-  if (gerangschikt.length === 0) return null; // keuze nodig
-  gerangschikt.sort((a, b) => rang(a.bron_id) - rang(b.bron_id) || a.id - b.id);
-  return gerangschikt[0].id;
+  return bepaalKeeper(fotos, bronVolgorde, handmatigId, { verplicht: false });
 }
 
 // Verzamel per groep de keeper + te-wissen kopieën, op basis van prioriteit/handmatige keuze.
@@ -796,11 +787,49 @@ function schoonDuplicaatGroepenOp(db, groepen) {
   return opgeschoond;
 }
 
+// Bepaal de te gebruiken prioriteit voor een request.
+// - Komt de prioriteit in de body mee? Gebruik die én sla ze op in de DB (sync).
+// - Anders: lees de opgeslagen prioriteit uit de DB.
+// Zo zijn frontend (localStorage) en backend/export altijd consistent.
+function resolvePrioriteit(db, body) {
+  const heeftBron = body && Array.isArray(body.bronVolgorde);
+  const heeftHand = body && body.handmatig && typeof body.handmatig === 'object';
+  if (heeftBron || heeftHand) {
+    schrijfPrioriteit(db, heeftBron ? body.bronVolgorde : undefined, heeftHand ? body.handmatig : undefined);
+  }
+  return leesPrioriteit(db);
+}
+
+// === DUPLICATEN PRIORITEIT (gedeeld tussen frontend en backend) ===
+
+router.get('/duplicaten/prioriteit', (req, res) => {
+  const db = getDb();
+  try {
+    res.json(leesPrioriteit(db));
+  } finally {
+    db.close();
+  }
+});
+
+router.post('/duplicaten/prioriteit', (req, res) => {
+  const db = getDb();
+  try {
+    const { bronVolgorde, handmatig } = req.body || {};
+    schrijfPrioriteit(db, bronVolgorde, handmatig);
+    res.json({ ok: true, ...leesPrioriteit(db) });
+  } catch (e) {
+    res.status(500).json({ fout: 'opslaan mislukt', detail: e.message });
+  } finally {
+    db.close();
+  }
+});
+
 // Voorbeeld van wat er gewist zou worden (voor de bevestiging) — wist niets.
 router.post('/duplicaten/wis-preview', (req, res) => {
   const db = getDb();
   try {
-    const { bronVolgorde = [], handmatig = {}, groep = null } = req.body || {};
+    const { groep = null } = req.body || {};
+    const { bronVolgorde, handmatig } = resolvePrioriteit(db, req.body);
     const { teWissen, keuzeNodig, groepenKlaar } = verzamelDuplicaatPlan(db, bronVolgorde, handmatig, groep);
     const bytes = teWissen.reduce((s, f) => s + (f.bestandsgrootte || 0), 0);
     db.close();
@@ -816,7 +845,8 @@ router.post('/duplicaten/wis-preview', (req, res) => {
 router.post('/duplicaten/wis', async (req, res) => {
   const db = getDb();
   try {
-    const { bronVolgorde = [], handmatig = {}, groep = null } = req.body || {};
+    const { groep = null } = req.body || {};
+    const { bronVolgorde, handmatig } = resolvePrioriteit(db, req.body);
     const { teWissen, keuzeNodig } = verzamelDuplicaatPlan(db, bronVolgorde, handmatig, groep);
 
     if (teWissen.length === 0) {
@@ -958,43 +988,35 @@ router.get('/kaart/fotos', (req, res) => {
   if (!lat || !lon) return res.status(400).json({ fout: 'lat en lon vereist' });
   const db = getDb();
 
-  let kopienFilter = '';
-  if (zonder_kopien === '1') {
-    kopienFilter = `AND (
-      f.is_duplicaat = 0
-      OR f.id = (
-        SELECT f2.id FROM fotos f2
-        JOIN bronnen b2 ON f2.bron_id = b2.id
-        WHERE f2.duplicaat_groep = f.duplicaat_groep
-        ORDER BY CASE b2.type WHEN 'pc' THEN 1 WHEN 'gsm' THEN 2 WHEN 'usb' THEN 3 ELSE 4 END, f2.id ASC
-        LIMIT 1
-      )
-    )`;
-  }
-
   let typeFilter = '';
   if (is_video === '1') typeFilter = 'AND f.is_video = 1';
   else if (is_video === '0') typeFilter = 'AND (f.is_video IS NULL OR f.is_video = 0)';
 
-  const fotos = db.prepare(`
+  // Keeper-set via de gedeelde logica → het behouden exemplaar op de kaart
+  // komt overeen met het detailvenster, de duplicaten-pagina én de export.
+  const keepers = keeperIds(db);
+
+  const rijen = db.prepare(`
     SELECT f.id, f.bestandsnaam, f.datum_foto, f.gps_stad, f.gps_land, f.gps_land_code,
-           f.is_duplicaat, f.is_video, f.duur,
-           CASE WHEN f.duplicaat_groep IS NOT NULL AND f.id = (
-             SELECT f2.id FROM fotos f2 JOIN bronnen b2 ON f2.bron_id = b2.id
-             WHERE f2.duplicaat_groep = f.duplicaat_groep
-             ORDER BY CASE b2.type WHEN 'pc' THEN 1 WHEN 'gsm' THEN 2 WHEN 'usb' THEN 3 ELSE 4 END, f2.id ASC
-             LIMIT 1
-           ) THEN 1 ELSE 0 END as is_origineel,
+           f.is_duplicaat, f.is_video, f.duur, f.duplicaat_groep,
            f.camera_model, b.naam as bron_naam, b.icoon as bron_icoon, b.type as bron_type
     FROM fotos f JOIN bronnen b ON f.bron_id = b.id
     WHERE ROUND(f.gps_lat, 2) = ROUND(?, 2)
       AND ROUND(f.gps_lon, 2) = ROUND(?, 2)
       ${typeFilter}
-      ${kopienFilter}
     ORDER BY f.datum_foto ASC NULLS LAST
-    LIMIT ?
-  `).all(parseFloat(lat), parseFloat(lon), parseInt(limit));
+  `).all(parseFloat(lat), parseFloat(lon));
   db.close();
+
+  let fotos = rijen.map(f => ({
+    ...f,
+    is_origineel: f.duplicaat_groep && keepers.has(f.id) ? 1 : 0
+  }));
+  // Kopieën verbergen: toon niet-duplicaten + het behouden exemplaar per groep
+  if (zonder_kopien === '1') {
+    fotos = fotos.filter(f => !f.is_duplicaat || f.is_origineel);
+  }
+  fotos = fotos.slice(0, parseInt(limit));
   res.json(fotos);
 });
 

@@ -4,6 +4,7 @@ const fs   = require('fs');
 const path = require('path');
 const { execSync, spawnSync } = require('child_process');
 const { getDb } = require('./database');
+const { keeperIds } = require('./keeper');
 
 // Export-status (in geheugen — herstart = nieuwe status)
 let exportStatus = {
@@ -108,18 +109,27 @@ function schrijfGpsNaarBestand(doelPad, foto) {
 
 // ─── Export selectie query ────────────────────────────────
 
+// Selecteer alles wat geëxporteerd moet worden:
+//   - niet genegeerd
+//   - alle niet-duplicaten
+//   - PLUS precies één "keeper" per duplicaatgroep (op basis van de opgeslagen prioriteit)
+//
+// Voorheen filterde deze query op `is_duplicaat = 0`, waardoor ALLE leden van een
+// duplicaatgroep (óók het te behouden exemplaar) uit de export vielen. Daardoor
+// verdwenen foto's die maar op één plek "uniek" hoorden te zijn. Nu nemen we de
+// keeper expliciet mee zodat elke groep met precies één exemplaar geëxporteerd wordt.
 function selecteerFotos() {
   const db = getDb();
+  const keepers = keeperIds(db);
   const fotos = db.prepare(`
     SELECT id, volledig_pad, bestandsnaam, bestandsgrootte,
-           datum_foto, gps_land, gps_stad, gps_lat, gps_lon, geexporteerd
+           datum_foto, gps_land, gps_stad, gps_lat, gps_lon, geexporteerd, is_duplicaat
     FROM fotos
     WHERE (genegeerd = 0 OR genegeerd IS NULL)
-      AND (is_duplicaat = 0 OR is_duplicaat IS NULL)
     ORDER BY datum_foto ASC NULLS LAST
   `).all();
   db.close();
-  return fotos;
+  return fotos.filter(f => !f.is_duplicaat || keepers.has(f.id));
 }
 
 // ─── Preview (vóór export) ────────────────────────────────

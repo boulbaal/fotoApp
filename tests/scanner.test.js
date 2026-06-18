@@ -1045,6 +1045,121 @@ module.exports = async function testScanner() {
     if (!blok.includes('HAVING COUNT(*) > 1')) throw new Error('1-lid-groepen worden niet uitgefilterd');
   });
 
+  // ─── FASE A: GEDEELDE KEEPER-LOGICA (src/keeper.js) ───────────────────────────
+
+  test('Keeper: src/keeper.js bestaat en exporteert de gedeelde functies', () => {
+    const p = path.join(__dirname, '../src/keeper.js');
+    if (!fs.existsSync(p)) throw new Error('src/keeper.js niet gevonden');
+    const keeper = require('../src/keeper');
+    for (const fn of ['leesPrioriteit', 'schrijfPrioriteit', 'bepaalKeeper', 'keeperIds']) {
+      if (typeof keeper[fn] !== 'function') throw new Error(`keeper.${fn} ontbreekt`);
+    }
+  });
+
+  test('Keeper: handmatige keuze wint boven bron-prioriteit', () => {
+    const { bepaalKeeper } = require('../src/keeper');
+    const fotos = [{ id: 1, bron_id: 10 }, { id: 2, bron_id: 20 }, { id: 3, bron_id: 30 }];
+    // bron 30 is hoogst gerangschikt, maar handmatig kiest id 1
+    if (bepaalKeeper(fotos, [30, 20, 10], 1) !== 1) throw new Error('handmatige override genegeerd');
+  });
+
+  test('Keeper: hoogst gerangschikte bron wint (gelijkspel → laagste id)', () => {
+    const { bepaalKeeper } = require('../src/keeper');
+    const fotos = [{ id: 5, bron_id: 10 }, { id: 2, bron_id: 20 }, { id: 9, bron_id: 20 }];
+    // bron 20 staat eerst in de volgorde → twee kandidaten id 2 en 9 → laagste id wint = 2
+    if (bepaalKeeper(fotos, [20, 10]) !== 2) throw new Error('bron-prioriteit/gelijkspel verkeerd');
+  });
+
+  test('Keeper: verplicht=true valt terug op laagste id als niets gerangschikt is', () => {
+    const { bepaalKeeper } = require('../src/keeper');
+    const fotos = [{ id: 7, bron_id: 99 }, { id: 3, bron_id: 88 }];
+    if (bepaalKeeper(fotos, [], undefined, { verplicht: true }) !== 3) {
+      throw new Error('export-fallback (laagste id) werkt niet');
+    }
+  });
+
+  test('Keeper: verplicht=false geeft null ("keuze nodig") als niets gerangschikt is', () => {
+    const { bepaalKeeper } = require('../src/keeper');
+    const fotos = [{ id: 7, bron_id: 99 }, { id: 3, bron_id: 88 }];
+    if (bepaalKeeper(fotos, [], undefined, { verplicht: false }) !== null) {
+      throw new Error('wis-flow geeft geen "keuze nodig" terug');
+    }
+  });
+
+  test('Keeper: lees/schrijf prioriteit roundtrip via instellingen-tabel', () => {
+    let db;
+    try { db = new (require('better-sqlite3'))(':memory:'); }
+    catch (_) { return; } // omgeving zonder werkende native module → overslaan
+    db.exec('CREATE TABLE instellingen (sleutel TEXT PRIMARY KEY, waarde TEXT)');
+    const { leesPrioriteit, schrijfPrioriteit } = require('../src/keeper');
+
+    // Leeg = veilige defaults
+    const leeg = leesPrioriteit(db);
+    if (!Array.isArray(leeg.bronVolgorde) || typeof leeg.handmatig !== 'object') {
+      throw new Error('defaults niet correct bij lege instellingen');
+    }
+    schrijfPrioriteit(db, [3, 1, 2], { 'abc': 42 });
+    const terug = leesPrioriteit(db);
+    if (JSON.stringify(terug.bronVolgorde) !== '[3,1,2]') throw new Error('bronVolgorde niet bewaard');
+    if (terug.handmatig.abc !== 42) throw new Error('handmatige keuze niet bewaard');
+    db.close();
+  });
+
+  test('Keeper: keeperIds kiest één keeper per groep, niet-duplicaten genegeerd', () => {
+    let db;
+    try { db = new (require('better-sqlite3'))(':memory:'); }
+    catch (_) { return; }
+    db.exec(`
+      CREATE TABLE instellingen (sleutel TEXT PRIMARY KEY, waarde TEXT);
+      CREATE TABLE fotos (id INTEGER PRIMARY KEY, bron_id INTEGER, duplicaat_groep TEXT);
+      INSERT INTO fotos VALUES (1, 10, 'h1'), (2, 20, 'h1'), (3, 30, NULL), (4, 10, 'h2'), (5, 20, 'h2');
+    `);
+    const { keeperIds, schrijfPrioriteit } = require('../src/keeper');
+    schrijfPrioriteit(db, [20, 10], {}); // bron 20 voorrang
+    const ids = keeperIds(db);
+    // groep h1: bron 20 = id 2; groep h2: bron 20 = id 5; foto 3 is geen duplicaat → niet in set
+    if (!ids.has(2) || !ids.has(5)) throw new Error('keeper per groep ontbreekt');
+    if (ids.has(1) || ids.has(4) || ids.has(3)) throw new Error('verkeerde foto als keeper gemarkeerd');
+    if (ids.size !== 2) throw new Error('verwacht precies 2 keepers');
+    db.close();
+  });
+
+  test('API: prioriteit-endpoints (GET/POST /duplicaten/prioriteit) aanwezig', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("router.get('/duplicaten/prioriteit'")) throw new Error('GET prioriteit ontbreekt');
+    if (!apiCode.includes("router.post('/duplicaten/prioriteit'")) throw new Error('POST prioriteit ontbreekt');
+    if (!apiCode.includes("require('./keeper')")) throw new Error('keeper-module niet geïmporteerd in api.js');
+    // bepaalOrigineel delegeert nu naar de gedeelde bepaalKeeper
+    if (!apiCode.includes('bepaalKeeper(fotos, bronVolgorde, handmatigId')) {
+      throw new Error('bepaalOrigineel delegeert niet naar gedeelde bepaalKeeper');
+    }
+  });
+
+  test('Export: selecteerFotos neemt keeper per groep mee (niet langer is_duplicaat=0 filter)', () => {
+    const exportCode = fs.readFileSync(path.join(__dirname, '../src/export.js'), 'utf8');
+    if (!exportCode.includes("require('./keeper')")) throw new Error('export importeert keeper niet');
+    if (!exportCode.includes('keeperIds')) throw new Error('export gebruikt keeperIds niet');
+    const blok = exportCode.slice(exportCode.indexOf('function selecteerFotos'));
+    if (/AND\s*\(is_duplicaat\s*=\s*0/.test(blok)) {
+      throw new Error('export filtert nog steeds alle duplicaten weg (is_duplicaat=0) — keeper valt buiten export');
+    }
+    if (!blok.includes('keepers.has(f.id)')) throw new Error('export selecteert keeper niet expliciet');
+  });
+
+  test('API: detailvenster bepaalt keeper via gedeelde logica (niet hardcoded pc/gsm subquery)', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    const blok = apiCode.slice(apiCode.indexOf("router.get('/fotos/:id'"), apiCode.indexOf("router.get('/fotos/:id'") + 1400);
+    if (!blok.includes('bepaalKeeper')) throw new Error('detailvenster gebruikt gedeelde keeper niet');
+    if (!blok.includes('leesPrioriteit')) throw new Error('detailvenster leest opgeslagen prioriteit niet');
+  });
+
+  test('Duplicaten JS: prioriteit gesynct met server (API i.p.v. alleen localStorage)', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/duplicaten.js'), 'utf8');
+    if (!code.includes('/api/duplicaten/prioriteit')) throw new Error('frontend praat niet met prioriteit-API');
+    if (!code.includes('syncPrioVanServer')) throw new Error('server→cache sync ontbreekt');
+    if (!code.includes('bewaarPrioOpServer')) throw new Error('cache→server sync ontbreekt');
+  });
+
   test('API: toon-in-map endpoint (bestandsbeheerder, cross-platform)', () => {
     const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
     if (!apiCode.includes("'/fotos/:id/toon-in-map'")) throw new Error('toon-in-map endpoint ontbreekt');

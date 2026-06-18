@@ -1,17 +1,46 @@
 // === DUPLICATEN: opruimen op basis van bron-prioriteit ===
+//
+// De prioriteit (bron-volgorde + handmatige keuzes) is server-side opgeslagen in
+// de database (zie /api/duplicaten/prioriteit), zodat de backend-export exact
+// hetzelfde "behouden exemplaar" kiest als de UI. localStorage dient nog als
+// synchrone cache zodat het renderen zonder await kan blijven werken.
 
-// Onthouden tussen sessies (localStorage)
 function getBronVolgorde() {
   try { return JSON.parse(localStorage.getItem('dupBronVolgorde') || '[]'); }
   catch { return []; }
 }
-function setBronVolgorde(v) { localStorage.setItem('dupBronVolgorde', JSON.stringify(v)); }
+function setBronVolgorde(v) {
+  localStorage.setItem('dupBronVolgorde', JSON.stringify(v));
+  bewaarPrioOpServer({ bronVolgorde: v });
+}
 
 function getHandmatig() {
   try { return JSON.parse(localStorage.getItem('dupHandmatig') || '{}'); }
   catch { return {}; }
 }
-function setHandmatig(h) { localStorage.setItem('dupHandmatig', JSON.stringify(h)); }
+function setHandmatig(h) {
+  localStorage.setItem('dupHandmatig', JSON.stringify(h));
+  bewaarPrioOpServer({ handmatig: h });
+}
+
+// Schrijf prioriteit naar de server (bron van waarheid, gedeeld met export).
+function bewaarPrioOpServer(payload) {
+  return fetch('/api/duplicaten/prioriteit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(() => {}); // offline/fout: localStorage blijft als fallback werken
+}
+
+// Haal de opgeslagen prioriteit van de server en spiegel ze naar localStorage,
+// zodat de synchrone render-functies (bepaalOrigineelClient) de juiste keuze maken.
+async function syncPrioVanServer() {
+  try {
+    const p = await fetch('/api/duplicaten/prioriteit').then(r => r.json());
+    if (Array.isArray(p.bronVolgorde)) localStorage.setItem('dupBronVolgorde', JSON.stringify(p.bronVolgorde));
+    if (p.handmatig && typeof p.handmatig === 'object') localStorage.setItem('dupHandmatig', JSON.stringify(p.handmatig));
+  } catch (_) { /* server onbereikbaar: localStorage-cache gebruiken */ }
+}
 
 // Bepaal het origineel (= behouden) exemplaar binnen een groep.
 // Spiegelt exact de backend-logica in bepaalOrigineel().
@@ -27,6 +56,7 @@ function bepaalOrigineelClient(fotos, groep) {
 }
 
 async function laadDuplicaten(pagina = 1) {
+  await syncPrioVanServer(); // server-prioriteit naar lokale cache vóór render
   const data = await fetch(`/api/duplicaten?pagina=${pagina}&per_pagina=10`).then(r => r.json());
 
   const t = (k, fallback) => (window.i18n ? window.i18n.t(k) : fallback) || fallback;
