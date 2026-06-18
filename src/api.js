@@ -4,7 +4,7 @@ const fs = require('fs');
 const { getDb } = require('./database');
 const { startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen, stopScan, stopGeocode, verwijderUitWachtrij, startVideoThumbnailPass, getVideoThumbStatus, startVideoGpsPass, getVideoGpsStatus } = require('./scanner');
 const { berekenPreview, startExport, stopExport, getStatus: getExportStatus, resetExport } = require('./export');
-const { leesPrioriteit, schrijfPrioriteit, bepaalKeeper } = require('./keeper');
+const { leesPrioriteit, schrijfPrioriteit, bepaalKeeper, keeperIds } = require('./keeper');
 
 const router = express.Router();
 

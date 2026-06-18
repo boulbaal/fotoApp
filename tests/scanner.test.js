@@ -1606,6 +1606,19 @@ module.exports = async function testScanner() {
     if (!blok.includes('vervolg()')) throw new Error('bewaarPrio voert vervolg-actie niet uit');
   });
 
+  test('API: keeper-functies die gebruikt worden zijn ook geïmporteerd', () => {
+    const importMatch = apiCode.match(/const \{([^}]*)\} = require\('\.\/keeper'\)/);
+    if (!importMatch) throw new Error("api.js importeert ./keeper niet via destructuring");
+    const geimporteerd = importMatch[1].split(',').map(s => s.trim());
+    for (const fn of ['leesPrioriteit', 'schrijfPrioriteit', 'bepaalKeeper', 'keeperIds']) {
+      // Alleen eisen dat het geïmporteerd is als api.js het ook daadwerkelijk aanroept
+      const wordtGebruikt = new RegExp('[^.\\w]' + fn + '\\s*\\(').test(apiCode);
+      if (wordtGebruikt && !geimporteerd.includes(fn)) {
+        throw new Error(`api.js gebruikt ${fn}() maar importeert het niet uit ./keeper`);
+      }
+    }
+  });
+
   test('API: /database/wis reset de duplicaat-prioriteit', () => {
     const i = apiCode.indexOf("'/database/wis'");
     if (i === -1) throw new Error('/database/wis endpoint niet gevonden');
