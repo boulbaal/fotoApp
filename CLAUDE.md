@@ -62,7 +62,7 @@ api("PATCH", f"/repos/{OWNER}/{REPO}/git/refs/heads/main", {"sha": new_commit, "
 print(f"✅ Gepusht: https://github.com/{OWNER}/{REPO}")
 ```
 
-Huidig testresultaat bij schrijven van deze regel: **153/153 geslaagd** (1 overgeslagen door omgeving)
+Huidig testresultaat bij schrijven van deze regel: **251/251 geslaagd** (1 overgeslagen door omgeving)
 
 ---
 
@@ -489,3 +489,29 @@ Opdracht Ali: "post FotoApp op meer privacy/FOSS-sites zoals pluja, doe alles vo
 
 ### ⏳ Browser-posts (login vereist — Ali keurt per platform goed)
 - AlternativeTo, Reddit, Product Hunt: tekst staat klaar in `posts.md`. Reddit/HN volgens LAUNCHDAG.md **niet op maandag/vrijdag** posten.
+
+---
+
+## 🛠️ Fase A–D afgewerkt + getest (sessie 17/18 juni 2026)
+
+Opdracht Ali: "kunnen we fase A tot D afwerken en goed testen". Alles groen: **251/251** (1 overgeslagen door omgeving). Per fase een eigen `feat:`/`fix:`-commit, telkens gepusht via `/tmp/github_push.py`.
+
+### Fase A — gedeelde keeper-logica (duplicaten)
+- Nieuw `src/keeper.js`: één centrale `bepaalKeeper`/`keeperIds`-bron, prioriteit opgeslagen in DB (`instellingen`-keys `dup_bron_volgorde` + `dup_handmatig`) i.p.v. alleen localStorage.
+- Overal hetzelfde "welk exemplaar behouden": export, detailvenster, kaart/fotos, duplicaten-pagina, wis-flow.
+- **Kritieke exportbug gefixt**: export sloot vroeger álle duplicaatgroepleden uit → nu wordt precies één keeper per groep meegenomen (`export.js` → `keeperIds(db)`).
+
+### Fase B — tekstzoeken + opschoon-dashboard
+- `/fotos`-zoek verbreed naar naam/stad/land/camera_merk/camera_model.
+- Nieuw `GET /opschoon/overzicht` + dashboard-kaart (`opschoonKaart`): toont vrij te maken ruimte (duplicaten + genegeerd), verbergt zich als er niets op te schonen valt. i18n `opschoon_*` in 4 talen.
+
+### Fase C — batch-selectie (galerij)
+- Nieuw `POST /fotos/negeer-bulk` (transactie, cascade per duplicaatgroep, zelfde regel als `/fotos/:id/negeer`).
+- Selectiemodus in foto-galerij: ☑️-knop → klikken selecteert i.p.v. detail openen; selectie-balk met teller, alles-op-pagina, wissen, **negeren** / **toch meenemen**. `fotoItemKlik()` routet detail vs selectie. CSS-vink-markering. i18n `selectie_*` in 4 talen.
+- NB: "lightbox" en "export-preview per groep" uit de oorspronkelijke C-omschrijving zijn **niet** gebouwd — het detailvenster toont al volledige EXIF, en batch was de hoogste waarde. Bewust afgebakend (oppervlakkige scope).
+
+### Fase D — robuustheid scanner
+- `berekenHash` streamt nu in 1 MB-chunks (geen volledig bestand in geheugen) en geeft **null bij 0-byte** → lege bestanden gelden niet langer als duplicaten van elkaar (`detecteerDuplicaten` negeert `hash IS NULL`).
+- Geocode cachet **geen lege/429-resultaten** meer → tijdelijke fouten worden later opnieuw geprobeerd; extra afkoeling (5 s) bij 429.
+- Aparte `geocodeStoppen`-vlag + `stopGeocode()` + `POST /scan/geocode/stop`: geocode-pass stoppen raakt **geen lopende scan** meer (was één gedeelde `scanStoppen`).
+- `db.close()` in `try/finally` bij `propageerGpsInGroepen` en `updateLocatie` (geen connectie-lek bij fouten).
