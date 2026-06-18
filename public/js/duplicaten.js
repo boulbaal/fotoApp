@@ -51,7 +51,7 @@ async function laadDuplicaten(pagina = 1) {
     const fotosHtml = g.fotos.map(f => {
       const isKeeper = f.id === keeperId;
       const badge = isKeeper
-        ? `<div class="dup-badge dup-badge-origineel">★ ${t('dup_origineel', 'ORIGINEEL')}</div>`
+        ? `<div class="dup-badge dup-badge-origineel">★ ${t('dup_origineel', 'BEHOUDEN')}</div>`
         : (keuzeNodig ? '' : `<div class="dup-badge dup-badge-kopie">${t('dup_kopie', 'KOPIE')}</div>`);
       return `
         <div class="dup-foto ${isKeeper ? 'is-keeper' : ''}">
@@ -62,7 +62,7 @@ async function laadDuplicaten(pagina = 1) {
           <div class="bron">${f.bron_icoon || '💻'} ${f.bron_naam}</div>
           <div class="pad">${f.volledig_pad}</div>
           ${f.gps_lat ? `<div class="pad" style="color:#7c6af7">📍 ${f.gps_stad || ''} ${f.gps_land || ''}</div>` : ''}
-          ${isKeeper ? '' : `<button class="dup-maak-origineel" onclick="maakOrigineel('${g.duplicaat_groep}', ${f.id})">★ ${t('dup_maak_origineel', 'Dit is het origineel')}</button>`}
+          ${isKeeper ? '' : `<button class="dup-maak-origineel" onclick="maakOrigineel('${g.duplicaat_groep}', ${f.id})">★ ${t('dup_maak_origineel', 'Dit exemplaar behouden')}</button>`}
         </div>`;
     }).join('');
 

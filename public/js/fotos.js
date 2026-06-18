@@ -255,7 +255,7 @@ function renderModal(f) {
     })()],
     ['GPS',         f.gps_lat ? `${f.gps_lat.toFixed(4)}, ${f.gps_lon.toFixed(4)}` : '—'],
     ['Duplicaat',   f.is_duplicaat
-      ? (f.is_origineel ? '✅ Origineel — kopieën op andere locaties' : '📋 Kopie — origineel op andere locatie')
+      ? (f.is_origineel ? '✅ Behouden exemplaar — kopieën op andere locaties' : '📋 Kopie — behouden exemplaar op andere locatie')
       : 'Nee'],
     ['Software',    f.software || '—'],
   ];
@@ -271,7 +271,7 @@ function renderModal(f) {
     const locs = f.duplicaat_locaties || [];
     if (locs.length > 0) {
       const titelTekst = f.is_origineel
-        ? '📋 Kopieën van dit origineel:'
+        ? '📋 Kopieën van dit behouden exemplaar:'
         : '📂 Dit is een kopie — zelfde foto ook op:';
 
       dupEl.innerHTML = `
@@ -280,7 +280,7 @@ function renderModal(f) {
           ${locs.map(d => {
             const padEsc = d.volledig_pad.replace(/&/g,'&amp;').replace(/</g,'&lt;');
             const badge = d.is_origineel
-              ? '<span class="dup-origineel-badge">ORIGINEEL</span>'
+              ? '<span class="dup-origineel-badge">BEHOUDEN</span>'
               : '';
             return `<div class="dup-locatie">
               <div style="display:flex;align-items:center;gap:6px">

@@ -1016,6 +1016,20 @@ module.exports = async function testScanner() {
     if (!css.includes('.prio-modal')) throw new Error('prioriteit-modal stijl ontbreekt');
   });
 
+  test('Label: keeper heet "BEHOUDEN", niet misleidend "ORIGINEEL"', () => {
+    const i18n = fs.readFileSync(path.join(__dirname, '../public/js/i18n.js'), 'utf8');
+    // In alle 4 talen mag de keeper-badge niet langer letterlijk ORIGINEEL/ORIGINAL zijn
+    const waarden = [...i18n.matchAll(/dup_origineel:\s*"([^"]*)"/g)].map(m => m[1]);
+    if (waarden.length < 4) throw new Error('dup_origineel ontbreekt in een taal');
+    for (const v of waarden) {
+      if (/ORIGINEEL|ORIGINAL/i.test(v)) throw new Error('keeper-label is nog misleidend: ' + v);
+    }
+    if (!i18n.includes('"BEHOUDEN"')) throw new Error('NL-label BEHOUDEN ontbreekt');
+    // Foto-modal mag niet meer "Origineel —" tonen als label voor de keeper
+    const fotos = fs.readFileSync(path.join(__dirname, '../public/js/fotos.js'), 'utf8');
+    if (!fotos.includes('Behouden exemplaar')) throw new Error('modal toont keeper niet als "Behouden exemplaar"');
+  });
+
   test('API: keeper opschonen na wissen (geen verweesde DUP-restant)', () => {
     const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
     if (!apiCode.includes('function schoonDuplicaatGroepenOp')) throw new Error('opschoon-helper ontbreekt');
