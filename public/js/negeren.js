@@ -140,14 +140,17 @@ async function laadGenegeerd(pagina = 1) {
 
   const grid = document.getElementById('genegeerGrid');
   const leeg = document.getElementById('genegeerLeeg');
+  const verwijderKnop = document.getElementById('verwijderGenegeerdKnop');
   if (!grid) return;
 
   if (data.fotos.length === 0) {
     grid.innerHTML = '';
     if (leeg) leeg.style.display = 'block';
+    if (verwijderKnop) verwijderKnop.style.display = 'none';
     return;
   }
   if (leeg) leeg.style.display = 'none';
+  if (verwijderKnop) verwijderKnop.style.display = '';
 
   grid.innerHTML = data.fotos.map(f => `
     <div class="foto-item negeer-item foto-genegeerd" data-foto="${f.id}">
@@ -170,6 +173,43 @@ async function laadGenegeerd(pagina = 1) {
   `).join('');
 
   bindNegerenHoverPreview();
+}
+
+// Verwijder ALLE genegeerde foto's definitief (naar prullenbak + uit database)
+async function verwijderAlleGenegeerd() {
+  const teller = document.getElementById('genegeerGrid');
+  const aantal = teller ? teller.querySelectorAll('.negeer-item').length : 0;
+
+  const bevestig = confirm(
+    "LET OP — dit verwijdert de genegeerde foto's ECHT:\n\n" +
+    "• De bestanden gaan naar de prullenbak van je computer (herstelbaar)\n" +
+    "• Ze worden uit de database gewist, zodat ze niet opnieuw gescand worden\n" +
+    "• Alle duplicaten in dezelfde groep gaan mee\n\n" +
+    "Weet je het zeker?"
+  );
+  if (!bevestig) return;
+
+  const knop = document.getElementById('verwijderGenegeerdKnop');
+  if (knop) { knop.disabled = true; knop.textContent = '🗑️ Bezig met verwijderen...'; }
+
+  try {
+    const r = await fetch('/api/genegeerd/verwijder', { method: 'POST' });
+    const data = await r.json();
+    if (!r.ok || !data.ok) {
+      alert('Verwijderen mislukt: ' + (data.fout || data.detail || 'onbekende fout'));
+      return;
+    }
+    let bericht = `${data.verwijderd} foto('s) verwijderd.`;
+    if (data.naarPrullenbak) bericht += `\n${data.naarPrullenbak} naar de prullenbak verplaatst.`;
+    if (data.ontbrak) bericht += `\n${data.ontbrak} bestand(en) bestonden al niet meer (alleen DB opgeschoond).`;
+    if (data.mislukt && data.mislukt.length) bericht += `\n${data.mislukt.length} bestand(en) konden niet verplaatst worden.`;
+    alert(bericht);
+  } catch (e) {
+    alert('Verwijderen mislukt: ' + e.message);
+  } finally {
+    if (knop) { knop.disabled = false; knop.textContent = '🗑️ Verwijder alle genegeerde definitief'; }
+    laadGenegeerd(1);
+  }
 }
 
 // === HOVER PREVIEW ===

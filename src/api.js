@@ -960,6 +960,89 @@ router.post('/fotos/:id/negeer', (req, res) => {
   res.json({ ok: true, genegeerd: waarde === 1, aantalGewijzigd });
 });
 
+// Verwijder ALLE genegeerde foto's definitief: naar prullenbak + uit database
+// - selecteert alle genegeerd=1 foto's
+// - cascade: hele duplicaatgroep van elke genegeerde foto wordt meegenomen
+// - bestanden gaan naar de systeem-prullenbak (herstelbaar), niet permanent gewist
+// - DB-records worden verwijderd zodat ze niet opnieuw gescand worden
+router.post('/genegeerd/verwijder', async (req, res) => {
+  const db = getDb();
+  try {
+    // 1. Alle genegeerde foto's
+    const genegeerd = db.prepare('SELECT id, volledig_pad, duplicaat_groep FROM fotos WHERE genegeerd = 1').all();
+
+    // 2. Cascade: voeg alle leden van betrokken duplicaatgroepen toe
+    const groepen = [...new Set(genegeerd.map(f => f.duplicaat_groep).filter(Boolean))];
+    const idMap = new Map();
+    for (const f of genegeerd) idMap.set(f.id, f);
+    if (groepen.length) {
+      const ph = groepen.map(() => '?').join(',');
+      const leden = db.prepare(
+        `SELECT id, volledig_pad, duplicaat_groep FROM fotos WHERE duplicaat_groep IN (${ph})`
+      ).all(...groepen);
+      for (const f of leden) idMap.set(f.id, f);
+    }
+
+    const alle = [...idMap.values()];
+    if (alle.length === 0) {
+      db.close();
+      return res.json({ ok: true, verwijderd: 0, naarPrullenbak: 0, ontbrak: 0 });
+    }
+
+    // 3. Splits in bestanden die nog bestaan vs. al ontbrekend
+    const bestaande = [];
+    const ontbrekendeIds = [];
+    for (const f of alle) {
+      if (f.volledig_pad && fs.existsSync(f.volledig_pad)) bestaande.push(f);
+      else ontbrekendeIds.push(f.id);
+    }
+
+    // 4. Verplaats bestaande bestanden naar de prullenbak
+    let trash;
+    try {
+      trash = require('trash');
+    } catch (e) {
+      db.close();
+      return res.status(500).json({ fout: 'prullenbak-module niet beschikbaar', detail: e.message });
+    }
+
+    const naarPrullenbakIds = [];
+    const mislukt = [];
+    if (bestaande.length) {
+      try {
+        // Batch: alles in één keer naar de prullenbak
+        await trash(bestaande.map(f => f.volledig_pad));
+        for (const f of bestaande) naarPrullenbakIds.push(f.id);
+      } catch (batchErr) {
+        // Fallback: bestand voor bestand, zo verliezen we niet alles bij één fout
+        for (const f of bestaande) {
+          try { await trash(f.volledig_pad); naarPrullenbakIds.push(f.id); }
+          catch (e) { mislukt.push({ id: f.id, pad: f.volledig_pad, fout: e.message }); }
+        }
+      }
+    }
+
+    // 5. Verwijder DB-records: alles wat naar prullenbak ging + alles wat al ontbrak
+    const teVerwijderen = [...naarPrullenbakIds, ...ontbrekendeIds];
+    if (teVerwijderen.length) {
+      const ph = teVerwijderen.map(() => '?').join(',');
+      db.prepare(`DELETE FROM fotos WHERE id IN (${ph})`).run(...teVerwijderen);
+    }
+
+    db.close();
+    res.json({
+      ok: true,
+      verwijderd: teVerwijderen.length,
+      naarPrullenbak: naarPrullenbakIds.length,
+      ontbrak: ontbrekendeIds.length,
+      mislukt
+    });
+  } catch (e) {
+    try { db.close(); } catch (_) {}
+    res.status(500).json({ fout: 'verwijderen mislukt', detail: e.message });
+  }
+});
+
 // Stats voor fase 1 todo
 router.get('/fase1/todo', (req, res) => {
   const db = getDb();

@@ -27,6 +27,7 @@
     "express": "^5.2.1",
     "node-cron": "^4.2.1",
     "sharp": "^0.34.5",
+    "trash": "^7.2.0",
     "ws": "^8.21.0"
   },
   "devDependencies": {
@@ -52,25 +53,47 @@
     "asar": true,
     "asarUnpack": [
       "node_modules/better-sqlite3/**",
-      "node_modules/sharp/**"
+      "node_modules/sharp/**",
+      "node_modules/trash/**"
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/icon.ico"
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "icon": "build/icon.icns",
       "category": "public.app-category.photography"
     },
     "linux": {
       "target": [
-        { "target": "AppImage", "arch": ["x64"] },
-        { "target": "deb", "arch": ["x64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/icon.png",
       "category": "Graphics"

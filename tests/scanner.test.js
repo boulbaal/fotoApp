@@ -918,6 +918,33 @@ module.exports = async function testScanner() {
     if (!css.includes('.negeer-item.verdwijnt')) throw new Error('verdwijnt fade-out CSS ontbreekt');
   });
 
+  test('API: POST /genegeerd/verwijder endpoint aanwezig (prullenbak + DB delete)', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!apiCode.includes("'/genegeerd/verwijder'")) throw new Error('POST /genegeerd/verwijder endpoint ontbreekt');
+    if (!apiCode.includes("require('trash')")) throw new Error('trash (prullenbak) wordt niet gebruikt');
+    if (!apiCode.includes('DELETE FROM fotos')) throw new Error('DB-records worden niet verwijderd');
+  });
+
+  test('API: verwijder-genegeerd cascadeert over duplicaatgroep', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    const blok = apiCode.slice(apiCode.indexOf("'/genegeerd/verwijder'"));
+    if (!blok.includes('duplicaat_groep IN')) throw new Error('cascade over duplicaatgroep ontbreekt');
+    if (!blok.includes('fs.existsSync')) throw new Error('bestaande bestanden worden niet gefilterd voor verwijderen');
+  });
+
+  test('HTML: Verwijder-genegeerd knop aanwezig op Genegeerd-pagina', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes('verwijderGenegeerdKnop')) throw new Error('verwijder-knop ontbreekt op Genegeerd-pagina');
+    if (!html.includes('verwijderAlleGenegeerd()')) throw new Error('onclick verwijderAlleGenegeerd ontbreekt');
+  });
+
+  test('Negeren JS: verwijderAlleGenegeerd met bevestiging en endpoint-call', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/negeren.js'), 'utf8');
+    if (!code.includes('function verwijderAlleGenegeerd')) throw new Error('verwijderAlleGenegeerd() ontbreekt');
+    if (!code.includes('confirm(')) throw new Error('bevestigingsdialoog ontbreekt');
+    if (!code.includes('/api/genegeerd/verwijder')) throw new Error('endpoint wordt niet aangeroepen');
+  });
+
   test('HTML: Negeren-pagina opent in review-queue (Nog te beoordelen)', () => {
     const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
     if (!/value="nog-niet"\s+selected/.test(html)) throw new Error('Negeren-filter staat niet standaard op "Nog te beoordelen"');

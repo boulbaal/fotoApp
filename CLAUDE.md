@@ -314,7 +314,7 @@ git commit -m "type: korte beschrijving
 ## 🚫 Wat we nooit doen
 
 - Geen cloud uploads of externe API's met privédata
-- Geen echte foto's verwijderen via de app (enkel DB-records)
+- Geen permanente bestandsvernietiging — verwijderen verplaatst bestanden naar de systeem-prullenbak (herstelbaar via `trash`), nooit `fs.unlink`/echt wissen. Zie Genegeerd-pagina → "Verwijder alle genegeerde definitief" (`POST /api/genegeerd/verwijder`): bestanden naar prullenbak + DB-records weg zodat ze niet opnieuw gescand worden, cascade over de hele duplicaatgroep.
 - Geen afhankelijkheid van betaalde diensten
 - Geen scope creep zonder overleg
 
