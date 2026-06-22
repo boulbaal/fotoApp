@@ -205,7 +205,7 @@ async function laadFotos(pagina = 1) {
   const actieveFilter = getActieveFilter();
 
   const params = new URLSearchParams({
-    pagina, per_pagina: 200, zonder_thumbnail: 0,
+    pagina, per_pagina: 200, zonder_thumbnail: 1,
     zonder_kopien: 1, is_video: 0,
     ...(zoek && { zoek }),
     ...(bron && { bron_id: bron }),
@@ -251,8 +251,8 @@ async function laadFotos(pagina = 1) {
       ${f.geexporteerd ? '<div class="export-badge">✓</div>' : ''}
       ${f.is_video ? `<div class="video-badge">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>` : ''}
       <div class="bron-badge">${f.bron_icoon || '💻'}</div>
-      ${f.thumbnail
-        ? `<img src="${f.thumbnail}" loading="lazy" alt="${f.bestandsnaam}">`
+      ${f.heeft_thumbnail
+        ? `<img src="/api/fotos/${f.id}/thumbnail" loading="lazy" alt="${f.bestandsnaam}">`
         : `<div class="no-img">${f.is_video ? '🎬' : '🖼️'}</div>`}
       <div class="info">
         <div class="naam">${f.bestandsnaam}</div>
@@ -266,9 +266,11 @@ async function laadFotos(pagina = 1) {
   bouwPaginering(document.getElementById('fotosPaginering'), pagina, totaalPaginas, laadFotos);
 }
 
-// Herbruikbare paginering: volledige nummerreeks (met … bij heel veel
-// pagina's), plus snel-spring-knoppen: « eerste, ‹‹ −10, ‹ vorige,
-// › volgende, ›› +10, » laatste. Gedeeld door foto's, video's, duplicaten.
+// Herbruikbare paginering. Vaste indeling, links én rechts symmetrisch:
+//   «  ‹‹(−10)  ‹(−1)   [ venster van max 10 paginanummers ]   ›(+1)  ››(+10)  »
+// Het nummervenster schuift mee met de huidige pagina (altijd 10 nummers
+// als er genoeg pagina's zijn). Gedeeld door foto's, video's, duplicaten.
+const PAG_VENSTER = 10;
 function bouwPaginering(pag, pagina, totaalPaginas, laadFn) {
   pag.innerHTML = '';
   if (totaalPaginas <= 1) return;
@@ -282,40 +284,24 @@ function bouwPaginering(pag, pagina, totaalPaginas, laadFn) {
     else b.onclick = () => laadFn(p);
     return b;
   };
-  const maakDots = () => {
-    const s = document.createElement('span');
-    s.className = 'pag-dots';
-    s.textContent = '…';
-    return s;
-  };
 
-  // Spring-knoppen vooraan
-  pag.appendChild(maakKnop('«',  1,             { titel: 'Eerste pagina',  uit: pagina === 1 }));
-  pag.appendChild(maakKnop('‹‹', Math.max(1, pagina - 10), { titel: '10 terug', uit: pagina === 1 }));
-  pag.appendChild(maakKnop('‹',  pagina - 1,    { titel: 'Vorige',         uit: pagina === 1 }));
+  // Spring-knoppen vooraan (links)
+  pag.appendChild(maakKnop('«',  1,                          { titel: 'Eerste pagina', uit: pagina === 1 }));
+  pag.appendChild(maakKnop('‹‹', Math.max(1, pagina - 10),   { titel: '10 terug',      uit: pagina === 1 }));
+  pag.appendChild(maakKnop('‹',  pagina - 1,                 { titel: 'Vorige',        uit: pagina === 1 }));
 
-  // Nummerreeks. Alle nummers als het er weinig zijn; anders een venster
-  // rond de huidige pagina met 1 + laatste altijd zichtbaar en … ertussen.
-  const VENSTER = 4;
-  let start = Math.max(1, pagina - VENSTER);
-  let einde = Math.min(totaalPaginas, pagina + VENSTER);
-
-  if (start > 1) {
-    pag.appendChild(maakKnop(1, 1, { actief: pagina === 1 }));
-    if (start > 2) pag.appendChild(maakDots());
-  }
+  // Schuivend venster van (max) 10 nummers, gecentreerd op de huidige pagina.
+  let start = Math.max(1, pagina - Math.floor(PAG_VENSTER / 2));
+  let einde = Math.min(totaalPaginas, start + PAG_VENSTER - 1);
+  start = Math.max(1, einde - PAG_VENSTER + 1);   // herijken zodat er 10 getoond worden
   for (let p = start; p <= einde; p++) {
     pag.appendChild(maakKnop(p, p, { actief: p === pagina }));
   }
-  if (einde < totaalPaginas) {
-    if (einde < totaalPaginas - 1) pag.appendChild(maakDots());
-    pag.appendChild(maakKnop(totaalPaginas, totaalPaginas, { actief: pagina === totaalPaginas }));
-  }
 
-  // Spring-knoppen achteraan
-  pag.appendChild(maakKnop('›',  pagina + 1,    { titel: 'Volgende',       uit: pagina === totaalPaginas }));
-  pag.appendChild(maakKnop('››', Math.min(totaalPaginas, pagina + 10), { titel: '10 vooruit', uit: pagina === totaalPaginas }));
-  pag.appendChild(maakKnop('»',  totaalPaginas, { titel: 'Laatste pagina',  uit: pagina === totaalPaginas }));
+  // Spring-knoppen achteraan (rechts) — spiegelbeeld van links
+  pag.appendChild(maakKnop('›',  pagina + 1,                                 { titel: 'Volgende',      uit: pagina === totaalPaginas }));
+  pag.appendChild(maakKnop('››', Math.min(totaalPaginas, pagina + 10),       { titel: '10 vooruit',    uit: pagina === totaalPaginas }));
+  pag.appendChild(maakKnop('»',  totaalPaginas,                              { titel: 'Laatste pagina', uit: pagina === totaalPaginas }));
 }
 
 let huidigeFotoId = null;

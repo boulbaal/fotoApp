@@ -558,6 +558,30 @@ main { flex: 1; min-width: 0; padding: 24px; max-width: 1216px; }
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 8px;
 }
+
+/* Foto's & Video's vullen het scherm: kop + filters bovenaan blijven staan,
+   alleen de fotoraster scrollt, en de paginering blijft altijd zichtbaar
+   onderaan (geen vensterscroll meer). Hoogte = scherm - header - onderbalk. */
+#paginaFotos.actief,
+#paginaVideos.actief {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px - var(--balk-h) - 48px);
+}
+#paginaFotos .foto-grid,
+#paginaVideos .foto-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start;
+  padding-right: 4px;
+}
+#paginaFotos .paginering,
+#paginaVideos .paginering {
+  flex-shrink: 0;
+  margin-top: 12px;
+  padding-bottom: 4px;
+}
 .foto-item {
   background: #1a1a24;
   border: 1px solid #2a2a3a;

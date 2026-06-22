@@ -325,8 +325,8 @@ router.get('/fotos', (req, res) => {
   }
 
   const kolommen = zonder_thumbnail === '1'
-    ? 'f.id, f.bestandsnaam, f.volledig_pad, f.bestandsgrootte, f.bestandstype, f.datum_foto, f.jaar, f.maand, f.dag, f.gps_lat, f.gps_lon, f.gps_stad, f.gps_land, f.camera_merk, f.camera_model, f.is_duplicaat, f.duplicaat_groep, b.naam as bron_naam, b.icoon as bron_icoon'
-    : 'f.*, b.naam as bron_naam, b.icoon as bron_icoon';
+    ? 'f.id, f.bestandsnaam, f.volledig_pad, f.bestandsgrootte, f.bestandstype, f.datum_foto, f.jaar, f.maand, f.dag, f.gps_lat, f.gps_lon, f.gps_stad, f.gps_land, f.camera_merk, f.camera_model, f.is_duplicaat, f.duplicaat_groep, f.is_video, f.duur, f.geexporteerd, (f.thumbnail IS NOT NULL) as heeft_thumbnail, b.naam as bron_naam, b.icoon as bron_icoon'
+    : 'f.*, (f.thumbnail IS NOT NULL) as heeft_thumbnail, b.naam as bron_naam, b.icoon as bron_icoon';
 
   const fotos = db.prepare(`
     SELECT ${kolommen} FROM fotos f

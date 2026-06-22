@@ -126,7 +126,7 @@ async function laadVideos(pagina = 1) {
   const zonderGps = locatie === 'zonder' || videoZonderGpsFilter;
 
   const params = new URLSearchParams({
-    pagina, per_pagina: 100, is_video: 1, zonder_kopien: 1,
+    pagina, per_pagina: 100, is_video: 1, zonder_kopien: 1, zonder_thumbnail: 1,
     ...(zoek && { zoek }),
     ...(bron && { bron_id: bron }),
     ...(jaar && { jaar }),
@@ -163,8 +163,8 @@ async function laadVideos(pagina = 1) {
       ${f.geexporteerd ? '<div class="export-badge">✓</div>' : ''}
       <div class="video-badge">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>
       <div class="bron-badge">${f.bron_icoon || '💻'}</div>
-      ${f.thumbnail
-        ? `<img src="${f.thumbnail}" loading="lazy" alt="${f.bestandsnaam}">`
+      ${f.heeft_thumbnail
+        ? `<img src="/api/fotos/${f.id}/thumbnail" loading="lazy" alt="${f.bestandsnaam}">`
         : `<div class="no-img">🎬</div>`}
       <div class="info">
         <div class="naam">${f.bestandsnaam}</div>

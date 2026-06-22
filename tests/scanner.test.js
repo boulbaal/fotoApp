@@ -1641,7 +1641,7 @@ module.exports = async function testScanner() {
     }
   });
 
-  test('Paginering: gedeelde bouwPaginering met volledige reeks + spring-knoppen', () => {
+  test('Paginering: gedeelde bouwPaginering met 10-nummer venster + spring-knoppen', () => {
     if (!fotosCode.includes('function bouwPaginering')) {
       throw new Error('bouwPaginering helper ontbreekt in fotos.js');
     }
@@ -1660,9 +1660,48 @@ module.exports = async function testScanner() {
     if (!blok.includes('totaalPaginas')) {
       throw new Error('bouwPaginering springt niet naar de laatste pagina');
     }
-    // … bij heel veel pagina's
-    if (!blok.includes('maakDots')) {
-      throw new Error('bouwPaginering toont geen … bij veel pagina\'s');
+    // Schuivend venster van 10 nummers
+    if (!fotosCode.includes('PAG_VENSTER = 10')) {
+      throw new Error('bouwPaginering gebruikt geen venster van 10 paginanummers');
+    }
+  });
+
+  test('Paginering: foto-/videolijst gebruikt thumbnail-endpoint (snel laden)', () => {
+    const videos = fs.readFileSync(path.join(__dirname, '../public/js/videos.js'), 'utf8');
+    // Lijst vraagt GEEN base64-thumbnails meer mee maar gebruikt het endpoint
+    if (!fotosCode.includes('zonder_thumbnail: 1')) {
+      throw new Error('fotos.js vraagt nog de zware base64-thumbnails mee (zonder_thumbnail moet 1)');
+    }
+    if (!videos.includes('zonder_thumbnail: 1')) {
+      throw new Error('videos.js vraagt nog de zware base64-thumbnails mee');
+    }
+    if (!fotosCode.includes('/api/fotos/${f.id}/thumbnail') ||
+        !videos.includes('/api/fotos/${f.id}/thumbnail')) {
+      throw new Error('lijst laadt thumbnails niet via het lichte /thumbnail-endpoint');
+    }
+    if (!fotosCode.includes('f.heeft_thumbnail') || !videos.includes('f.heeft_thumbnail')) {
+      throw new Error('lijst gebruikt de heeft_thumbnail vlag niet');
+    }
+  });
+
+  test('API: lichte lijst-kolommen bevatten heeft_thumbnail vlag', () => {
+    if (!apiCode.includes('thumbnail IS NOT NULL) as heeft_thumbnail')) {
+      throw new Error('api.js geeft geen heeft_thumbnail vlag terug in de lijst');
+    }
+  });
+
+  test('Layout: foto- en videopagina vullen het scherm met vaste paginering', () => {
+    const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
+    if (!css.includes('#paginaFotos.actief') || !css.includes('#paginaVideos.actief')) {
+      throw new Error('CSS zet de foto-/videopagina niet op volledige schermhoogte');
+    }
+    const i = css.indexOf('#paginaFotos.actief');
+    const blok = css.slice(i, i + 700);
+    if (!blok.includes('100vh') || !blok.includes('var(--balk-h)')) {
+      throw new Error('schermhoogte houdt geen rekening met header/onderbalk');
+    }
+    if (!blok.includes('overflow-y: auto')) {
+      throw new Error('alleen het fotoraster mag scrollen (overflow-y ontbreekt)');
     }
   });
 
