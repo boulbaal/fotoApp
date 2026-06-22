@@ -103,24 +103,9 @@ async function laadDuplicaten(pagina = 1) {
     return `<div class="dup-groep ${keuzeNodig ? 'dup-groep-keuze' : ''}">${kop}<div class="dup-fotos">${fotosHtml}</div>${groepActie}</div>`;
   }).join('');
 
-  // Paginering
+  // Paginering — gedeelde helper (volledige nummerreeks + snel-spring-knoppen)
   const totaalPaginas = Math.ceil(data.totaal_groepen / 10);
-  const pag = document.getElementById('dupPaginering');
-  pag.innerHTML = '';
-  if (totaalPaginas > 1) {
-    const maakKnop = (tekst, p, actief) => {
-      const b = document.createElement('button');
-      b.textContent = tekst;
-      if (actief) b.classList.add('actief');
-      b.onclick = () => laadDuplicaten(p);
-      return b;
-    };
-    if (pagina > 1) pag.appendChild(maakKnop('‹', pagina - 1, false));
-    for (let p = Math.max(1, pagina - 2); p <= Math.min(totaalPaginas, pagina + 2); p++) {
-      pag.appendChild(maakKnop(p, p, p === pagina));
-    }
-    if (pagina < totaalPaginas) pag.appendChild(maakKnop('›', pagina + 1, false));
-  }
+  bouwPaginering(document.getElementById('dupPaginering'), pagina, totaalPaginas, laadDuplicaten);
 }
 
 // Handmatige override: kies dit exemplaar als origineel voor deze groep

@@ -150,6 +150,8 @@ async function laadVideos(pagina = 1) {
   if (!grid) return;
 
   if (data.fotos.length === 0) {
+    // Lege pagina maar er zijn wél video's → ga automatisch een pagina terug.
+    if (pagina > 1 && data.totaal > 0) { return laadVideos(pagina - 1); }
     grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">Geen video\'s gevonden</div>';
     document.getElementById('videosPaginering').innerHTML = '';
     return;
@@ -171,24 +173,9 @@ async function laadVideos(pagina = 1) {
     </div>
   `).join('');
 
-  // Paginering
+  // Paginering — gedeelde helper (volledige nummerreeks + snel-spring-knoppen)
   const totaalPaginas = Math.ceil(data.totaal / 100);
-  const pag = document.getElementById('videosPaginering');
-  pag.innerHTML = '';
-  if (totaalPaginas > 1) {
-    const maakKnop = (tekst, p, actief) => {
-      const b = document.createElement('button');
-      b.textContent = tekst;
-      if (actief) b.classList.add('actief');
-      b.onclick = () => laadVideos(p);
-      return b;
-    };
-    if (pagina > 1) pag.appendChild(maakKnop('‹', pagina - 1, false));
-    for (let p = Math.max(1, pagina - 2); p <= Math.min(totaalPaginas, pagina + 2); p++) {
-      pag.appendChild(maakKnop(p, p, p === pagina));
-    }
-    if (pagina < totaalPaginas) pag.appendChild(maakKnop('›', pagina + 1, false));
-  }
+  bouwPaginering(document.getElementById('videosPaginering'), pagina, totaalPaginas, laadVideos);
 }
 
 async function toonVideoDetail(id) {

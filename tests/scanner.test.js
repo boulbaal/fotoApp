@@ -1618,6 +1618,65 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Fotos UI: verwijderen blijft op dezelfde pagina (niet terug naar 1)', () => {
+    const i = fotosCode.indexOf('async function verwijderFotoDefinitief');
+    if (i === -1) throw new Error('verwijderFotoDefinitief niet gevonden');
+    const blok = fotosCode.slice(i, i + 2500);
+    if (!blok.includes('laadFotos(typeof huidigePagina')) {
+      throw new Error('verwijderen herlaadt foto\'s niet op de huidige pagina (huidigePagina ontbreekt)');
+    }
+    if (!blok.includes('laadVideos(typeof huidigePaginaVideo')) {
+      throw new Error('verwijderen herlaadt video\'s niet op de huidige pagina (huidigePaginaVideo ontbreekt)');
+    }
+    if (blok.includes('laadFotos(1)') || blok.includes('laadVideos(1)')) {
+      throw new Error('verwijderen springt nog steeds terug naar pagina 1');
+    }
+  });
+
+  test('Fotos UI: lege pagina na verwijderen gaat automatisch een pagina terug', () => {
+    const i = fotosCode.indexOf('async function laadFotos');
+    const blok = fotosCode.slice(i, i + 2500);
+    if (!/pagina > 1 && data\.totaal > 0.*return laadFotos\(pagina - 1\)/s.test(blok)) {
+      throw new Error('laadFotos vangt een lege laatste pagina niet op');
+    }
+  });
+
+  test('Paginering: gedeelde bouwPaginering met volledige reeks + spring-knoppen', () => {
+    if (!fotosCode.includes('function bouwPaginering')) {
+      throw new Error('bouwPaginering helper ontbreekt in fotos.js');
+    }
+    const i = fotosCode.indexOf('function bouwPaginering');
+    const blok = fotosCode.slice(i, i + 2200);
+    // Eerste / laatste pagina spring-knoppen
+    if (!blok.includes("'«'") || !blok.includes("'»'")) {
+      throw new Error('bouwPaginering mist eerste/laatste-pagina knoppen (« »)');
+    }
+    // 10 terug / 10 vooruit
+    if (!blok.includes("'‹‹'") || !blok.includes("'››'") ||
+        !blok.includes('pagina - 10') || !blok.includes('pagina + 10')) {
+      throw new Error('bouwPaginering mist de 10-terug/10-vooruit spring-knoppen');
+    }
+    // Naar laatste pagina springen
+    if (!blok.includes('totaalPaginas')) {
+      throw new Error('bouwPaginering springt niet naar de laatste pagina');
+    }
+    // … bij heel veel pagina's
+    if (!blok.includes('maakDots')) {
+      throw new Error('bouwPaginering toont geen … bij veel pagina\'s');
+    }
+  });
+
+  test('Paginering: videos.js en duplicaten.js gebruiken bouwPaginering', () => {
+    const videos = fs.readFileSync(path.join(__dirname, '../public/js/videos.js'), 'utf8');
+    const dup    = fs.readFileSync(path.join(__dirname, '../public/js/duplicaten.js'), 'utf8');
+    if (!videos.includes('bouwPaginering(')) {
+      throw new Error('videos.js gebruikt de gedeelde bouwPaginering niet');
+    }
+    if (!dup.includes('bouwPaginering(')) {
+      throw new Error('duplicaten.js gebruikt de gedeelde bouwPaginering niet');
+    }
+  });
+
   test('API: keeper-functies die gebruikt worden zijn ook geïmporteerd', () => {
     const importMatch = apiCode.match(/const \{([^}]*)\} = require\('\.\/keeper'\)/);
     if (!importMatch) throw new Error("api.js importeert ./keeper niet via destructuring");

@@ -237,6 +237,9 @@ async function laadFotos(pagina = 1) {
 
   const grid = document.getElementById('fotoGrid');
   if (data.fotos.length === 0) {
+    // Lege pagina maar er zijn wél foto's (bv. laatste item van laatste pagina
+    // net verwijderd) → ga automatisch een pagina terug i.p.v. leeg tonen.
+    if (pagina > 1 && data.totaal > 0) { return laadFotos(pagina - 1); }
     grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">' + window.i18n.t('geen_fotos') + '</div>';
     return;
   }
@@ -260,22 +263,59 @@ async function laadFotos(pagina = 1) {
 
   // Paginering
   const totaalPaginas = Math.ceil(data.totaal / 200);
-  const pag = document.getElementById('fotosPaginering');
+  bouwPaginering(document.getElementById('fotosPaginering'), pagina, totaalPaginas, laadFotos);
+}
+
+// Herbruikbare paginering: volledige nummerreeks (met … bij heel veel
+// pagina's), plus snel-spring-knoppen: « eerste, ‹‹ −10, ‹ vorige,
+// › volgende, ›› +10, » laatste. Gedeeld door foto's, video's, duplicaten.
+function bouwPaginering(pag, pagina, totaalPaginas, laadFn) {
   pag.innerHTML = '';
-  if (totaalPaginas > 1) {
-    const maakKnop = (tekst, p, actief) => {
-      const b = document.createElement('button');
-      b.textContent = tekst;
-      if (actief) b.classList.add('actief');
-      b.onclick = () => laadFotos(p);
-      return b;
-    };
-    if (pagina > 1) pag.appendChild(maakKnop('‹', pagina - 1, false));
-    for (let p = Math.max(1, pagina - 2); p <= Math.min(totaalPaginas, pagina + 2); p++) {
-      pag.appendChild(maakKnop(p, p, p === pagina));
-    }
-    if (pagina < totaalPaginas) pag.appendChild(maakKnop('›', pagina + 1, false));
+  if (totaalPaginas <= 1) return;
+
+  const maakKnop = (tekst, p, opties = {}) => {
+    const b = document.createElement('button');
+    b.textContent = tekst;
+    if (opties.actief) b.classList.add('actief');
+    if (opties.titel) b.title = opties.titel;
+    if (opties.uit) { b.disabled = true; b.classList.add('uit'); }
+    else b.onclick = () => laadFn(p);
+    return b;
+  };
+  const maakDots = () => {
+    const s = document.createElement('span');
+    s.className = 'pag-dots';
+    s.textContent = '…';
+    return s;
+  };
+
+  // Spring-knoppen vooraan
+  pag.appendChild(maakKnop('«',  1,             { titel: 'Eerste pagina',  uit: pagina === 1 }));
+  pag.appendChild(maakKnop('‹‹', Math.max(1, pagina - 10), { titel: '10 terug', uit: pagina === 1 }));
+  pag.appendChild(maakKnop('‹',  pagina - 1,    { titel: 'Vorige',         uit: pagina === 1 }));
+
+  // Nummerreeks. Alle nummers als het er weinig zijn; anders een venster
+  // rond de huidige pagina met 1 + laatste altijd zichtbaar en … ertussen.
+  const VENSTER = 4;
+  let start = Math.max(1, pagina - VENSTER);
+  let einde = Math.min(totaalPaginas, pagina + VENSTER);
+
+  if (start > 1) {
+    pag.appendChild(maakKnop(1, 1, { actief: pagina === 1 }));
+    if (start > 2) pag.appendChild(maakDots());
   }
+  for (let p = start; p <= einde; p++) {
+    pag.appendChild(maakKnop(p, p, { actief: p === pagina }));
+  }
+  if (einde < totaalPaginas) {
+    if (einde < totaalPaginas - 1) pag.appendChild(maakDots());
+    pag.appendChild(maakKnop(totaalPaginas, totaalPaginas, { actief: pagina === totaalPaginas }));
+  }
+
+  // Spring-knoppen achteraan
+  pag.appendChild(maakKnop('›',  pagina + 1,    { titel: 'Volgende',       uit: pagina === totaalPaginas }));
+  pag.appendChild(maakKnop('››', Math.min(totaalPaginas, pagina + 10), { titel: '10 vooruit', uit: pagina === totaalPaginas }));
+  pag.appendChild(maakKnop('»',  totaalPaginas, { titel: 'Laatste pagina',  uit: pagina === totaalPaginas }));
 }
 
 let huidigeFotoId = null;
@@ -558,11 +598,13 @@ async function verwijderFotoDefinitief(id) {
     origStad = ''; origLand = ''; origDatum = '';
     document.querySelectorAll('#modalOverlay video').forEach(v => { v.pause(); v.src = ''; });
     document.getElementById('modalOverlay').classList.remove('open');
-    // Herlaad de juiste lijst (foto's of video's)
+    // Herlaad de juiste lijst op DEZELFDE pagina (niet terug naar 1).
+    // Als dit het laatste item op de laatste pagina was, vangt de lege-pagina
+    // afhandeling in laadFotos/laadVideos dit op en gaat een pagina terug.
     if (typeof huidigeItemIsVideo !== 'undefined' && huidigeItemIsVideo && typeof laadVideos === 'function') {
-      laadVideos(1);
+      laadVideos(typeof huidigePaginaVideo !== 'undefined' ? huidigePaginaVideo : 1);
     } else {
-      laadFotos(1);
+      laadFotos(typeof huidigePagina !== 'undefined' ? huidigePagina : 1);
     }
     // Was het detail vanuit het kaart-popup geopend? Dan dat paneel + de
     // marker-tellingen ook verversen, anders blijft de verwijderde foto staan.

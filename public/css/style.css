@@ -863,16 +863,19 @@ main { flex: 1; min-width: 0; padding: 24px; max-width: 1216px; }
 
 /* PAGINERING */
 .paginering {
-  display: flex; justify-content: center;
-  gap: 8px; margin-top: 24px; padding-bottom: 32px;
+  display: flex; justify-content: center; align-items: center;
+  flex-wrap: wrap;
+  gap: 6px; margin-top: 24px; padding-bottom: 32px;
 }
 .paginering button {
   background: #1a1a24; border: 1px solid #2a2a3a;
-  color: #e0e0e0; padding: 6px 12px;
+  color: #e0e0e0; padding: 6px 12px; min-width: 38px;
   border-radius: 6px; cursor: pointer;
 }
 .paginering button.actief { background: #7c6af7; border-color: #7c6af7; }
-.paginering button:disabled { opacity: 0.4; cursor: not-allowed; }
+.paginering button:disabled,
+.paginering button.uit { opacity: 0.35; cursor: not-allowed; }
+.paginering .pag-dots { color: #7a7a8a; padding: 0 2px; user-select: none; }
 
 /* SCAN VOORTGANG */
 .scan-voortgang {
