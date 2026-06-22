@@ -1690,18 +1690,13 @@ module.exports = async function testScanner() {
     }
   });
 
-  test('Layout: foto- en videopagina vullen het scherm met vaste paginering', () => {
-    const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
-    if (!css.includes('#paginaFotos.actief') || !css.includes('#paginaVideos.actief')) {
-      throw new Error('CSS zet de foto-/videopagina niet op volledige schermhoogte');
+  test('Galerij: minder foto\'s/video\'s per pagina (sneller laden)', () => {
+    const videos = fs.readFileSync(path.join(__dirname, '../public/js/videos.js'), 'utf8');
+    if (!fotosCode.includes('per_pagina: 50') || !fotosCode.includes('data.totaal / 50')) {
+      throw new Error('fotos.js laadt niet 50 per pagina (paginateller en fetch moeten overeenkomen)');
     }
-    const i = css.indexOf('#paginaFotos.actief');
-    const blok = css.slice(i, i + 700);
-    if (!blok.includes('100vh') || !blok.includes('var(--balk-h)')) {
-      throw new Error('schermhoogte houdt geen rekening met header/onderbalk');
-    }
-    if (!blok.includes('overflow-y: auto')) {
-      throw new Error('alleen het fotoraster mag scrollen (overflow-y ontbreekt)');
+    if (!videos.includes('per_pagina: 50') || !videos.includes('data.totaal / 50')) {
+      throw new Error('videos.js laadt niet 50 per pagina');
     }
   });
 

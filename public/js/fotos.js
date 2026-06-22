@@ -205,7 +205,7 @@ async function laadFotos(pagina = 1) {
   const actieveFilter = getActieveFilter();
 
   const params = new URLSearchParams({
-    pagina, per_pagina: 200, zonder_thumbnail: 1,
+    pagina, per_pagina: 50, zonder_thumbnail: 1,
     zonder_kopien: 1, is_video: 0,
     ...(zoek && { zoek }),
     ...(bron && { bron_id: bron }),
@@ -262,7 +262,7 @@ async function laadFotos(pagina = 1) {
   `).join('');
 
   // Paginering
-  const totaalPaginas = Math.ceil(data.totaal / 200);
+  const totaalPaginas = Math.ceil(data.totaal / 50);
   bouwPaginering(document.getElementById('fotosPaginering'), pagina, totaalPaginas, laadFotos);
 }
 

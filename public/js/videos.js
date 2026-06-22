@@ -126,7 +126,7 @@ async function laadVideos(pagina = 1) {
   const zonderGps = locatie === 'zonder' || videoZonderGpsFilter;
 
   const params = new URLSearchParams({
-    pagina, per_pagina: 100, is_video: 1, zonder_kopien: 1, zonder_thumbnail: 1,
+    pagina, per_pagina: 50, is_video: 1, zonder_kopien: 1, zonder_thumbnail: 1,
     ...(zoek && { zoek }),
     ...(bron && { bron_id: bron }),
     ...(jaar && { jaar }),
@@ -174,7 +174,7 @@ async function laadVideos(pagina = 1) {
   `).join('');
 
   // Paginering — gedeelde helper (volledige nummerreeks + snel-spring-knoppen)
-  const totaalPaginas = Math.ceil(data.totaal / 100);
+  const totaalPaginas = Math.ceil(data.totaal / 50);
   bouwPaginering(document.getElementById('videosPaginering'), pagina, totaalPaginas, laadVideos);
 }
 
