@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const { getDb } = require('./database');
+const { getDb, getSharedDb } = require('./database');
 const { startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen, stopScan, stopGeocode, verwijderUitWachtrij, startVideoThumbnailPass, getVideoThumbStatus, startVideoGpsPass, getVideoGpsStatus } = require('./scanner');
 const { berekenPreview, startExport, stopExport, getStatus: getExportStatus, resetExport } = require('./export');
 const { leesPrioriteit, schrijfPrioriteit, bepaalKeeper, keeperIds } = require('./keeper');
@@ -985,9 +985,10 @@ router.get('/mappen', (req, res) => {
 
 // Thumbnail als echte afbeelding serveren (browser cached dit)
 router.get('/fotos/:id/thumbnail', (req, res) => {
-  const db = getDb();
+  // Gedeelde, langlevende leesverbinding: dit endpoint wordt per pagina ~50x
+  // aangeroepen; telkens een nieuwe verbinding openen liet de app vastlopen.
+  const db = getSharedDb();
   const foto = db.prepare('SELECT thumbnail FROM fotos WHERE id = ?').get(req.params.id);
-  db.close();
   if (!foto?.thumbnail) return res.status(404).send('Geen thumbnail');
   const [header, b64] = foto.thumbnail.split(',');
   const mime = header.match(/data:([^;]+)/)?.[1] || 'image/jpeg';

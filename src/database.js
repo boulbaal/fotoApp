@@ -14,6 +14,22 @@ function getDb() {
   return db;
 }
 
+// Eén gedeelde, langlevende verbinding voor hoog-frequente leesacties
+// (zoals het thumbnail-endpoint dat per pagina ~50 keer wordt aangeroepen).
+// Telkens een nieuwe verbinding openen blokkeerde de synchrone better-sqlite3
+// event-loop en deed de app vastlopen bij snel bladeren. WAL zorgt dat deze
+// lezer steeds de laatst weggeschreven data ziet. Nooit sluiten.
+let sharedDb = null;
+function getSharedDb() {
+  if (!sharedDb || !sharedDb.open) {
+    sharedDb = new Database(getDbPath());
+    sharedDb.pragma('journal_mode = WAL');
+    sharedDb.pragma('foreign_keys = ON');
+    sharedDb.pragma('busy_timeout = 5000');
+  }
+  return sharedDb;
+}
+
 function initDb() {
   const db = getDb();
 
@@ -141,6 +157,11 @@ function initDb() {
     console.log('✅ Migratie: is_video kolom toegevoegd');
   }
 
+  // Samengestelde index voor snelle gesorteerde paginering: de galerij filtert
+  // op is_video en sorteert op datum_foto. Maakt ook diep bladeren (laatste
+  // pagina, grote OFFSET) snel.
+  db.exec("CREATE INDEX IF NOT EXISTS idx_fotos_video_datum ON fotos(is_video, datum_foto)");
+
   // Opschoning: verweesde duplicaat-restanten herstellen.
   // Na het wissen van een duplicaatgroep kan er een enkele foto overblijven
   // die nog is_duplicaat=1 en een duplicaat_groep had. Die is geen duplicaat meer.
@@ -163,4 +184,4 @@ function initDb() {
   console.log('✅ Database geïnitialiseerd:', getDbPath());
 }
 
-module.exports = { getDb, initDb };
+module.exports = { getDb, getSharedDb, initDb };

@@ -1690,6 +1690,33 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Prestatie: thumbnail-endpoint gebruikt gedeelde verbinding (geen freeze)', () => {
+    const dbCode = fs.readFileSync(path.join(__dirname, '../src/database.js'), 'utf8');
+    if (!dbCode.includes('function getSharedDb') || !dbCode.includes('getSharedDb')) {
+      throw new Error('database.js exporteert geen gedeelde leesverbinding getSharedDb');
+    }
+    if (!/module\.exports\s*=\s*\{[^}]*getSharedDb/.test(dbCode)) {
+      throw new Error('getSharedDb wordt niet geëxporteerd');
+    }
+    // Het thumbnail-endpoint mag GEEN nieuwe verbinding per request openen/sluiten
+    const i = apiCode.indexOf("'/fotos/:id/thumbnail'");
+    if (i === -1) throw new Error('thumbnail-endpoint niet gevonden');
+    const blok = apiCode.slice(i, i + 400);
+    if (!blok.includes('getSharedDb()')) {
+      throw new Error('thumbnail-endpoint gebruikt niet de gedeelde verbinding');
+    }
+    if (blok.includes('db.close()')) {
+      throw new Error('thumbnail-endpoint sluit de gedeelde verbinding (mag niet)');
+    }
+  });
+
+  test('Prestatie: index voor gesorteerde paginering (diep bladeren)', () => {
+    const dbCode = fs.readFileSync(path.join(__dirname, '../src/database.js'), 'utf8');
+    if (!dbCode.includes('idx_fotos_video_datum')) {
+      throw new Error('ontbrekende index voor snelle gesorteerde paginering');
+    }
+  });
+
   test('Galerij: minder foto\'s/video\'s per pagina (sneller laden)', () => {
     const videos = fs.readFileSync(path.join(__dirname, '../public/js/videos.js'), 'utf8');
     if (!fotosCode.includes('per_pagina: 50') || !fotosCode.includes('data.totaal / 50')) {
