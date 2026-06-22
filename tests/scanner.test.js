@@ -1760,5 +1760,32 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Paginering: negeren/genegeerd laden snel (50 p/p, thumbnail-endpoint, bouwPaginering)', () => {
+    const negerenCode = fs.readFileSync(path.join(__dirname, '../public/js/negeren.js'), 'utf8');
+    // Beide lijsten: 50 per pagina + paginateller op /50
+    if ((negerenCode.match(/per_pagina: 50/g) || []).length < 2) {
+      throw new Error('negeren.js laadt negeren én genegeerd niet 50 per pagina');
+    }
+    if ((negerenCode.match(/data\.totaal \/ 50/g) || []).length < 2) {
+      throw new Error('negeren/genegeerd paginateller komt niet overeen met 50 per pagina');
+    }
+    // Geen zware base64-thumbnails meer
+    if ((negerenCode.match(/zonder_thumbnail: 1/g) || []).length < 2) {
+      throw new Error('negeren/genegeerd vragen nog de zware base64-thumbnails mee');
+    }
+    // Thumbnails via het lichte endpoint + heeft_thumbnail vlag
+    if (!negerenCode.includes('/api/fotos/${f.id}/thumbnail')) {
+      throw new Error('negeren/genegeerd laden thumbnails niet via het lichte /thumbnail-endpoint');
+    }
+    if ((negerenCode.match(/f\.heeft_thumbnail/g) || []).length < 2) {
+      throw new Error('negeren/genegeerd gebruiken de heeft_thumbnail vlag niet');
+    }
+    // Gedeelde paginering voor beide grids
+    if (!negerenCode.includes("bouwPaginering(document.getElementById('negerenPaginering')") ||
+        !negerenCode.includes("bouwPaginering(document.getElementById('genegeerPaginering')")) {
+      throw new Error('negeren/genegeerd gebruiken de gedeelde bouwPaginering niet');
+    }
+  });
+
   return resultaten;
 };

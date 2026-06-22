@@ -5,7 +5,7 @@ async function laadNegeren(pagina = 1) {
   const filter = document.getElementById('negerenFilter')?.value || 'nog-niet';
 
   const params = new URLSearchParams({
-    pagina, per_pagina: 200,
+    pagina, per_pagina: 50, zonder_thumbnail: 1,
     zonder_kopien: 1,
     genegeerd: filter === 'alle' ? '' : '0',
     ...(zoek && { zoek })
@@ -33,8 +33,8 @@ async function laadNegeren(pagina = 1) {
         ${f.genegeerd ? 'NEGEREN' : 'MEENEMEN'}
       </div>
       <div class="bron-badge">${f.bron_icoon || '💻'}</div>
-      ${f.thumbnail
-        ? `<img src="${f.thumbnail}" loading="lazy" alt="${f.bestandsnaam}">`
+      ${f.heeft_thumbnail
+        ? `<img src="/api/fotos/${f.id}/thumbnail" loading="lazy" alt="${f.bestandsnaam}">`
         : `<div class="no-img">${f.is_video ? '🎬' : '🖼️'}</div>`}
       ${f.is_video ? `<div class="video-badge">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>` : ''}
       <div class="info">
@@ -46,26 +46,8 @@ async function laadNegeren(pagina = 1) {
 
   bindNegerenHoverPreview();
 
-  const totaalPaginas = Math.ceil(data.totaal / 200);
-  const pag = document.getElementById('negerenPaginering');
-  if (pag) {
-    pag.innerHTML = '';
-    if (totaalPaginas > 1) {
-      if (pagina > 1) {
-        const b = document.createElement('button');
-        b.textContent = '‹'; b.onclick = () => laadNegeren(pagina - 1); pag.appendChild(b);
-      }
-      for (let p = Math.max(1, pagina - 2); p <= Math.min(totaalPaginas, pagina + 2); p++) {
-        const b = document.createElement('button');
-        b.textContent = p; if (p === pagina) b.classList.add('actief');
-        b.onclick = () => laadNegeren(p); pag.appendChild(b);
-      }
-      if (pagina < totaalPaginas) {
-        const b = document.createElement('button');
-        b.textContent = '›'; b.onclick = () => laadNegeren(pagina + 1); pag.appendChild(b);
-      }
-    }
-  }
+  const totaalPaginas = Math.ceil(data.totaal / 50);
+  bouwPaginering(document.getElementById('negerenPaginering'), pagina, totaalPaginas, laadNegeren);
 }
 
 async function toggleNegeerItem(id, el) {
@@ -135,7 +117,7 @@ async function toggleNegeer(id, knop) {
 }
 
 async function laadGenegeerd(pagina = 1) {
-  const params = new URLSearchParams({ pagina, per_pagina: 200, genegeerd: '1', zonder_kopien: 1 });
+  const params = new URLSearchParams({ pagina, per_pagina: 50, zonder_thumbnail: 1, genegeerd: '1', zonder_kopien: 1 });
   const data = await fetch('/api/fotos?' + params).then(r => r.json());
 
   const grid = document.getElementById('genegeerGrid');
@@ -143,8 +125,13 @@ async function laadGenegeerd(pagina = 1) {
   const verwijderKnop = document.getElementById('verwijderGenegeerdKnop');
   if (!grid) return;
 
+  const pag = document.getElementById('genegeerPaginering');
+
   if (data.fotos.length === 0) {
+    // Lege pagina maar er zijn wél genegeerde foto's → ga een pagina terug.
+    if (pagina > 1 && data.totaal > 0) return laadGenegeerd(pagina - 1);
     grid.innerHTML = '';
+    if (pag) pag.innerHTML = '';
     if (leeg) leeg.style.display = 'block';
     if (verwijderKnop) verwijderKnop.style.display = 'none';
     return;
@@ -157,8 +144,8 @@ async function laadGenegeerd(pagina = 1) {
       ${f.is_duplicaat ? '<div class="status-badge badge-dup">DUP</div>' : ''}
       <div class="status-badge badge-negeren">NEGEREN</div>
       <div class="bron-badge">${f.bron_icoon || '💻'}</div>
-      ${f.thumbnail
-        ? `<img src="${f.thumbnail}" loading="lazy" alt="${f.bestandsnaam}">`
+      ${f.heeft_thumbnail
+        ? `<img src="/api/fotos/${f.id}/thumbnail" loading="lazy" alt="${f.bestandsnaam}">`
         : `<div class="no-img">${f.is_video ? '🎬' : '🖼️'}</div>`}
       ${f.is_video ? `<div class="video-badge">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>` : ''}
       <div class="info">
@@ -173,6 +160,9 @@ async function laadGenegeerd(pagina = 1) {
   `).join('');
 
   bindNegerenHoverPreview();
+
+  const totaalPaginas = Math.ceil(data.totaal / 50);
+  bouwPaginering(document.getElementById('genegeerPaginering'), pagina, totaalPaginas, laadGenegeerd);
 }
 
 // Verwijder ALLE genegeerde foto's definitief (naar prullenbak + uit database)
