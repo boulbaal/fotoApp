@@ -515,3 +515,24 @@ Opdracht Ali: "kunnen we fase A tot D afwerken en goed testen". Alles groen: **2
 - Geocode cachet **geen lege/429-resultaten** meer → tijdelijke fouten worden later opnieuw geprobeerd; extra afkoeling (5 s) bij 429.
 - Aparte `geocodeStoppen`-vlag + `stopGeocode()` + `POST /scan/geocode/stop`: geocode-pass stoppen raakt **geen lopende scan** meer (was één gedeelde `scanStoppen`).
 - `db.close()` in `try/finally` bij `propageerGpsInGroepen` en `updateLocatie` (geen connectie-lek bij fouten).
+
+---
+
+## 🛠️ Sessie 22 juni 2026 — UX-fixes + release v1.0.2
+
+### Bugfixes (allemaal getest, 259/259 groen)
+- **i18n-fallback**: `t(key, fallback)` gaf de ruwe sleutel terug (bv. `dup_alles_keuze` in popup). Nu echte fallback-tekst. Alle 6 helper-definities rechtgezet + regressietest.
+- **Eenmalige bron-prioriteit bij scan-start**: `startScan` vraagt vóór de eerste scan de bron-volgorde (welke bron = origineel) via de prioriteit-modal; scan start pas na opslaan. `openPrioModal(vervolg)` kreeg een vervolg-callback; `/api/database/wis` reset nu ook `dup_bron_volgorde`+`dup_handmatig`. Alleen bij ≥2 bronnen.
+- **keeperIds-import**: `src/api.js` riep `keeperIds()` aan in `/api/kaart/fotos` maar importeerde het niet → `ReferenceError`, kaart-popup bleef op "Laden...". Import aangevuld + import-controletest.
+- **Kaart-popup ververst na verwijderen**: `verwijderFotoDefinitief` roept nu ook `laadPanelFotos()`+`herlaadLocaties()` aan als het kaartpaneel open is.
+
+### Release v1.0.2
+- package.json 1.0.1 → 1.0.2, tag `v1.0.2` via API → `build-all.yml` bouwt Windows/macOS/Linux. ⚠️ Release landt mogelijk als **draft** (zoals v1.0.1) → handmatig "live"/latest zetten zodra assets geüpload zijn.
+
+### 📊 Tractie-momentopname (22 juni 2026)
+- **Downloads**: v1.0.1 = 4 (1× elk platform — vrijwel zeker eigen test), v1.0.0 = 1. **GitHub**: 0 sterren, 0 forks, 0 issues. **Traffic 14d**: 70 views / 6 unieke bezoekers; 491 clones / 193 uniek (= grotendeels bots/CI).
+- **dev.to**: 0 reacties. **Awesome-PR's**: pluja #870 open, Lissy93 #625 **gesloten** (afgewezen — te jong project), 0PandaDEV #198 / johnjago #131 / serhii-londar #1160 open. Geen gemerged.
+- **Conclusie**: nog geen organische tractie. Grootste hefboom = launchdag uitvoeren (`docs/promote/LAUNCHDAG.md`).
+
+### Open TODO
+- **In-app handleiding** (meertalig, met annotaties) is nog steeds NIET gebouwd — alleen losse uitleg-blokjes bestaan.
