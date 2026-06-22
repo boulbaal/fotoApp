@@ -1,6 +1,6 @@
 {
   "name": "fotoapp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Lokale foto- en videobeheer applicatie",
   "main": "electron/main.js",
   "author": "Ali <aboulbahaiem@gmail.com>",
