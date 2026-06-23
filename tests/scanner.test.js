@@ -1857,6 +1857,43 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Geheugen: leesMetadata sluit file descriptor expliciet (geen DEP0137-lek)', () => {
+    // exifr een pad geven opent intern een FileHandle die soms pas bij garbage
+    // collection sluit (Node DEP0137 "Closing file descriptor N on garbage
+    // collection"). Bij 22.000+ foto's stapelen die descriptors op. We lezen
+    // het bestand daarom zelf in een buffer en sluiten de fd in een finally.
+    const metaBlok = scannerCode.slice(
+      scannerCode.indexOf('async function leesMetadata'),
+      scannerCode.indexOf('async function leesMetadata') + 1200
+    );
+    if (!/fs\.openSync\(/.test(metaBlok) || !/fs\.closeSync\(/.test(metaBlok)) {
+      throw new Error('leesMetadata opent/sluit de file descriptor niet expliciet');
+    }
+    if (!/finally\s*\{[\s\S]*fs\.closeSync/.test(metaBlok)) {
+      throw new Error('leesMetadata sluit de fd niet in een finally-blok');
+    }
+    // Te grote bestanden (RAW/video) niet volledig inlezen → grens aanwezig
+    if (!/META_MAX_BUFFER_BYTES/.test(scannerCode)) {
+      throw new Error('leesMetadata heeft geen buffer-groottegrens (grote bestanden via pad)');
+    }
+  });
+
+  test('Geheugen: scan-lus throttelt elke N bestanden (verlaagt RAM-piek)', () => {
+    // Een korte pauze om de zoveel bestanden geeft de GC lucht en houdt de
+    // event-loop vrij — verlaagt de geheugenpiek tijdens een zware scan.
+    if (!/\(i \+ 1\) % 50 === 0/.test(scannerCode)) {
+      throw new Error('scan-lus heeft geen throttle elke 50 bestanden');
+    }
+    // De throttle moet een echte await-pauze bevatten
+    const throttleBlok = scannerCode.slice(
+      scannerCode.indexOf('(i + 1) % 50 === 0'),
+      scannerCode.indexOf('(i + 1) % 50 === 0') + 200
+    );
+    if (!/await new Promise\(r => setTimeout/.test(throttleBlok)) {
+      throw new Error('throttle bevat geen await-pauze (setTimeout)');
+    }
+  });
+
   test('Prestatie: video-functies blokkeren de event-loop niet (async execFile)', () => {
     // De "fotoapp reageert niet"-freezes kwamen van spawnSync: dat blokkeert de
     // hele Node-loop terwijl exiftool/ffmpeg draait, dus geen HTTP tijdens de passes.

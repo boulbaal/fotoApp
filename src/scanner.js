@@ -518,9 +518,37 @@ function leesGoogleJson(bestandsPad) {
   }
 }
 
+// Bestanden die we zelf in een buffer lezen (i.p.v. exifr een pad te geven)
+// blijven onder deze grens. Grotere bestanden — grote RAW, video's — krijgen
+// het pad zodat exifr gechunkt leest en we geen reuzenbuffer in geheugen trekken.
+const META_MAX_BUFFER_BYTES = 64 * 1024 * 1024; // 64 MB
+
 async function leesMetadata(bestandsPad) {
   try {
-    const exif = await exifr.parse(bestandsPad, {
+    // EXIF-bron bepalen. We lezen het bestand zélf in een buffer en sluiten de
+    // file descriptor expliciet (try/finally), in plaats van exifr een pad te
+    // geven. Anders opent exifr intern een FileHandle die het soms pas bij
+    // garbage collection sluit — de Node-waarschuwing DEP0137 ("Closing file
+    // descriptor N on garbage collection"). Bij 22.000+ foto's stapelen die
+    // open descriptors zich op tijdens de scan. Grote/te grote bestanden lezen
+    // we NIET volledig in: dan valt het terug op het pad (exifr leest gechunkt).
+    let bron = bestandsPad;
+    let fd;
+    try {
+      const stat = fs.statSync(bestandsPad);
+      if (stat.size > 0 && stat.size <= META_MAX_BUFFER_BYTES) {
+        fd = fs.openSync(bestandsPad, 'r');
+        const buf = Buffer.alloc(stat.size);
+        fs.readSync(fd, buf, 0, stat.size, 0);
+        bron = buf;
+      }
+    } catch (_) {
+      bron = bestandsPad; // leesfout → val terug op het pad
+    } finally {
+      if (fd !== undefined) { try { fs.closeSync(fd); } catch (_) {} }
+    }
+
+    const exif = await exifr.parse(bron, {
       tiff: true, exif: true, gps: true, ifd1: true,
       translateKeys: true, translateValues: true
     });
@@ -794,6 +822,15 @@ async function scanAsync(bronId, startPad, logId, opties = {}) {
       } catch (e) {
         scanStatus.fouten++;
         console.error(`Fout bij ${fotoPad}:`, e.message);
+      }
+
+      // Throttle: korte adempauze elke 50 bestanden. Dit geeft de garbage
+      // collector lucht om de buffers/decode-resten van de vorige 50 op te
+      // ruimen vóór de volgende batch — zo blijft de RAM-piek laag (minder kans
+      // op OOM-kill). Houdt tegelijk de event-loop vrij zodat de UI vlot blijft.
+      if ((i + 1) % 50 === 0) {
+        await new Promise(r => setTimeout(r, 30));
+        if (typeof global.gc === 'function') { try { global.gc(); } catch (_) {} }
       }
     }
 
