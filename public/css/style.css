@@ -21,8 +21,9 @@ header {
   top: 0;
   z-index: 100;
 }
-header h1 { font-size: 18px; font-weight: 700; color: #fff; }
+header h1 { font-size: 18px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
 header h1 span { color: #7c6af7; }
+header h1 .logo-icoon { width: 26px; height: 26px; display: block; flex-shrink: 0; }
 
 nav { display: flex; gap: 4px; }
 nav button {

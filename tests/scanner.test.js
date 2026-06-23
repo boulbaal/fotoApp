@@ -2080,5 +2080,20 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Branding: app-logo gebruikt het diafragma-icoon (geen camera-emoji meer)', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    const cssCode = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
+    // De header-h1 toont nu een <img> met het icoon, niet langer de 📷-emoji
+    if (/<h1>📷/.test(html)) {
+      throw new Error('header gebruikt nog de 📷-emoji als logo');
+    }
+    if (!/<h1><img[^>]*src="\/favicon\.svg"[^>]*class="logo-icoon"/.test(html)) {
+      throw new Error('header-logo verwijst niet naar /favicon.svg via class logo-icoon');
+    }
+    if (!/\.logo-icoon\s*\{/.test(cssCode)) {
+      throw new Error('CSS mist .logo-icoon styling');
+    }
+  });
+
   return resultaten;
 };
