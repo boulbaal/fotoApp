@@ -4,6 +4,13 @@ const { app, BrowserWindow, dialog, shell, Menu } = require('electron');
 const path = require('path');
 const fs   = require('fs');
 
+// ── Geheugenplafond ─────────────────────────────────────────────────────────
+// De scan draait in dit (main) proces. Begrens de V8-heap zodat een zware scan
+// nooit zoveel geheugen pakt dat Ubuntu een OOM-kill doet op andere apps.
+// (De native sharp/libvips-piek wordt apart beperkt via sharp.cache/concurrency
+// in src/scanner.js — dit plafond dekt de JS-kant af.)
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=1024');
+
 // ── Data-map instellen vóór de server laadt ─────────────────────────────────
 // In de gepackagede app is de installatiemap read-only; gebruik userData.
 const dataDir = path.join(app.getPath('userData'), 'fotoapp-data');

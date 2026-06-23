@@ -1816,6 +1816,47 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Geheugen: sharp/libvips begrensd (cache uit, lage concurrency)', () => {
+    // De OOM-kill kwam doordat libvips standaard een thread per core gebruikt én
+    // een operatie-cache opbouwt; grote RAW/HEIC-foto's decoderen naar enorme
+    // pixelbuffers. Cache uit + lage concurrency houdt de RAM-piek laag.
+    if (!/sharp\.cache\(\s*false\s*\)/.test(scannerCode)) {
+      throw new Error('scanner.js zet de sharp/libvips-cache niet uit (sharp.cache(false))');
+    }
+    if (!/sharp\.concurrency\(\s*[12]\s*\)/.test(scannerCode)) {
+      throw new Error('scanner.js begrenst sharp.concurrency niet (1 of 2)');
+    }
+  });
+
+  test('Geheugen: V8-heap begrensd in Electron én node-start', () => {
+    const mainCode = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
+    if (!/max-old-space-size=\d+/.test(mainCode)) {
+      throw new Error('electron/main.js zet geen --max-old-space-size heap-plafond');
+    }
+    const startSh = fs.readFileSync(path.join(__dirname, '../start.sh'), 'utf8');
+    if (!/node\s+--max-old-space-size=\d+\s+index\.js/.test(startSh)) {
+      throw new Error('start.sh start node zonder --max-old-space-size heap-plafond');
+    }
+  });
+
+  test('Geheugen: achtergrond-passes draaien serieel, niet gestapeld', () => {
+    // Niet meer drie losse setTimeouts die geocode + thumbnails + GPS vlak na
+    // elkaar starten — dat stapelde geheugen. Eén serie die op elkaar wacht.
+    if (!scannerCode.includes('draaiAchtergrondPasses')) {
+      throw new Error('scanner.js heeft geen draaiAchtergrondPasses-serializer');
+    }
+    // De serializer moet de passes echt awaiten
+    if (!/await startGeocodePass\(\)/.test(scannerCode) ||
+        !/await startVideoThumbnailPass\(\)/.test(scannerCode) ||
+        !/await startVideoGpsPass\(\)/.test(scannerCode)) {
+      throw new Error('draaiAchtergrondPasses await de passes niet allemaal');
+    }
+    // De pass-functies moeten hun inner-promise teruggeven zodat await werkt
+    if ((scannerCode.match(/return \(async \(\) => \{/g) || []).length < 2) {
+      throw new Error('video-passes geven hun promise niet terug (await wacht niet echt)');
+    }
+  });
+
   test('Prestatie: video-functies blokkeren de event-loop niet (async execFile)', () => {
     // De "fotoapp reageert niet"-freezes kwamen van spawnSync: dat blokkeert de
     // hele Node-loop terwijl exiftool/ffmpeg draait, dus geen HTTP tijdens de passes.

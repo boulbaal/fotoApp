@@ -6,6 +6,16 @@ const sharp = require('sharp');
 const exifr = require('exifr');
 const { getDb } = require('./database');
 
+// ── Geheugenbeheer ───────────────────────────────────────────────────────────
+// Bij een zware scan (zeker met een lege database) wordt élke foto gedecodeerd.
+// libvips (de motor onder sharp) gebruikt standaard een thread per CPU-core én
+// een operatie-cache van ~50 MB. Grote RAW/HEIC-foto's decoderen naar een
+// onbewerkte pixelbuffer (een 50MP-foto ≈ 150 MB ongecomprimeerd). Met alle
+// cores tegelijk liep het geheugen zo hoog op dat Ubuntu een OOM-kill deed.
+// Daarom: geen pixel-cache opbouwen en hooguit 2 gelijktijdige libvips-threads.
+sharp.cache(false);
+sharp.concurrency(2);
+
 // Async subprocess-helper. spawnSync blokkeerde de HELE Node event-loop terwijl
 // exiftool/ffmpeg draaide — per video 0,1–8s. Tijdens de achtergrond-passes
 // (bv. 900+ video's controleren op GPS) stond de loop dus telkens stil en kon
@@ -817,10 +827,24 @@ async function scanAsync(bronId, startPad, logId, opties = {}) {
     scanStoppen = false;
     // Volgende in wachtrij starten
     setTimeout(() => verwerkWachtrij(), 500);
-    // Geocoding pass op de achtergrond starten (na wachtrij-verwerking)
-    setTimeout(() => startGeocodePass(), 1000);
-    // Video thumbnail pass op de achtergrond starten
-    setTimeout(() => startVideoThumbnailPass(), 3000);
+    // Achtergrond-passes NIET vlak na elkaar starten — anders stapelen geocode,
+    // video-thumbnails en video-GPS qua geheugen bovenop een mogelijke scan.
+    // Ze worden netjes na elkaar uitgevoerd (elke pass wacht op de vorige).
+    setTimeout(() => draaiAchtergrondPasses(), 1000);
+  }
+}
+
+// Voert de achtergrond-passes strikt ná elkaar uit zodat ze niet tegelijk
+// geheugen en subprocessen opslokken. Stopt zodra er weer een scan begint.
+async function draaiAchtergrondPasses() {
+  try {
+    await startGeocodePass();
+    if (scanStatus.bezig) return;
+    await startVideoThumbnailPass();
+    if (scanStatus.bezig) return;
+    await startVideoGpsPass();
+  } catch (e) {
+    console.error('Achtergrond-pass fout:', e.message);
   }
 }
 
@@ -882,7 +906,9 @@ async function startVideoThumbnailPass() {
   console.log('   ℹ️  Dit draait rustig op de achtergrond. De app werkt gewoon verder.');
   console.log('   ⏳ Heb geduld — thumbnails verschijnen automatisch in de galerij.');
 
-  (async () => {
+  // Promise teruggeven zodat draaiAchtergrondPasses() er echt op kan wachten.
+  // API-aanroepers awaiten niet, dus voor hen blijft het fire-and-forget.
+  return (async () => {
     for (const v of videos) {
       // Stop als een nieuwe scan gestart is
       if (scanStatus.bezig) {
@@ -946,7 +972,8 @@ async function startVideoGpsPass() {
   console.log(`📍 Video GPS pass gestart — ${videos.length} video's controleren op GPS`);
   console.log('   ℹ️  Dit draait rustig op de achtergrond. Heb geduld.');
 
-  (async () => {
+  // Promise teruggeven zodat draaiAchtergrondPasses() er echt op kan wachten.
+  return (async () => {
     for (const v of videos) {
       if (scanStatus.bezig) {
         console.log('📍 Video GPS pass gepauzeerd — scan actief');

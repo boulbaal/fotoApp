@@ -43,7 +43,10 @@ if ! command -v zenity &>/dev/null; then
 fi
 
 # === STAP 4: APP STARTEN ===
-node index.js &
+# --max-old-space-size begrenst de V8-heap zodat een zware scan nooit het hele
+# systeem opvreet (OOM-kill voorkomen). De native sharp/libvips-piek wordt apart
+# beperkt via sharp.cache(false)/concurrency(2) in src/scanner.js.
+node --max-old-space-size=1024 index.js &
 APP_PID=$!
 echo $APP_PID > .pid
 echo ""
