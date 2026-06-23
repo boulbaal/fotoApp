@@ -59,8 +59,16 @@ function bepaalKeeper(fotos, bronVolgorde, handmatigId, opties) {
   };
   const gerangschikt = fotos.filter(f => rang(f.bron_id) !== Infinity);
   if (gerangschikt.length === 0) {
-    if (!verplicht) return null; // wissen: keuze nodig
-    return [...fotos].sort((a, b) => a.id - b.id)[0].id; // export: laagste id behouden
+    // Geen enkele bron gerangschikt. Toch automatisch beslissen wanneer er niets
+    // te kiezen valt: komen álle kopieën uit dezelfde bron, dan is "welke bron is
+    // het origineel?" betekenisloos (zelfde plek, identieke inhoud) → behoud het
+    // laagste id (eerst gescand). Alleen bij kopieën verspreid over meerdere
+    // bronnen blijft het bij wissen écht een keuze (verplicht=false → null).
+    const eenBron = fotos.every(f => f.bron_id === fotos[0].bron_id);
+    if (verplicht || eenBron) {
+      return [...fotos].sort((a, b) => a.id - b.id)[0].id; // laagste id behouden
+    }
+    return null; // meerdere bronnen, geen prioriteit → wissen wacht op een keuze
   }
   gerangschikt.sort((a, b) => rang(a.bron_id) - rang(b.bron_id) || a.id - b.id);
   return gerangschikt[0].id;

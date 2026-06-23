@@ -50,7 +50,13 @@ function bepaalOrigineelClient(fotos, groep) {
   if (handmatigId != null && fotos.some(f => f.id === handmatigId)) return handmatigId;
   const rang = id => { const i = volgorde.indexOf(id); return i === -1 ? Infinity : i; };
   const gerangschikt = fotos.filter(f => rang(f.bron_id) !== Infinity);
-  if (gerangschikt.length === 0) return null; // keuze nodig
+  if (gerangschikt.length === 0) {
+    // Alle kopieën uit dezelfde bron → niets te kiezen, behoud laagste id.
+    // Meerdere bronnen zonder prioriteit → keuze nodig (null). Spiegelt bepaalKeeper().
+    const eenBron = fotos.every(f => f.bron_id === fotos[0].bron_id);
+    if (eenBron) return fotos.slice().sort((a, b) => a.id - b.id)[0].id;
+    return null;
+  }
   gerangschikt.sort((a, b) => rang(a.bron_id) - rang(b.bron_id) || a.id - b.id);
   return gerangschikt[0].id;
 }

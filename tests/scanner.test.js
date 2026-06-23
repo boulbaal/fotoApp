@@ -1086,6 +1086,35 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Keeper: één-bron-groep zonder prioriteit lost vanzelf op (laagste id, geen keuze nodig)', () => {
+    const { bepaalKeeper } = require('../src/keeper');
+    // Alle kopieën uit dezelfde bron, geen prioriteit gezet, wis-flow (verplicht=false):
+    // er valt niets te kiezen → behoud laagste id i.p.v. null.
+    const fotos = [{ id: 8, bron_id: 5 }, { id: 3, bron_id: 5 }, { id: 6, bron_id: 5 }];
+    if (bepaalKeeper(fotos, [], undefined, { verplicht: false }) !== 3) {
+      throw new Error('één-bron-groep blijft hangen op "keuze nodig" i.p.v. laagste id');
+    }
+  });
+
+  test('Keeper: meerdere bronnen zonder prioriteit blijft "keuze nodig" (veiligheid intact)', () => {
+    const { bepaalKeeper } = require('../src/keeper');
+    // Kopieën verspreid over verschillende bronnen → de gebruiker moet kiezen.
+    const fotos = [{ id: 1, bron_id: 5 }, { id: 2, bron_id: 9 }];
+    if (bepaalKeeper(fotos, [], undefined, { verplicht: false }) !== null) {
+      throw new Error('cross-bron-groep mag niet stilzwijgend een keeper kiezen');
+    }
+  });
+
+  test('Duplicaten JS: client spiegelt één-bron-regel (eenBron → laagste id)', () => {
+    const code = fs.readFileSync(path.join(__dirname, '../public/js/duplicaten.js'), 'utf8');
+    const blok = code.slice(code.indexOf('function bepaalOrigineelClient'),
+                           code.indexOf('function bepaalOrigineelClient') + 700);
+    if (!blok.includes('eenBron')) throw new Error('client mist de één-bron-regel');
+    if (!/every\(f => f\.bron_id === fotos\[0\]\.bron_id\)/.test(blok)) {
+      throw new Error('client-eenBron-check wijkt af van backend-logica');
+    }
+  });
+
   test('Keeper: lees/schrijf prioriteit roundtrip via instellingen-tabel', () => {
     let db;
     try { db = new (require('better-sqlite3'))(':memory:'); }
