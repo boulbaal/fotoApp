@@ -1878,6 +1878,26 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Robuustheid: sharp-aanroepen defensief (failOn + limitInputPixels)', () => {
+    // Een libvips-worker kan met een native SIGTRAP/int3-trap omvallen op een
+    // kapotte of absurd grote afbeelding — dat neemt de hele app mee en is niet
+    // met try/catch te vangen. SHARP_OPTS (failOn:'none' + limitInputPixels)
+    // vangt dit af als nette JS-fout. Moet op élke sharp-aanroep staan.
+    if (!/const SHARP_OPTS\s*=/.test(scannerCode)) {
+      throw new Error('SHARP_OPTS niet gedefinieerd');
+    }
+    if (!/failOn:\s*'none'/.test(scannerCode) || !/limitInputPixels:/.test(scannerCode)) {
+      throw new Error('SHARP_OPTS mist failOn of limitInputPixels');
+    }
+    // Geen kale sharp(...) meer zonder opties: elke aanroep moet SHARP_OPTS meekrijgen
+    const kaleAanroepen = scannerCode.match(/sharp\([^,)]+\)/g) || [];
+    // sharp.cache(...) / sharp.concurrency(...) zijn config-calls, niet meegerekend
+    const echteKale = kaleAanroepen.filter(a => !/sharp\.(cache|concurrency)/.test(a));
+    if (echteKale.length > 0) {
+      throw new Error('sharp-aanroep zonder SHARP_OPTS: ' + echteKale.join(', '));
+    }
+  });
+
   test('Geheugen: scan-lus throttelt elke N bestanden (verlaagt RAM-piek)', () => {
     // Een korte pauze om de zoveel bestanden geeft de GC lucht en houdt de
     // event-loop vrij — verlaagt de geheugenpiek tijdens een zware scan.

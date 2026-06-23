@@ -1,0 +1,250 @@
+FotoApp diagnose — Tue Jun 23 01:47:01 PM CEST 2026
+Projectmap: /home/one/Claude/fotoApp
+⚠️  Niet als root gestart — kernel-/OOM-log kan onvolledig zijn.
+    Voor de volledige diagnose: sudo sh diagnose.sh
+
+═══════════════════════════════════════════════════════════════
+  1. SYSTEEM
+═══════════════════════════════════════════════════════════════
+Kernel : Linux one-Legion-5-Pro-16ACH6H 6.17.0-35-generic #35~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue May 26 19:30:42 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+Uptime :  13:47:01 up 1 day,  5:40,  1 user,  load average: 0.57, 0.47, 0.52
+
+═══════════════════════════════════════════════════════════════
+  2. GEHEUGEN & SWAP (nu)
+═══════════════════════════════════════════════════════════════
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       4.6Gi       8.2Gi       146Mi       3.1Gi        10Gi
+Swap:           15Gi       4.1Gi        11Gi
+
+Swap-apparaten:
+NAME      TYPE SIZE USED PRIO
+/swap.img file  16G 4.1G   -2
+
+═══════════════════════════════════════════════════════════════
+  3. OOM-KILL / KERNEL-FOUTEN (laatste 3 uur)
+═══════════════════════════════════════════════════════════════
+Jun 23 10:58:38 one-Legion-5-Pro-16ACH6H kernel: electron invoked oom-killer: gfp_mask=0x140cca(GFP_HIGHUSER_MOVABLE|__GFP_COMP), order=0, oom_score_adj=200
+Jun 23 10:58:38 one-Legion-5-Pro-16ACH6H kernel: oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=user.slice,mems_allowed=0,global_oom,task_memcg=/user.slice/user-1000.slice/user@1000.service/app.slice/app-org.chromium.Chromium-35992.scope,task=electron,pid=177267,uid=1000
+Jun 23 10:58:38 one-Legion-5-Pro-16ACH6H kernel: Out of memory: Killed process 177267 (electron) total-vm:1239175388kB, anon-rss:9163440kB, file-rss:256kB, shmem-rss:0kB, UID:1000 pgtables:69756kB oom_score_adj:100
+Jun 23 10:58:39 one-Legion-5-Pro-16ACH6H kernel: oom_reaper: reaped process 177267 (electron), now anon-rss:48kB, file-rss:256kB, shmem-rss:0kB
+Jun 23 11:15:49 one-Legion-5-Pro-16ACH6H kernel: containerd invoked oom-killer: gfp_mask=0x140cca(GFP_HIGHUSER_MOVABLE|__GFP_COMP), order=0, oom_score_adj=-999
+Jun 23 11:15:50 one-Legion-5-Pro-16ACH6H kernel: oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=containerd.service,mems_allowed=0,global_oom,task_memcg=/user.slice/user-1000.slice/user@1000.service/app.slice/app-org.chromium.Chromium-361897.scope,task=electron,pid=363035,uid=1000
+Jun 23 11:15:50 one-Legion-5-Pro-16ACH6H kernel: Out of memory: Killed process 363035 (electron) total-vm:1213001752kB, anon-rss:10388636kB, file-rss:268kB, shmem-rss:128kB, UID:1000 pgtables:31900kB oom_score_adj:100
+   (leeg hierboven = geen OOM/kernel-fout in dit venster gevonden)
+
+═══════════════════════════════════════════════════════════════
+  4. SYSTEMD-JOURNAL OVER APP (laatste 3 uur)
+═══════════════════════════════════════════════════════════════
+Jun 23 12:29:57 one-Legion-5-Pro-16ACH6H kernel: traps: ThreadPoolSingl[391617] trap int3 ip:643bcd6e5055 sp:70bd43ff8380 error:0 in electron[6f3a055,643bc8e40000+9766000]
+Jun 23 12:29:57 one-Legion-5-Pro-16ACH6H systemd[2327]: app-com.google.Chrome-381013.scope: Consumed 3min 54.171s CPU time.
+Jun 23 12:29:57 one-Legion-5-Pro-16ACH6H systemd[2327]: app-gnome-google\x2dchrome-381013.scope: Consumed 21min 25.335s CPU time.
+Jun 23 12:29:58 one-Legion-5-Pro-16ACH6H whoopsie-upload-all[403620]: INFO:root:/var/crash/_opt_google_chrome_chrome.1000.crash already marked for upload, skipping
+Jun 23 12:30:08 one-Legion-5-Pro-16ACH6H wireplumber[2347]: stopped by signal: Terminated
+Jun 23 12:30:13 one-Legion-5-Pro-16ACH6H systemd[1]: user@1000.service: Killing process 2327 (systemd) with signal SIGKILL.
+Jun 23 12:30:13 one-Legion-5-Pro-16ACH6H systemd[1]: user@1000.service: Killing process 391606 (electron) with signal SIGKILL.
+Jun 23 12:30:13 one-Legion-5-Pro-16ACH6H whoopsie-upload-all[404146]: INFO:root:Collecting info for /var/crash/_usr_lib_claude-desktop_node_modules_electron_dist_electron.1000.crash...
+Jun 23 12:30:23 one-Legion-5-Pro-16ACH6H whoopsie-upload-all[404146]: INFO:root:Marking /var/crash/_usr_lib_claude-desktop_node_modules_electron_dist_electron.1000.crash for whoopsie upload
+Jun 23 12:30:23 one-Legion-5-Pro-16ACH6H whoopsie-upload-all[404146]: INFO:root:/var/crash/_opt_google_chrome_chrome.1000.crash already marked for upload, skipping
+Jun 23 12:30:23 one-Legion-5-Pro-16ACH6H whoopsie-upload-all[404146]: INFO:root:  missing (remaining: 20 s): /var/crash/_usr_lib_claude-desktop_node_modules_electron_dist_electron.1000.uploaded
+Jun 23 12:30:23 one-Legion-5-Pro-16ACH6H whoopsie[404532]: [12:30:23] Parsing /var/crash/_usr_lib_claude-desktop_node_modules_electron_dist_electron.1000.crash.
+Jun 23 12:30:23 one-Legion-5-Pro-16ACH6H whoopsie[404532]: [12:30:23] Uploading /var/crash/_usr_lib_claude-desktop_node_modules_electron_dist_electron.1000.crash.
+Jun 23 12:30:28 one-Legion-5-Pro-16ACH6H systemd[404388]: Starting gnome-session-signal-init.service - Signal initialization done to GNOME Session Manager...
+Jun 23 12:30:28 one-Legion-5-Pro-16ACH6H systemd[404388]: Finished gnome-session-signal-init.service - Signal initialization done to GNOME Session Manager.
+Jun 23 12:30:30 one-Legion-5-Pro-16ACH6H gnome-shell[404788]: DING: (gjs:405338): Gjs-WARNING **: 12:30:30.381: GLib.unix_signal_add has been moved to a separate platform-specific library. Please update your code to use GLibUnix.signal_add instead.
+Jun 23 12:30:40 one-Legion-5-Pro-16ACH6H wireplumber[403615]: stopped by signal: Terminated
+Jun 23 12:30:56 one-Legion-5-Pro-16ACH6H systemd[404388]: Started app-gnome-google\x2dchrome-405624.scope - Application launched by gnome-shell.
+Jun 23 12:30:57 one-Legion-5-Pro-16ACH6H systemd[404388]: Started app-com.google.Chrome-405624.scope.
+Jun 23 12:30:57 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: Created TensorFlow Lite XNNPACK delegate for CPU.
+Jun 23 12:30:57 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: MESA-LOADER: failed to open dri: /usr/lib/x86_64-linux-gnu/gbm/dri_gbm.so: cannot open shared object file: Permission denied (search paths /usr/lib/x86_64-linux-gnu/gbm, suffix _gbm)
+Jun 23 12:30:59 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405624:0623/123059.302720:ERROR:components/policy/core/browser/policy_conversions_client.cc:308] CloudReportingEnabled has an error of type: Ignored because the machine is not enrolled with Chrome Browser Cloud Management.
+Jun 23 12:30:59 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405655:0623/123059.425914:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+Jun 23 12:30:59 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405655:0623/123059.533082:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+Jun 23 12:31:26 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405655:0623/123126.058408:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+Jun 23 12:31:26 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405655:0623/123126.762694:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+Jun 23 12:31:27 one-Legion-5-Pro-16ACH6H chrome[405624]: [405624:405654:0623/123127.181044:INFO:chrome/browser/extensions/extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.
+Jun 23 12:31:27 one-Legion-5-Pro-16ACH6H chrome[405624]: [405624:405654:0623/123127.239837:INFO:chrome/browser/extensions/extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.
+Jun 23 12:32:11 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405655:0623/123211.002003:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+Jun 23 12:32:24 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405655:0623/123224.541598:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+Jun 23 12:33:49 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405655:0623/123349.088771:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+Jun 23 12:34:05 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405655:0623/123405.627688:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+Jun 23 12:37:38 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405655:0623/123738.702198:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+Jun 23 12:37:51 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405655:0623/123751.811070:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: QUOTA_EXCEEDED
+Jun 23 12:42:05 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405624:0623/124205.988144:ERROR:ui/gfx/x/atom_cache.cc:234] Add application/vnd.portal.filetransfer to kAtomsToCache
+Jun 23 12:42:05 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405624:0623/124205.988218:ERROR:ui/gfx/x/atom_cache.cc:234] Add application/vnd.portal.files to kAtomsToCache
+Jun 23 12:44:08 one-Legion-5-Pro-16ACH6H google-chrome.desktop[405632]: [405624:405655:0623/124408.561982:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+Jun 23 12:44:42 one-Legion-5-Pro-16ACH6H gnome-shell[404788]: Object .Gjs_ui_messageTray_Notification (0x5c9c112b0270), has been already disposed — impossible to emit any signal on it. This might be caused by the object having been destroyed from C code using something such as destroy(), dispose(), or remove() vfuncs.
+Jun 23 12:53:46 one-Legion-5-Pro-16ACH6H sudo[409699]:      one : TTY=pts/0 ; PWD=/home/one/Claude/fotoApp ; USER=root ; COMMAND=/usr/sbin/swapoff /swap.img
+Jun 23 12:53:47 one-Legion-5-Pro-16ACH6H sudo[409702]:      one : TTY=pts/0 ; PWD=/home/one/Claude/fotoApp ; USER=root ; COMMAND=/usr/bin/fallocate -l 16G /swap.img
+Jun 23 12:53:47 one-Legion-5-Pro-16ACH6H sudo[409706]:      one : TTY=pts/0 ; PWD=/home/one/Claude/fotoApp ; USER=root ; COMMAND=/usr/bin/chmod 600 /swap.img
+Jun 23 12:53:47 one-Legion-5-Pro-16ACH6H sudo[409709]:      one : TTY=pts/0 ; PWD=/home/one/Claude/fotoApp ; USER=root ; COMMAND=/usr/sbin/mkswap /swap.img
+Jun 23 12:53:47 one-Legion-5-Pro-16ACH6H sudo[409712]:      one : TTY=pts/0 ; PWD=/home/one/Claude/fotoApp ; USER=root ; COMMAND=/usr/sbin/swapon /swap.img
+Jun 23 12:54:10 one-Legion-5-Pro-16ACH6H sudo[409786]:      one : TTY=pts/0 ; PWD=/home/one/Claude/fotoApp ; USER=root ; COMMAND=/usr/bin/tee -a /etc/fstab
+Jun 23 12:54:17 one-Legion-5-Pro-16ACH6H sudo[409789]:      one : TTY=pts/0 ; PWD=/home/one/Claude/fotoApp ; USER=root ; COMMAND=/usr/sbin/sysctl vm.swappiness=10
+Jun 23 12:54:17 one-Legion-5-Pro-16ACH6H sudo[409793]:      one : TTY=pts/0 ; PWD=/home/one/Claude/fotoApp ; USER=root ; COMMAND=/usr/bin/tee /etc/sysctl.d/99-swappiness.conf
+Jun 23 12:58:52 one-Legion-5-Pro-16ACH6H sudo[410019]:      one : TTY=pts/0 ; PWD=/home/one/Claude/fotoApp ; USER=root ; COMMAND=/usr/bin/cp /etc/fstab /etc/fstab.bak
+Jun 23 12:59:15 one-Legion-5-Pro-16ACH6H sudo[410090]:      one : TTY=pts/0 ; PWD=/home/one/Claude/fotoApp ; USER=root ; COMMAND=/usr/bin/nano /etc/fstab
+Jun 23 13:20:02 one-Legion-5-Pro-16ACH6H kernel: traps: libvips worker[459392] trap int3 ip:5aad3f7ca57d sp:7c43eb993ad0 error:0 in electron[615f57d,5aad3b729000+8997000]
+Jun 23 13:40:46 one-Legion-5-Pro-16ACH6H gnome-shell[404788]: DING: (gjs:460109): Gjs-WARNING **: 13:40:46.402: GLib.unix_signal_add has been moved to a separate platform-specific library. Please update your code to use GLibUnix.signal_add instead.
+
+═══════════════════════════════════════════════════════════════
+  5. CORE DUMPS / GEREGISTREERDE CRASHES
+═══════════════════════════════════════════════════════════════
+  coredumpctl niet geïnstalleerd
+
+═══════════════════════════════════════════════════════════════
+  6. FOTOAPP LOGBESTANDEN (laatste 80 regels elk)
+═══════════════════════════════════════════════════════════════
+── electron-uitvoer.log ──
+[411394:0623/131959.549340:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549375:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549385:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549393:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549404:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549412:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549419:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549429:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549440:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549448:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549459:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549478:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549489:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549501:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549684:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549704:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549711:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549721:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549730:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549739:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.549748:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550321:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550335:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550341:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550350:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550360:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550369:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550377:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550385:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550394:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550405:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550434:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550444:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550451:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550459:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550467:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550476:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550482:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.550490:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/131959.556990:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398136:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398172:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398181:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398200:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398212:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398219:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398230:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398240:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398248:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398257:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398267:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398277:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398288:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398300:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398400:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398416:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398424:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398434:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398444:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398455:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.398466:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399104:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399120:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399127:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399136:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399145:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399154:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399163:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399171:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399180:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399189:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399228:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399238:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399247:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399261:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399271:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399279:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399286:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+[411394:0623/132002.399295:ERROR:browser_main_loop.cc(279)] GLib-GObject: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+/home/one/Claude/fotoApp/node_modules/electron/dist/electron exited with signal SIGTRAP
+
+── fotoapp.log ──
+✅ Database geïnitialiseerd: /home/one/Claude/fotoApp/data/fotos.db
+
+🖼️  FotoApp draait op http://localhost:3000
+
+📋 Wachtrij: backup op de externe ssd schijf
+▶ Volgende in wachtrij: backup op de externe ssd schijf
+🔍 Scan gestart: /media/one/Crucial X6
+📷 4972 foto's gevonden
+📋 Wachtrij: Linux werk PC
+📋 Wachtrij: Linux werk PC
+🔍 3714 duplicaatgroepen gevonden
+✅ Scan voltooid: 2485 nieuw, 2487 overgeslagen, 0 fouten
+▶ Volgende in wachtrij: Linux werk PC
+🔍 Scan gestart: /home
+📷 22576 foto's gevonden
+(node:30898) Warning: Closing file descriptor 22 on garbage collection
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30898) [DEP0137] DeprecationWarning: Closing a FileHandle object on garbage collection is deprecated. Please close FileHandle objects explicitly using FileHandle.prototype.close(). In the future, an error will be thrown if a file descriptor is closed during garbage collection.
+(node:30898) Warning: Closing file descriptor 22 on garbage collection
+🔍 9059 duplicaatgroepen gevonden
+✅ Scan voltooid: 17686 nieuw, 4890 overgeslagen, 0 fouten
+
+
+═══════════════════════════════════════════════════════════════
+  7. LOPENDE PROCESSEN (node/electron) + GEHEUGENGEBRUIK
+═══════════════════════════════════════════════════════════════
+ 407757  407386  2.7 10.2 443704 /usr/lib/claude-desktop/node_modules/electron/dist/electron --type=zygote
+ 407380  407366  0.9  1.0 157612 /usr/lib/claude-desktop/node_modules/electron/dist/electron --disable-features=CustomTitlebar /usr/lib/claude-desktop/node_modules/electron/dist/resources/app.asar
+ 410618  410258  0.8  0.3 135632 /proc/self/exe --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-type=none --dns-result-order=ipv4first --experimental-network-inspection --inspect-port=0 --crashpad-handler-pid=410281 --enable-crash-reporter=e61ab30c-53f6-40ab-8a08-b97402514b30,no_channel --user-data-dir=/home/one/.config/Code --standard-schemes=vscode-webview,vscode-file --enable-sandbox --secure-schemes=vscode-webview,vscode-file --cors-schemes=vscode-webview,vscode-file --fetch-schemes=vscode-webview,vscode-file --service-worker-schemes=vscode-webview --code-cache-schemes=vscode-webview,vscode-file --shared-files=v8_context_snapshot_data:100 --field-trial-handle=3,i,6328928742628428711,2812960768087111733,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync --disable-features=CalculateNativeWinOcclusion,LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990997080739
+ 411134  410618  0.5  0.0 95520 /usr/share/code/code /usr/share/code/resources/app/extensions/html-language-features/server/dist/node/htmlServerMain --node-ipc --clientProcessId=410618
+ 407518  407383  0.5  4.6 83824 /usr/lib/claude-desktop/node_modules/electron/dist/electron --type=zygote --no-zygote-sandbox
+ 410692  410258  0.4  0.4 75916 /proc/self/exe --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-type=none --crashpad-handler-pid=410281 --enable-crash-reporter=e61ab30c-53f6-40ab-8a08-b97402514b30,no_channel --user-data-dir=/home/one/.config/Code --standard-schemes=vscode-webview,vscode-file --enable-sandbox --secure-schemes=vscode-webview,vscode-file --cors-schemes=vscode-webview,vscode-file --fetch-schemes=vscode-webview,vscode-file --service-worker-schemes=vscode-webview --code-cache-schemes=vscode-webview,vscode-file --shared-files=v8_context_snapshot_data:100 --field-trial-handle=3,i,6328928742628428711,2812960768087111733,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync --disable-features=CalculateNativeWinOcclusion,LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708993808206286
+ 410634  410258  0.4  0.1 69700 /proc/self/exe --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-type=none --crashpad-handler-pid=410281 --enable-crash-reporter=e61ab30c-53f6-40ab-8a08-b97402514b30,no_channel --user-data-dir=/home/one/.config/Code --standard-schemes=vscode-webview,vscode-file --enable-sandbox --secure-schemes=vscode-webview,vscode-file --cors-schemes=vscode-webview,vscode-file --fetch-schemes=vscode-webview,vscode-file --service-worker-schemes=vscode-webview --code-cache-schemes=vscode-webview,vscode-file --shared-files=v8_context_snapshot_data:100 --field-trial-handle=3,i,6328928742628428711,2812960768087111733,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync --disable-features=CalculateNativeWinOcclusion,LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708991934122588
+ 410635  410258  0.3  0.2 60576 /proc/self/exe --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-type=none --crashpad-handler-pid=410281 --enable-crash-reporter=e61ab30c-53f6-40ab-8a08-b97402514b30,no_channel --user-data-dir=/home/one/.config/Code --standard-schemes=vscode-webview,vscode-file --enable-sandbox --secure-schemes=vscode-webview,vscode-file --cors-schemes=vscode-webview,vscode-file --fetch-schemes=vscode-webview,vscode-file --service-worker-schemes=vscode-webview --code-cache-schemes=vscode-webview,vscode-file --shared-files=v8_context_snapshot_data:100 --field-trial-handle=3,i,6328928742628428711,2812960768087111733,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync --disable-features=CalculateNativeWinOcclusion,LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708992871164437
+ 407558  407386  0.3  0.0 54532 /usr/lib/claude-desktop/node_modules/electron/dist/electron --type=zygote
+ 407565  407386  0.2  0.0 43516 /usr/lib/claude-desktop/node_modules/electron/dist/electron --type=zygote
+ 407877  407380  0.2  0.0 38092 /usr/lib/claude-desktop/node_modules/electron/dist/electron /usr/lib/claude-desktop/node_modules/electron/dist/resources/app.asar.unpacked/cowork-vm-service.js
+ 407384  407380  0.0  0.0 16220 /usr/lib/claude-desktop/node_modules/electron/dist/electron --type=zygote
+ 407383  407380  0.0  0.0 14092 /usr/lib/claude-desktop/node_modules/electron/dist/electron --type=zygote --no-zygote-sandbox
+ 407834  407518  0.0  0.0  9456 /usr/lib/claude-desktop/node_modules/electron/dist/electron --type=zygote --no-zygote-sandbox
+ 407386  407384  0.0  0.0  5284 /usr/lib/claude-desktop/node_modules/electron/dist/electron --type=zygote
+ 410281  404388  0.0  0.0  3188 /usr/share/code/chrome_crashpad_handler --monitor-self-annotation=ptype=crashpad-handler --no-rate-limit --database=/home/one/.config/Code/Crashpad --url=appcenter://code?aid=fba07a4d-84bd-4fc8-a125-9640fc8ce171&uid=1b532d53-ad36-48d4-a66e-81efdf99b123&iid=1b532d53-ad36-48d4-a66e-81efdf99b123&sid=1b532d53-ad36-48d4-a66e-81efdf99b123 --annotation=_companyName=Microsoft --annotation=_productName=VSCode --annotation=_version=1.122.1 --annotation=lsb-release=Ubuntu 24.04.4 LTS --annotation=plat=Linux --annotation=prod=Electron --annotation=ver=39.8.8 --initial-client-fd=48 --shared-client-connection
+ 460726  460721  0.0  0.0  2036 tee /home/one/Claude/fotoApp/diagnose-20260623-134701.log
+ 404474  404463  0.0  0.0  1916 fusermount3 -o rw,nosuid,nodev,fsname=portal,auto_unmount,subtype=portal -- /run/user/1000/doc
+
+PID-bestanden:
+  .pid = 2857532
+
+═══════════════════════════════════════════════════════════════
+  8. START-CONFIGURATIE (is het geheugenplafond actief?)
+═══════════════════════════════════════════════════════════════
+Node-versie: v24.15.0
+
+start.sh node-regel:
+49:node --max-old-space-size=1024 index.js &
+electron/main.js heap-plafond:
+12:app.commandLine.appendSwitch('js-flags', '--max-old-space-size=1024');
+scanner.js sharp-limiet:
+16:sharp.cache(false);
+17:sharp.concurrency(2);
+
+═══════════════════════════════════════════════════════════════
+  9. DATABASE & LAATSTE SCANS
+═══════════════════════════════════════════════════════════════
+DB-bestand: fotoapp.db (0)
+  (sqlite3 niet geïnstalleerd — DB-details overgeslagen)
+
+═══════════════════════════════════════════════════════════════
+  KLAAR
+═══════════════════════════════════════════════════════════════

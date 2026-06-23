@@ -16,6 +16,15 @@ const { getDb } = require('./database');
 sharp.cache(false);
 sharp.concurrency(2);
 
+// Standaard-opties voor élke sharp-aanroep. Een libvips-worker kan met een harde
+// native crash (SIGTRAP / int3-trap) omvallen als hij een kapotte of absurd grote
+// afbeelding probeert te decoderen — die crash neemt de héle app mee en is niet
+// met try/catch te vangen. Daarom:
+//   • failOn:'none'      → tolereer afgekapte/beschadigde bestanden i.p.v. afbreken
+//   • limitInputPixels   → weiger absurde afmetingen (kapotte header die miljarden
+//                          pixels claimt) als nette JS-fout i.p.v. een alloc-abort
+const SHARP_OPTS = { failOn: 'none', limitInputPixels: 300000000 }; // ~300 MP plafond
+
 // Async subprocess-helper. spawnSync blokkeerde de HELE Node event-loop terwijl
 // exiftool/ffmpeg draaide — per video 0,1–8s. Tijdens de achtergrond-passes
 // (bv. 900+ video's controleren op GPS) stond de loop dus telkens stil en kon
@@ -414,7 +423,7 @@ async function maakVideoThumbnail(bestandsPad) {
     ], { encoding: 'buffer', timeout: 15000 });
 
     if (result.status === 0 && fs.existsSync(tmpPad)) {
-      const buffer = await sharp(tmpPad)
+      const buffer = await sharp(tmpPad, SHARP_OPTS)
         .resize(300, 300, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 70 })
         .toBuffer();
@@ -431,7 +440,7 @@ async function maakVideoThumbnail(bestandsPad) {
         encoding: 'buffer', maxBuffer: 10 * 1024 * 1024, timeout: 8000
       });
       if (result.stdout && result.stdout.length > 500) {
-        const buffer = await sharp(result.stdout)
+        const buffer = await sharp(result.stdout, SHARP_OPTS)
           .resize(300, 300, { fit: 'inside', withoutEnlargement: true })
           .jpeg({ quality: 70 })
           .toBuffer();
@@ -452,7 +461,7 @@ async function maakThumbnail(bestandsPad) {
 
   // Stap 1: probeer sharp (werkt voor jpg/png/webp/heic/tiff/...)
   try {
-    const buffer = await sharp(bestandsPad)
+    const buffer = await sharp(bestandsPad, SHARP_OPTS)
       .resize(300, 300, { fit: 'inside', withoutEnlargement: true })
       .jpeg({ quality: 70 })
       .toBuffer();
@@ -470,7 +479,7 @@ async function maakThumbnail(bestandsPad) {
       });
       const previewBuffer = result.stdout;
       if (previewBuffer && previewBuffer.length > 1000) {
-        const verkleind = await sharp(previewBuffer)
+        const verkleind = await sharp(previewBuffer, SHARP_OPTS)
           .resize(300, 300, { fit: 'inside', withoutEnlargement: true })
           .jpeg({ quality: 70 })
           .toBuffer();
