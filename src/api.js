@@ -8,6 +8,16 @@ const { leesPrioriteit, schrijfPrioriteit, bepaalKeeper, keeperIds } = require('
 
 const router = express.Router();
 
+// === VERSIE ===
+// Eén bron van waarheid: de versie staat in package.json. De frontend haalt 'm
+// hier op om in de titel te tonen én om de favicon-cache te verversen (?v=...).
+// Zo hoeft de versie nergens handmatig bijgewerkt te worden bij een release.
+router.get('/versie', (req, res) => {
+  let versie = '';
+  try { versie = require('../package.json').version || ''; } catch (_) {}
+  res.json({ versie });
+});
+
 // === BRONNEN ===
 
 router.get('/bronnen', (req, res) => {

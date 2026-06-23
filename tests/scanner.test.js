@@ -2020,5 +2020,65 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Versie: /api/versie geeft de package.json-versie terug', () => {
+    const i = apiCode.indexOf("'/versie'");
+    if (i === -1) throw new Error('/versie endpoint niet gevonden in api.js');
+    const blok = apiCode.slice(i, i + 300);
+    if (!/require\(['"]\.\.\/package\.json['"]\)\.version/.test(blok)) {
+      throw new Error('/versie leest de versie niet uit package.json');
+    }
+  });
+
+  test('Versie: titel toont versie + favicon krijgt cache-bust (?v=)', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    if (!html.includes("fetch('/api/versie')")) {
+      throw new Error('index.html haalt /api/versie niet op');
+    }
+    if (!/document\.title\s*=\s*["'`]FotoApp v["'`]?\s*\+\s*v/.test(html.replace(/\s+/g, ' '))) {
+      throw new Error('index.html zet de titel niet met de versie');
+    }
+    // Favicon-links krijgen ?v=<versie> zodat het oude gecachte icoon ververst
+    if (!html.includes("'?v=' + v") && !html.includes("\"?v=\" + v")) {
+      throw new Error('favicon-links krijgen geen ?v=<versie> cache-bust');
+    }
+  });
+
+  test('Responsief: vindAlleFotos is async en geeft de event-loop lucht (setImmediate)', () => {
+    // De synchrone readdirSync-inventarisatie blokkeerde het main-proces → "reageert
+    // niet". Nu async met periodieke setImmediate-yields.
+    if (!/async function vindAlleFotos/.test(scannerCode)) {
+      throw new Error('vindAlleFotos is niet async gemaakt');
+    }
+    const blok = scannerCode.slice(
+      scannerCode.indexOf('async function vindAlleFotos'),
+      scannerCode.indexOf('async function vindAlleFotos') + 1400
+    );
+    if (!/fs\.promises\.readdir/.test(blok)) {
+      throw new Error('vindAlleFotos leest mappen niet asynchroon (fs.promises.readdir)');
+    }
+    if (!/setImmediate/.test(blok)) {
+      throw new Error('vindAlleFotos geeft de event-loop geen lucht (setImmediate ontbreekt)');
+    }
+    if (!/await vindAlleFotos\(/.test(scannerCode)) {
+      throw new Error('de aanroep van vindAlleFotos wordt niet ge-await');
+    }
+  });
+
+  test('Responsief: detecteerDuplicaten is async en yield per N groepen', () => {
+    if (!/async function detecteerDuplicaten/.test(scannerCode)) {
+      throw new Error('detecteerDuplicaten is niet async gemaakt');
+    }
+    const blok = scannerCode.slice(
+      scannerCode.indexOf('async function detecteerDuplicaten'),
+      scannerCode.indexOf('async function detecteerDuplicaten') + 1200
+    );
+    if (!/setImmediate/.test(blok)) {
+      throw new Error('detecteerDuplicaten geeft de event-loop geen lucht (setImmediate)');
+    }
+    if (!/await detecteerDuplicaten\(/.test(scannerCode)) {
+      throw new Error('de aanroep van detecteerDuplicaten wordt niet ge-await');
+    }
+  });
+
   return resultaten;
 };

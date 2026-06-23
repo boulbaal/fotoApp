@@ -286,37 +286,51 @@ function moetOverslaan(mapPad) {
   return SKIP_MAPPEN.some(skip => lager.includes(skip));
 }
 
-function vindAlleFotos(startPad, opties = {}) {
+async function vindAlleFotos(startPad, opties = {}) {
   // Verborgen mappen (naam begint met '.') worden standaard overgeslagen — daar
   // zitten meestal app-/systeembestanden (icoontjes, caches, .git), geen foto's.
   // Met verborgenMeenemen=true worden ze toch meegescand.
   const verborgenMeenemen = !!opties.verborgenMeenemen;
   const fotos = [];
 
-  function zoek(pad) {
+  // De inventarisatie liep vroeger volledig synchroon (readdirSync) en blokkeerde
+  // daardoor het Electron-main-proces voor de hele duur — bij grote mappen leidde
+  // dat tot een "reageert niet"-melding. Nu lezen we mappen asynchroon en geven we
+  // de event-loop elke paar mappen even lucht (setImmediate), zodat het venster
+  // responsief blijft tijdens het inventariseren.
+  let mappenSindsAdempauze = 0;
+
+  async function zoek(pad) {
     if (scanStoppen) return; // ← stop ook tijdens inventarisatie
     if (moetOverslaan(pad)) return;
+
+    // Adempauze voor de event-loop elke 20 mappen → UI blijft vlot.
+    if (++mappenSindsAdempauze % 20 === 0) {
+      await new Promise(r => setImmediate(r));
+    }
+
+    let items;
     try {
-      const items = fs.readdirSync(pad, { withFileTypes: true });
-      for (const item of items) {
-        if (scanStoppen) return;
-        const volledigPad = path.join(pad, item.name);
-        if (item.isDirectory()) {
-          if (!verborgenMeenemen && item.name.startsWith('.')) continue; // verborgen map overslaan
-          zoek(volledigPad);
-        } else if (item.isFile()) {
-          const ext = path.extname(item.name).toLowerCase();
-          if (FOTO_EXTENSIES.has(ext) || VIDEO_EXTENSIES.has(ext)) {
-            fotos.push(volledigPad);
-          }
+      items = await fs.promises.readdir(pad, { withFileTypes: true });
+    } catch (e) {
+      return; // map niet leesbaar, overslaan
+    }
+    for (const item of items) {
+      if (scanStoppen) return;
+      const volledigPad = path.join(pad, item.name);
+      if (item.isDirectory()) {
+        if (!verborgenMeenemen && item.name.startsWith('.')) continue; // verborgen map overslaan
+        await zoek(volledigPad);
+      } else if (item.isFile()) {
+        const ext = path.extname(item.name).toLowerCase();
+        if (FOTO_EXTENSIES.has(ext) || VIDEO_EXTENSIES.has(ext)) {
+          fotos.push(volledigPad);
         }
       }
-    } catch (e) {
-      // map niet leesbaar, overslaan
     }
   }
 
-  zoek(startPad);
+  await zoek(startPad);
   return fotos;
 }
 
@@ -707,7 +721,7 @@ async function scanAsync(bronId, startPad, logId, opties = {}) {
   try {
     // Alle foto's vinden
     scanStatus.huidig_bestand = 'Bestanden inventariseren...';
-    const alleFotos = vindAlleFotos(startPad, opties);
+    const alleFotos = await vindAlleFotos(startPad, opties);
     scanStatus.totaal = alleFotos.length;
     console.log(`📷 ${alleFotos.length} foto's gevonden`);
 
@@ -845,7 +859,7 @@ async function scanAsync(bronId, startPad, logId, opties = {}) {
 
     // Duplicaten detecteren
     scanStatus.huidig_bestand = 'Duplicaten detecteren...';
-    detecteerDuplicaten(db, bronId);
+    await detecteerDuplicaten(db, bronId);
 
     // Bron bijwerken
     db.prepare(`
@@ -894,7 +908,7 @@ async function draaiAchtergrondPasses() {
   }
 }
 
-function detecteerDuplicaten(db, bronId) {
+async function detecteerDuplicaten(db, bronId) {
   // Reset duplicaten voor deze bron
   db.prepare('UPDATE fotos SET is_duplicaat = 0, duplicaat_groep = NULL WHERE bron_id = ?').run(bronId);
 
@@ -905,11 +919,15 @@ function detecteerDuplicaten(db, bronId) {
     GROUP BY hash HAVING COUNT(*) > 1
   `).all();
 
-  for (const rij of duplicaatHashes) {
-    db.prepare(`
-      UPDATE fotos SET is_duplicaat = 1, duplicaat_groep = ?
-      WHERE hash = ?
-    `).run(rij.hash, rij.hash);
+  // Bij duizenden duplicaatgroepen liep deze lus vroeger in één keer synchroon
+  // door en blokkeerde dan het main-proces. Nu geven we de event-loop elke 200
+  // groepen even lucht zodat het venster responsief blijft.
+  const updateStmt = db.prepare('UPDATE fotos SET is_duplicaat = 1, duplicaat_groep = ? WHERE hash = ?');
+  for (let i = 0; i < duplicaatHashes.length; i++) {
+    updateStmt.run(duplicaatHashes[i].hash, duplicaatHashes[i].hash);
+    if ((i + 1) % 200 === 0) {
+      await new Promise(r => setImmediate(r));
+    }
   }
 
   console.log(`🔍 ${duplicaatHashes.length} duplicaatgroepen gevonden`);

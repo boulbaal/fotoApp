@@ -7,6 +7,21 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="alternate icon" href="/favicon.png">
   <link rel="stylesheet" href="/css/style.css">
+  <script>
+    // Versie ophalen → tonen in de titel én favicon-cache verversen.
+    // De versie staat alleen in package.json; door 'm hier op te halen verschijnt
+    // de juiste versie automatisch in de titel bij elke release en wordt het
+    // (mogelijk gecachte) oude icoon geforceerd opnieuw geladen via ?v=<versie>.
+    fetch('/api/versie').then(function (r) { return r.json(); }).then(function (d) {
+      var v = d && d.versie;
+      if (!v) return;
+      document.title = "FotoApp v" + v + " — foto's & video's";
+      document.querySelectorAll('link[rel*="icon"]').forEach(function (l) {
+        var basis = (l.getAttribute('href') || '').split('?')[0];
+        if (basis) l.setAttribute('href', basis + '?v=' + v);
+      });
+    }).catch(function () {});
+  </script>
 </head>
 <body>
 
