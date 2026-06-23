@@ -1760,6 +1760,28 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Prestatie: video-functies blokkeren de event-loop niet (async execFile)', () => {
+    // De "fotoapp reageert niet"-freezes kwamen van spawnSync: dat blokkeert de
+    // hele Node-loop terwijl exiftool/ffmpeg draait, dus geen HTTP tijdens de passes.
+    if (!scannerCode.includes('function runCmd') || !scannerCode.includes('execFile')) {
+      throw new Error('scanner.js heeft geen async subprocess-helper (runCmd/execFile)');
+    }
+    // De zware video-lezers moeten async zijn en runCmd gebruiken (niet spawnSync)
+    if (!/async function leesVideoDuur/.test(scannerCode) ||
+        !/async function leesGpsUitVideo/.test(scannerCode)) {
+      throw new Error('leesVideoDuur/leesGpsUitVideo zijn niet async gemaakt');
+    }
+    // Geen synchrone exiftool/ffmpeg-aanroepen meer in scanner.js
+    if (/spawnSync\(\s*['"](?:exiftool|ffmpeg)['"]/.test(scannerCode)) {
+      throw new Error('scanner.js gebruikt nog blokkerende spawnSync voor exiftool/ffmpeg');
+    }
+    // Call sites moeten awaiten
+    if (!scannerCode.includes('await leesGpsUitVideo') ||
+        !scannerCode.includes('await leesVideoDuur')) {
+      throw new Error('async video-functies worden niet ge-await op de aanroepplekken');
+    }
+  });
+
   test('Paginering: negeren/genegeerd laden snel (50 p/p, thumbnail-endpoint, bouwPaginering)', () => {
     const negerenCode = fs.readFileSync(path.join(__dirname, '../public/js/negeren.js'), 'utf8');
     // Beide lijsten: 50 per pagina + paginateller op /50

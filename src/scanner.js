@@ -1,10 +1,28 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { execSync, spawnSync } = require('child_process');
+const { execSync, spawnSync, execFile } = require('child_process');
 const sharp = require('sharp');
 const exifr = require('exifr');
 const { getDb } = require('./database');
+
+// Async subprocess-helper. spawnSync blokkeerde de HELE Node event-loop terwijl
+// exiftool/ffmpeg draaide — per video 0,1–8s. Tijdens de achtergrond-passes
+// (bv. 900+ video's controleren op GPS) stond de loop dus telkens stil en kon
+// geen enkel HTTP-verzoek (thumbnails, pagina's) bediend worden → Electron
+// toonde "fotoapp reageert niet". execFile draait asynchroon: de loop blijft vrij
+// zodat de UI vlot blijft laden terwijl de pass rustig op de achtergrond werkt.
+function runCmd(cmd, args, opts = {}) {
+  return new Promise((resolve) => {
+    execFile(cmd, args, {
+      encoding: opts.encoding,                 // undefined = 'utf8' (string), 'buffer' = Buffer
+      timeout: opts.timeout || 8000,
+      maxBuffer: opts.maxBuffer || 10 * 1024 * 1024
+    }, (err, stdout, stderr) => {
+      resolve({ status: err ? (typeof err.code === 'number' ? err.code : 1) : 0, stdout, stderr });
+    });
+  });
+}
 
 const FOTO_EXTENSIES = new Set([
   // JPEG varianten
@@ -308,9 +326,9 @@ function berekenHash(bestandsPad) {
   }
 }
 
-function leesVideoDuur(bestandsPad) {
+async function leesVideoDuur(bestandsPad) {
   try {
-    const result = spawnSync('exiftool', ['-Duration#', '-b', bestandsPad], {
+    const result = await runCmd('exiftool', ['-Duration#', '-b', bestandsPad], {
       encoding: 'utf8', timeout: 5000
     });
     const duur = parseFloat(result.stdout);
@@ -320,14 +338,14 @@ function leesVideoDuur(bestandsPad) {
 
 // Lees GPS uit video via exiftool — exifr ondersteunt MP4/MOV GPS niet goed
 // Werkt voor iPhone MOV, sommige Android MP4, GoPro, etc.
-function leesGpsUitVideo(bestandsPad) {
+async function leesGpsUitVideo(bestandsPad) {
   try {
-    const result = spawnSync('exiftool', [
+    const result = await runCmd('exiftool', [
       '-GPSLatitude#', '-GPSLongitude#',
       '-Keys:GPSCoordinates',
       '-n', '-j',
       bestandsPad
-    ], { encoding: 'utf8', timeout: 8000, stdio: 'pipe' });
+    ], { encoding: 'utf8', timeout: 8000 });
 
     if (result.status !== 0 || !result.stdout) return { gps_lat: null, gps_lon: null };
 
@@ -360,20 +378,20 @@ async function maakVideoThumbnail(bestandsPad) {
   // Bereken seek-positie: 30% van de duur, min 2s, max 60s
   // -ss VOOR -i = keyframe seeking = geen overhead ongeacht hoe ver we springen
   let seekSec = 3; // standaard fallback
-  const duur = leesVideoDuur(bestandsPad);
+  const duur = await leesVideoDuur(bestandsPad);
   if (duur && duur > 4) {
     seekSec = Math.min(Math.round(duur * 0.3), 60);
   }
 
   try {
     const tmpPad = `/tmp/fotoapp_thumb_${Date.now()}.jpg`;
-    const result = spawnSync('ffmpeg', [
+    const result = await runCmd('ffmpeg', [
       '-ss', String(seekSec),   // vóór -i: snelle keyframe seek
       '-i', bestandsPad,
       '-vframes', '1',
       '-q:v', '5',
       '-y', tmpPad
-    ], { timeout: 15000 });
+    ], { encoding: 'buffer', timeout: 15000 });
 
     if (result.status === 0 && fs.existsSync(tmpPad)) {
       const buffer = await sharp(tmpPad)
@@ -389,8 +407,8 @@ async function maakVideoThumbnail(bestandsPad) {
   // Fallback: exiftool embedded thumbnail
   for (const tag of ['-ThumbnailImage', '-PreviewImage', '-OtherImage', '-CoverArt']) {
     try {
-      const result = spawnSync('exiftool', [tag, '-b', bestandsPad], {
-        maxBuffer: 10 * 1024 * 1024, timeout: 8000
+      const result = await runCmd('exiftool', [tag, '-b', bestandsPad], {
+        encoding: 'buffer', maxBuffer: 10 * 1024 * 1024, timeout: 8000
       });
       if (result.stdout && result.stdout.length > 500) {
         const buffer = await sharp(result.stdout)
@@ -425,7 +443,8 @@ async function maakThumbnail(bestandsPad) {
   // RAW bestanden bevatten altijd een camera-gegenereerde preview
   for (const tag of ['PreviewImage', 'JpgFromRaw', 'ThumbnailImage']) {
     try {
-      const result = spawnSync('exiftool', ['-' + tag, '-b', bestandsPad], {
+      const result = await runCmd('exiftool', ['-' + tag, '-b', bestandsPad], {
+        encoding: 'buffer',
         maxBuffer: 20 * 1024 * 1024,
         timeout: 10000,
       });
@@ -695,9 +714,12 @@ async function scanAsync(bronId, startPad, logId) {
         let gpsLat = meta.gps_lat || googleJson.gps_lat || null;
         let gpsLon = meta.gps_lon || googleJson.gps_lon || null;
         if (!gpsLat && VIDEO_EXTENSIES.has(path.extname(fotoPad).toLowerCase())) {
-          const videoGps = leesGpsUitVideo(fotoPad);
+          const videoGps = await leesGpsUitVideo(fotoPad);
           if (videoGps.gps_lat) { gpsLat = videoGps.gps_lat; gpsLon = videoGps.gps_lon; }
         }
+
+        const isVideo = VIDEO_EXTENSIES.has(path.extname(fotoPad).toLowerCase());
+        const videoDuur = isVideo ? await leesVideoDuur(fotoPad) : null;
 
         const datumObj = datumFoto ? new Date(datumFoto) : null;
 
@@ -743,8 +765,8 @@ async function scanAsync(bronId, startPad, logId) {
           thumbnail: thumbnail,
           google_description: googleJson.google_description || null,
           google_device_type: googleJson.google_device_type || null,
-          is_video: VIDEO_EXTENSIES.has(path.extname(fotoPad).toLowerCase()) ? 1 : 0,
-          duur: VIDEO_EXTENSIES.has(path.extname(fotoPad).toLowerCase()) ? leesVideoDuur(fotoPad) : null
+          is_video: isVideo ? 1 : 0,
+          duur: videoDuur
         });
 
         scanStatus.nieuw++;
@@ -923,7 +945,7 @@ async function startVideoGpsPass() {
       }
 
       try {
-        const gps = leesGpsUitVideo(v.volledig_pad);
+        const gps = await leesGpsUitVideo(v.volledig_pad);
         if (gps.gps_lat && gps.gps_lon) {
           // GPS gevonden — haal stad/land op en sla op
           const adres = await haalGpsAdresOp(gps.gps_lat, gps.gps_lon);
