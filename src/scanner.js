@@ -221,7 +221,7 @@ async function startGeocodePass() {
   console.log(`✅ Geocode pass klaar: ${geocodeStatus.gedaan} locaties verwerkt`);
 }
 
-async function voegToeAanWachtrij(bronId) {
+async function voegToeAanWachtrij(bronId, opties = {}) {
   const db = getDb();
   const bron = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(bronId);
   db.close();
@@ -236,7 +236,12 @@ async function voegToeAanWachtrij(bronId) {
     throw new Error('Bron is al aan het scannen');
   }
 
-  wachtrij.push({ id: bronId, naam: bron.naam, pad: bron.pad });
+  // Verborgen mappen: expliciete optie wint, anders de per-bron instelling.
+  const verborgenMeenemen = opties.verborgenMeenemen !== undefined
+    ? !!opties.verborgenMeenemen
+    : !!bron.verborgen_meenemen;
+
+  wachtrij.push({ id: bronId, naam: bron.naam, pad: bron.pad, opties: { verborgenMeenemen } });
   console.log(`📋 Wachtrij: ${wachtrij.map(w => w.naam).join(' → ')}`);
 
   // Start verwerking als niets bezig
@@ -250,7 +255,7 @@ async function verwerkWachtrij() {
 
   const volgende = wachtrij.shift();
   console.log(`▶ Volgende in wachtrij: ${volgende.naam}`);
-  await _startScan(volgende.id);
+  await _startScan(volgende.id, volgende.opties || {});
 }
 
 function verwijderUitWachtrij(bronId) {
@@ -262,7 +267,11 @@ function moetOverslaan(mapPad) {
   return SKIP_MAPPEN.some(skip => lager.includes(skip));
 }
 
-function vindAlleFotos(startPad) {
+function vindAlleFotos(startPad, opties = {}) {
+  // Verborgen mappen (naam begint met '.') worden standaard overgeslagen — daar
+  // zitten meestal app-/systeembestanden (icoontjes, caches, .git), geen foto's.
+  // Met verborgenMeenemen=true worden ze toch meegescand.
+  const verborgenMeenemen = !!opties.verborgenMeenemen;
   const fotos = [];
 
   function zoek(pad) {
@@ -274,6 +283,7 @@ function vindAlleFotos(startPad) {
         if (scanStoppen) return;
         const volledigPad = path.join(pad, item.name);
         if (item.isDirectory()) {
+          if (!verborgenMeenemen && item.name.startsWith('.')) continue; // verborgen map overslaan
           zoek(volledigPad);
         } else if (item.isFile()) {
           const ext = path.extname(item.name).toLowerCase();
@@ -609,7 +619,7 @@ async function haalGpsAdresOp(lat, lon) {
   }
 }
 
-async function _startScan(bronId) {
+async function _startScan(bronId, opties = {}) {
   gpsCache.clear(); // Cache leegmaken bij elke nieuwe scan
   const db = getDb();
   const bron = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(bronId);
@@ -636,21 +646,21 @@ async function _startScan(bronId) {
 
   db.close();
   scanStoppen = false;
-  scanAsync(bronId, bron.pad, logResult.lastInsertRowid).catch(console.error);
+  scanAsync(bronId, bron.pad, logResult.lastInsertRowid, opties).catch(console.error);
   return scanStatus;
 }
 
-async function startScan(bronId) {
-  return voegToeAanWachtrij(bronId);
+async function startScan(bronId, opties = {}) {
+  return voegToeAanWachtrij(bronId, opties);
 }
 
-async function scanAsync(bronId, startPad, logId) {
-  console.log(`🔍 Scan gestart: ${startPad}`);
+async function scanAsync(bronId, startPad, logId, opties = {}) {
+  console.log(`🔍 Scan gestart: ${startPad}${opties.verborgenMeenemen ? ' (incl. verborgen mappen)' : ''}`);
 
   try {
     // Alle foto's vinden
     scanStatus.huidig_bestand = 'Bestanden inventariseren...';
-    const alleFotos = vindAlleFotos(startPad);
+    const alleFotos = vindAlleFotos(startPad, opties);
     scanStatus.totaal = alleFotos.length;
     console.log(`📷 ${alleFotos.length} foto's gevonden`);
 

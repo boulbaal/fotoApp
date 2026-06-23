@@ -1760,6 +1760,62 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Verborgen mappen: scanner slaat dot-mappen standaard over (optie verborgenMeenemen)', () => {
+    if (!/function vindAlleFotos\(startPad, opties/.test(scannerCode)) {
+      throw new Error('vindAlleFotos accepteert geen opties');
+    }
+    if (!scannerCode.includes("item.name.startsWith('.')")) {
+      throw new Error('scanner controleert verborgen mappen (naam begint met punt) niet');
+    }
+    if (!scannerCode.includes('verborgenMeenemen')) {
+      throw new Error('scanner kent geen verborgenMeenemen-optie');
+    }
+    // De skip mag NIET gebeuren als verborgenMeenemen aan staat
+    const i = scannerCode.indexOf("item.name.startsWith('.')");
+    const regel = scannerCode.slice(scannerCode.lastIndexOf('\n', i), scannerCode.indexOf('\n', i));
+    if (!regel.includes('!verborgenMeenemen')) {
+      throw new Error('verborgen mappen worden ook overgeslagen als de optie aan staat');
+    }
+    // Standaard valt de wachtrij terug op de per-bron instelling
+    if (!scannerCode.includes('bron.verborgen_meenemen')) {
+      throw new Error('scanner gebruikt de per-bron instelling verborgen_meenemen niet als standaard');
+    }
+  });
+
+  test('Verborgen mappen: DB-kolom, API en UI compleet', () => {
+    const dbCode    = fs.readFileSync(path.join(__dirname, '../src/database.js'), 'utf8');
+    const bronnen   = fs.readFileSync(path.join(__dirname, '../public/js/bronnen.js'), 'utf8');
+    const html      = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    const i18n      = fs.readFileSync(path.join(__dirname, '../public/js/i18n.js'), 'utf8');
+
+    // DB-migratie op bronnen-tabel
+    if (!dbCode.includes('verborgen_meenemen')) {
+      throw new Error('database.js mist de verborgen_meenemen migratie op bronnen');
+    }
+    // API: create + update + patch endpoint
+    if ((apiCode.match(/verborgen_meenemen/g) || []).length < 3) {
+      throw new Error('api.js verwerkt verborgen_meenemen niet in create/update/patch');
+    }
+    if (!apiCode.includes("'/bronnen/:id/verborgen'")) {
+      throw new Error('api.js mist de PATCH /bronnen/:id/verborgen endpoint');
+    }
+    // Frontend: toevoegen, bewerken, kaart-toggle
+    if (!bronnen.includes('bronVerborgen') || !bronnen.includes('bewerkVerborgen')) {
+      throw new Error('bronnen.js leest de verborgen-checkboxes (toevoegen/bewerken) niet');
+    }
+    if (!bronnen.includes('function zetVerborgen')) {
+      throw new Error('bronnen.js mist de kaart-toggle zetVerborgen');
+    }
+    // HTML-checkboxes aanwezig
+    if (!html.includes('id="bronVerborgen"') || !html.includes('id="bewerkVerborgen"')) {
+      throw new Error('index.html mist de verborgen-checkbox in toevoegen- of bewerk-formulier');
+    }
+    // i18n in 4 talen
+    if ((i18n.match(/verborgen_label:/g) || []).length < 4) {
+      throw new Error('verborgen_label ontbreekt in een of meer talen (NL/EN/FR/DE)');
+    }
+  });
+
   test('Prestatie: video-functies blokkeren de event-loop niet (async execFile)', () => {
     // De "fotoapp reageert niet"-freezes kwamen van spawnSync: dat blokkeert de
     // hele Node-loop terwijl exiftool/ffmpeg draait, dus geen HTTP tijdens de passes.

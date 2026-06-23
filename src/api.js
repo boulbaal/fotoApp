@@ -28,23 +28,33 @@ router.get('/bronnen', (req, res) => {
 });
 
 router.post('/bronnen', (req, res) => {
-  const { naam, type, pad, icoon } = req.body;
+  const { naam, type, pad, icoon, verborgen_meenemen } = req.body;
   if (!naam || !pad) return res.status(400).json({ fout: 'naam en pad zijn verplicht' });
 
   const db = getDb();
   const result = db.prepare(`
-    INSERT INTO bronnen (naam, type, pad, icoon) VALUES (?, ?, ?, ?)
-  `).run(naam, type || 'pc', pad, icoon || '💻');
+    INSERT INTO bronnen (naam, type, pad, icoon, verborgen_meenemen) VALUES (?, ?, ?, ?, ?)
+  `).run(naam, type || 'pc', pad, icoon || '💻', verborgen_meenemen ? 1 : 0);
   const bron = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(result.lastInsertRowid);
   db.close();
   res.json(bron);
 });
 
 router.put('/bronnen/:id', (req, res) => {
-  const { naam, pad, type, icoon } = req.body;
+  const { naam, pad, type, icoon, verborgen_meenemen } = req.body;
   const db = getDb();
-  db.prepare('UPDATE bronnen SET naam = ?, pad = ?, type = ?, icoon = ? WHERE id = ?')
-    .run(naam, pad, type, icoon, req.params.id);
+  db.prepare('UPDATE bronnen SET naam = ?, pad = ?, type = ?, icoon = ?, verborgen_meenemen = ? WHERE id = ?')
+    .run(naam, pad, type, icoon, verborgen_meenemen ? 1 : 0, req.params.id);
+  const bron = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(req.params.id);
+  db.close();
+  res.json(bron);
+});
+
+// Snelle toggle vanuit de bron-kaart: alleen de "verborgen mappen meescannen"-vlag
+router.patch('/bronnen/:id/verborgen', (req, res) => {
+  const db = getDb();
+  db.prepare('UPDATE bronnen SET verborgen_meenemen = ? WHERE id = ?')
+    .run(req.body.verborgen_meenemen ? 1 : 0, req.params.id);
   const bron = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(req.params.id);
   db.close();
   res.json(bron);
@@ -62,7 +72,11 @@ router.delete('/bronnen/:id', (req, res) => {
 
 router.post('/scan/:bronId', async (req, res) => {
   try {
-    const status = await startScan(parseInt(req.params.bronId));
+    // Standaard komt de instelling van de bron zelf; een expliciete vlag in de
+    // body kan dat per scan overrulen (de scanner valt anders terug op de bron).
+    const heeftVlag = req.body && req.body.verborgenMeenemen !== undefined;
+    const opties = heeftVlag ? { verborgenMeenemen: !!req.body.verborgenMeenemen } : {};
+    const status = await startScan(parseInt(req.params.bronId), opties);
     res.json(status);
   } catch (e) {
     res.status(400).json({ fout: e.message });

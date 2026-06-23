@@ -157,6 +157,14 @@ function initDb() {
     console.log('✅ Migratie: is_video kolom toegevoegd');
   }
 
+  // Migratie: per-bron instelling of verborgen mappen (naam begint met '.')
+  // meegescand worden. Standaard 0 = overslaan (app-/systeembestanden, geen foto's).
+  const bronKolommen = db.prepare("PRAGMA table_info(bronnen)").all().map(k => k.name);
+  if (!bronKolommen.includes('verborgen_meenemen')) {
+    db.exec("ALTER TABLE bronnen ADD COLUMN verborgen_meenemen INTEGER DEFAULT 0");
+    console.log('✅ Migratie: verborgen_meenemen kolom toegevoegd aan bronnen');
+  }
+
   // Samengestelde index voor snelle gesorteerde paginering: de galerij filtert
   // op is_video en sorteert op datum_foto. Maakt ook diep bladeren (laatste
   // pagina, grote OFFSET) snel.

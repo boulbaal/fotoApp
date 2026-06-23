@@ -203,6 +203,10 @@
           <button class="btn btn-secundair" onclick="openMapKiezer()" type="button" data-i18n="bron_bladeren">📁 Bladeren</button>
         </div>
       </div>
+      <label class="verborgen-optie" style="display:flex; align-items:center; gap:8px; margin-bottom:16px; cursor:pointer;" data-i18n-title="verborgen_uitleg">
+        <input id="bronVerborgen" type="checkbox">
+        <span data-i18n="verborgen_label">Verborgen mappen meescannen (.)</span>
+      </label>
       <button class="btn btn-primair" onclick="voegBronToe()" data-i18n="bron_toevoegen_knop">Bron toevoegen</button>
     </div>
     <div class="bronnen-grid" id="bronnenGrid"></div>
@@ -673,6 +677,10 @@
         <button class="btn btn-secundair" onclick="openMapKiezer('bewerkPad')" type="button">📁</button>
       </div>
     </div>
+    <label class="verborgen-optie" style="display:flex; align-items:center; gap:8px; margin-bottom:20px; cursor:pointer;" data-i18n-title="verborgen_uitleg">
+      <input id="bewerkVerborgen" type="checkbox">
+      <span data-i18n="verborgen_label">Verborgen mappen meescannen (.)</span>
+    </label>
     <div style="display:flex; gap:8px;">
       <button class="btn btn-primair" onclick="slaaBewerkingOp()" style="flex:1;">💾 Opslaan</button>
       <button class="btn btn-secundair" onclick="sluitBewerkModal()">Annuleren</button>

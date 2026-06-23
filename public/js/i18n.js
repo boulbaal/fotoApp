@@ -52,6 +52,8 @@ const APP_TRANSLATIONS = {
     bron_map_label: "Map om te scannen",
     bron_bladeren: "📁 Bladeren",
     bron_toevoegen_knop: "Bron toevoegen",
+    verborgen_label: "Verborgen mappen meescannen (.)",
+    verborgen_uitleg: "Mappen waarvan de naam met een punt begint (zoals .config, .cache, .git). Standaard uit: daar zitten meestal app-/systeembestanden, geen foto's.",
     bron_type_pc: "💻 PC / Laptop",
     bron_type_gsm: "📱 Smartphone",
     bron_type_usb: "💾 USB Stick",
@@ -233,6 +235,8 @@ const APP_TRANSLATIONS = {
     bron_map_label: "Folder to scan",
     bron_bladeren: "📁 Browse",
     bron_toevoegen_knop: "Add source",
+    verborgen_label: "Include hidden folders (.)",
+    verborgen_uitleg: "Folders whose name starts with a dot (like .config, .cache, .git). Off by default: they usually hold app/system files, not photos.",
     bron_type_pc: "💻 PC / Laptop",
     bron_type_gsm: "📱 Smartphone",
     bron_type_usb: "💾 USB Stick",
@@ -414,6 +418,8 @@ const APP_TRANSLATIONS = {
     bron_map_label: "Dossier à analyser",
     bron_bladeren: "📁 Parcourir",
     bron_toevoegen_knop: "Ajouter la source",
+    verborgen_label: "Inclure les dossiers cachés (.)",
+    verborgen_uitleg: "Dossiers dont le nom commence par un point (comme .config, .cache, .git). Désactivé par défaut : ils contiennent surtout des fichiers d'application/système, pas des photos.",
     bron_type_pc: "💻 PC / Ordinateur portable",
     bron_type_gsm: "📱 Smartphone",
     bron_type_usb: "💾 Clé USB",
@@ -595,6 +601,8 @@ const APP_TRANSLATIONS = {
     bron_map_label: "Ordner scannen",
     bron_bladeren: "📁 Durchsuchen",
     bron_toevoegen_knop: "Quelle hinzufügen",
+    verborgen_label: "Versteckte Ordner einbeziehen (.)",
+    verborgen_uitleg: "Ordner, deren Name mit einem Punkt beginnt (wie .config, .cache, .git). Standardmäßig aus: sie enthalten meist App-/Systemdateien, keine Fotos.",
     bron_type_pc: "💻 PC / Laptop",
     bron_type_gsm: "📱 Smartphone",
     bron_type_usb: "💾 USB-Stick",
@@ -765,6 +773,13 @@ window.i18n = (function() {
       const key = el.dataset.i18nPlaceholder;
       const val = t(key);
       if (typeof val === 'string' && val !== key) el.placeholder = val;
+    });
+
+    // 3b. Generiek: alle [data-i18n-title] elementen (tooltip)
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      const key = el.dataset.i18nTitle;
+      const val = t(key);
+      if (typeof val === 'string' && val !== key) el.title = val;
     });
 
     // 4. Nav knoppen (data-pagina)
