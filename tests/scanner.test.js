@@ -1878,6 +1878,34 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Branding: nette venstertitel, favicon en app-icoon', () => {
+    const htmlCode = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+    // Geen "Fase 1"-ontwikkeltitel meer in de venstertitel
+    if (/<title>[^<]*Fase 1[^<]*<\/title>/.test(htmlCode)) {
+      throw new Error('venstertitel bevat nog "Fase 1"');
+    }
+    if (!/<title>FotoApp[^<]*<\/title>/.test(htmlCode)) {
+      throw new Error('venstertitel begint niet met FotoApp');
+    }
+    // Favicon-link aanwezig
+    if (!/rel="icon"[^>]*favicon\.svg/.test(htmlCode)) {
+      throw new Error('favicon-link (svg) ontbreekt in index.html');
+    }
+    // Icoon-bestanden bestaan en de SVG gebruikt een verloop (hip diafragma)
+    const iconSvg = fs.readFileSync(path.join(__dirname, '../build/icon.svg'), 'utf8');
+    if (!/linearGradient/.test(iconSvg)) {
+      throw new Error('icon.svg heeft geen verloop (linearGradient)');
+    }
+    for (const f of ['../build/icon.png', '../build/icon.ico', '../public/favicon.svg']) {
+      if (!fs.existsSync(path.join(__dirname, f))) throw new Error('icoonbestand ontbreekt: ' + f);
+    }
+    // Electron-venster krijgt het app-icoon mee
+    const mainCode = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
+    if (!/icon:\s*path\.join\([^)]*icon\.png/.test(mainCode)) {
+      throw new Error('electron/main.js zet geen window-icon (build/icon.png)');
+    }
+  });
+
   test('Robuustheid: sharp-aanroepen defensief (failOn + limitInputPixels)', () => {
     // Een libvips-worker kan met een native SIGTRAP/int3-trap omvallen op een
     // kapotte of absurd grote afbeelding — dat neemt de hele app mee en is niet

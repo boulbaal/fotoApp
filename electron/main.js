@@ -128,6 +128,7 @@ function createWindow() {
     minWidth:  800,
     minHeight: 600,
     title: 'FotoApp',
+    icon: path.join(__dirname, '..', 'build', 'icon.png'),
     backgroundColor: '#0f0f17',
     webPreferences: {
       nodeIntegration: false,
