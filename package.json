@@ -96,7 +96,11 @@
         }
       ],
       "icon": "build/icon.png",
-      "category": "Graphics"
+      "category": "Graphics",
+      "executableName": "fotoapp",
+      "desktop": {
+        "StartupWMClass": "FotoApp"
+      }
     },
     "publish": {
       "provider": "github",

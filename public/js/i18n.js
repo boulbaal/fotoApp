@@ -12,6 +12,7 @@ const APP_TRANSLATIONS = {
     nav_duplicaten: "🔁 Duplicaten",
     nav_kaart: "🗺️ Kaart",
     nav_gps: "📍 GPS toewijzen",
+    nav_wrapped: "✨ Foto-leven",
     nav_negeren: "🚫 Negeren",
     nav_genegeerd: "📋 Genegeerd",
     nav_export: "📦 Export",
@@ -195,6 +196,7 @@ const APP_TRANSLATIONS = {
     nav_duplicaten: "🔁 Duplicates",
     nav_kaart: "🗺️ Map",
     nav_gps: "📍 Assign GPS",
+    nav_wrapped: "✨ Photo life",
     nav_negeren: "🚫 Ignore",
     nav_genegeerd: "📋 Ignored",
     nav_export: "📦 Export",
@@ -378,6 +380,7 @@ const APP_TRANSLATIONS = {
     nav_duplicaten: "🔁 Doublons",
     nav_kaart: "🗺️ Carte",
     nav_gps: "📍 Assigner GPS",
+    nav_wrapped: "✨ Vie en photos",
     nav_negeren: "🚫 Ignorer",
     nav_genegeerd: "📋 Ignorés",
     nav_export: "📦 Exporter",
@@ -561,6 +564,7 @@ const APP_TRANSLATIONS = {
     nav_duplicaten: "🔁 Duplikate",
     nav_kaart: "🗺️ Karte",
     nav_gps: "📍 GPS zuweisen",
+    nav_wrapped: "✨ Foto-Leben",
     nav_negeren: "🚫 Ignorieren",
     nav_genegeerd: "📋 Ignoriert",
     nav_export: "📦 Export",
@@ -787,8 +791,9 @@ window.i18n = (function() {
       dashboard: t('nav_dashboard'), bronnen: t('nav_bronnen'),
       fotos: t('nav_fotos'),         videos: t('nav_videos'),
       duplicaten: t('nav_duplicaten'), kaart: t('nav_kaart'),
-      gpsbulk: t('nav_gps'),         negeren: t('nav_negeren'),
-      genegeerd: t('nav_genegeerd'),  export: t('nav_export'),
+      gpsbulk: t('nav_gps'),         wrapped: t('nav_wrapped'),
+      negeren: t('nav_negeren'),     genegeerd: t('nav_genegeerd'),
+      export: t('nav_export'),
     };
     document.querySelectorAll('[data-pagina]').forEach(btn => {
       const p = btn.dataset.pagina;

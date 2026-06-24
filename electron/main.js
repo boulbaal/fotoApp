@@ -1,8 +1,14 @@
 'use strict';
 
-const { app, BrowserWindow, dialog, shell, Menu } = require('electron');
+const { app, BrowserWindow, dialog, shell, Menu, nativeImage } = require('electron');
 const path = require('path');
 const fs   = require('fs');
+
+// ── App-naam + Linux WM-class ────────────────────────────────────────────────
+// Op Linux (GNOME/Wayland) koppelt de vensterbeheerder het taakbalk-icoon aan de
+// WM_CLASS van het venster. Zonder dit toont Electron in dev-modus het generieke
+// Electron-icoon. We zetten de naam vroeg zodat de WM_CLASS "FotoApp" wordt.
+app.setName('FotoApp');
 
 // ── Geheugenplafond ─────────────────────────────────────────────────────────
 // De scan draait in dit (main) proces. Begrens de V8-heap zodat een zware scan
@@ -122,19 +128,27 @@ global.electronRevealInFolder = function(bestandsPad) {
 let mainWindow = null;
 
 function createWindow() {
+  // nativeImage is op Linux betrouwbaarder dan een pad-string voor het taakbalk-icoon.
+  const appIcon = nativeImage.createFromPath(path.join(__dirname, '..', 'build', 'icon.png'));
+
   mainWindow = new BrowserWindow({
     width:  1440,
     height: 900,
     minWidth:  800,
     minHeight: 600,
     title: 'FotoApp',
-    icon: path.join(__dirname, '..', 'build', 'icon.png'),
+    icon: appIcon,
     backgroundColor: '#0f0f17',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
     },
   });
+
+  // Extra zekerheid op Linux: icoon nogmaals expliciet zetten na constructie.
+  if (process.platform === 'linux' && !appIcon.isEmpty()) {
+    mainWindow.setIcon(appIcon);
+  }
 
   // Verberg standaard menu (optioneel: houd voor dev-tools)
   if (app.isPackaged) {

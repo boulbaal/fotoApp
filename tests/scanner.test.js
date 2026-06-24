@@ -1928,10 +1928,13 @@ module.exports = async function testScanner() {
     for (const f of ['../build/icon.png', '../build/icon.ico', '../public/favicon.svg']) {
       if (!fs.existsSync(path.join(__dirname, f))) throw new Error('icoonbestand ontbreekt: ' + f);
     }
-    // Electron-venster krijgt het app-icoon mee
+    // Electron-venster krijgt het app-icoon mee (via nativeImage uit build/icon.png)
     const mainCode = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
-    if (!/icon:\s*path\.join\([^)]*icon\.png/.test(mainCode)) {
-      throw new Error('electron/main.js zet geen window-icon (build/icon.png)');
+    if (!/nativeImage\.createFromPath\(path\.join\([^)]*icon\.png/.test(mainCode)) {
+      throw new Error('electron/main.js laadt het window-icon niet uit build/icon.png');
+    }
+    if (!/icon:\s*appIcon/.test(mainCode)) {
+      throw new Error('electron/main.js geeft het app-icoon niet aan de BrowserWindow mee');
     }
   });
 
@@ -2092,6 +2095,72 @@ module.exports = async function testScanner() {
     }
     if (!/\.logo-icoon\s*\{/.test(cssCode)) {
       throw new Error('CSS mist .logo-icoon styling');
+    }
+  });
+
+  test('i18n: nav-knop "Foto-leven" (wrapped) is in alle 4 talen vertaald', () => {
+    const i18nCode = fs.readFileSync(path.join(__dirname, '../public/js/i18n.js'), 'utf8');
+    // De wrapped/foto-leven nav-knop bleef in elke taal Nederlands omdat navMap
+    // de pagina niet bevatte en er geen nav_wrapped-sleutel was.
+    const start = i18nCode.indexOf('APP_TRANSLATIONS');
+    const braceStart = i18nCode.indexOf('{', start);
+    let depth = 0, end = -1;
+    for (let i = braceStart; i < i18nCode.length; i++) {
+      const c = i18nCode[i];
+      if (c === '{') depth++;
+      else if (c === '}') { depth--; if (depth === 0) { end = i; break; } }
+    }
+    let vertalingen;
+    // eslint-disable-next-line no-eval
+    eval('vertalingen = ' + i18nCode.slice(braceStart, end + 1));
+    ['nl', 'en', 'fr', 'de'].forEach((taal) => {
+      if (!vertalingen[taal] || !vertalingen[taal].nav_wrapped) {
+        throw new Error('nav_wrapped ontbreekt in taal: ' + taal);
+      }
+    });
+    // EN mag niet meer letterlijk het Nederlandse "Foto-leven" tonen
+    if (vertalingen.en.nav_wrapped === vertalingen.nl.nav_wrapped) {
+      throw new Error('nav_wrapped (EN) is niet vertaald — nog gelijk aan NL');
+    }
+    // navMap moet de wrapped-pagina koppelen
+    if (!/wrapped:\s*t\(['"]nav_wrapped['"]\)/.test(i18nCode)) {
+      throw new Error('navMap koppelt de wrapped-pagina niet aan nav_wrapped');
+    }
+  });
+
+  test('i18n: elke taal heeft exact dezelfde sleutels (geen gaten)', () => {
+    const i18nCode = fs.readFileSync(path.join(__dirname, '../public/js/i18n.js'), 'utf8');
+    const start = i18nCode.indexOf('APP_TRANSLATIONS');
+    const braceStart = i18nCode.indexOf('{', start);
+    let depth = 0, end = -1;
+    for (let i = braceStart; i < i18nCode.length; i++) {
+      const c = i18nCode[i];
+      if (c === '{') depth++;
+      else if (c === '}') { depth--; if (depth === 0) { end = i; break; } }
+    }
+    let vertalingen;
+    // eslint-disable-next-line no-eval
+    eval('vertalingen = ' + i18nCode.slice(braceStart, end + 1));
+    const alle = new Set();
+    ['nl', 'en', 'fr', 'de'].forEach((taal) => Object.keys(vertalingen[taal]).forEach((k) => alle.add(k)));
+    ['nl', 'en', 'fr', 'de'].forEach((taal) => {
+      const mist = [...alle].filter((k) => !(k in vertalingen[taal]));
+      if (mist.length) throw new Error('taal ' + taal + ' mist sleutels: ' + mist.join(', '));
+    });
+  });
+
+  test('Branding: Electron zet app-naam + Linux taakbalk-icoon (WM-class)', () => {
+    const mainCode = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
+    if (!/app\.setName\(['"]FotoApp['"]\)/.test(mainCode)) {
+      throw new Error('main.js zet de app-naam niet (app.setName)');
+    }
+    if (!/nativeImage\.createFromPath/.test(mainCode)) {
+      throw new Error('main.js laadt het icoon niet via nativeImage.createFromPath');
+    }
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
+    const wm = pkg.build && pkg.build.linux && pkg.build.linux.desktop && pkg.build.linux.desktop.StartupWMClass;
+    if (wm !== 'FotoApp') {
+      throw new Error('package.json mist linux.desktop.StartupWMClass = FotoApp');
     }
   });
 
