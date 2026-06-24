@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=FotoApp
+GenericName=Foto- en videobeheer
+Comment=Lokaal foto- en videobeheer — geen cloud, geen abonnement
+Exec=@APPDIR@/start-electron.sh
+Icon=@APPDIR@/build/icon.png
+Terminal=false
+Categories=Graphics;Photography;
+StartupWMClass=FotoApp
+StartupNotify=true

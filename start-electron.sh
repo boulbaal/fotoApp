@@ -53,6 +53,20 @@ if [ $? -ne 0 ]; then
 fi
 echo "   ✓ Database-module is Electron-compatibel."
 
+# === STAP 3b: TAAKBALK-ICOON REGISTREREN (GNOME dock) ===
+# In dev-modus is er geen geïnstalleerd .desktop-bestand, dus toont GNOME het
+# generieke Electron-icoon. We installeren een gebruikers-.desktop met absolute
+# paden + StartupWMClass=FotoApp zodat GNOME het venster aan ons icoon koppelt.
+APPDIR="$(cd "$(dirname "$0")" && pwd)"
+DESKTOP_SRC="$APPDIR/build/FotoApp.desktop"
+DESKTOP_DIR="$HOME/.local/share/applications"
+if [ -f "$DESKTOP_SRC" ]; then
+  mkdir -p "$DESKTOP_DIR"
+  sed "s|@APPDIR@|$APPDIR|g" "$DESKTOP_SRC" > "$DESKTOP_DIR/FotoApp.desktop"
+  command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$DESKTOP_DIR" 2>/dev/null
+  echo "🖼  Taakbalk-icoon geregistreerd (GNOME)."
+fi
+
 # === STAP 4: POORT 3000 SCANNEN ===
 echo "🔍 Poort 3000 controleren..."
 PORT_PIDS=$(lsof -ti tcp:3000 2>/dev/null)

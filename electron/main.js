@@ -15,7 +15,11 @@ app.setPath('userData', path.join(app.getPath('appData'), 'fotoapp'));
 // Op Linux (GNOME/Wayland) koppelt de vensterbeheerder het taakbalk-icoon aan de
 // WM_CLASS van het venster. Zonder dit toont Electron in dev-modus het generieke
 // Electron-icoon. Naam zetten NÁ het pinnen van userData (zie hierboven).
+// setName regelt het Wayland app_id; --class regelt de X11 WM_CLASS. Samen met
+// het geïnstalleerde FotoApp.desktop (zie start-electron.sh) koppelt GNOME zo het
+// venster aan het juiste taakbalk-icoon, ook in dev-modus.
 app.setName('FotoApp');
+app.commandLine.appendSwitch('class', 'FotoApp');
 
 // ── Geheugenplafond ─────────────────────────────────────────────────────────
 // De scan draait in dit (main) proces. Begrens de V8-heap zodat een zware scan

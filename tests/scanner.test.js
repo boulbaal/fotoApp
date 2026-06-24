@@ -2185,5 +2185,41 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Branding: FotoApp.desktop bestaat met StartupWMClass + icoon', () => {
+    const desktop = fs.readFileSync(path.join(__dirname, '../build/FotoApp.desktop'), 'utf8');
+    if (!/^\[Desktop Entry\]/m.test(desktop)) {
+      throw new Error('FotoApp.desktop mist [Desktop Entry]-kop');
+    }
+    if (!/StartupWMClass=FotoApp/.test(desktop)) {
+      throw new Error('FotoApp.desktop mist StartupWMClass=FotoApp (icoon-koppeling)');
+    }
+    if (!/Icon=@APPDIR@\/build\/icon\.png/.test(desktop)) {
+      throw new Error('FotoApp.desktop verwijst niet naar build/icon.png via @APPDIR@');
+    }
+    if (!/Exec=@APPDIR@\/start-electron\.sh/.test(desktop)) {
+      throw new Error('FotoApp.desktop heeft geen Exec naar start-electron.sh');
+    }
+  });
+
+  test('Branding: start-electron.sh installeert het .desktop-bestand', () => {
+    const sh = fs.readFileSync(path.join(__dirname, '../start-electron.sh'), 'utf8');
+    if (!/\.local\/share\/applications/.test(sh)) {
+      throw new Error('start-electron.sh installeert het .desktop niet in ~/.local/share/applications');
+    }
+    if (!/sed\s+["']s\|@APPDIR@\|/.test(sh)) {
+      throw new Error('start-electron.sh vervangt @APPDIR@ niet door het absolute pad');
+    }
+    if (!/FotoApp\.desktop/.test(sh)) {
+      throw new Error('start-electron.sh verwijst niet naar FotoApp.desktop');
+    }
+  });
+
+  test('Branding: Electron zet WM_CLASS via --class (X11-icoonkoppeling)', () => {
+    const mainCode = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
+    if (!/appendSwitch\(['"]class['"]\s*,\s*['"]FotoApp['"]\)/.test(mainCode)) {
+      throw new Error('main.js zet de WM_CLASS niet via appendSwitch(class, FotoApp)');
+    }
+  });
+
   return resultaten;
 };
