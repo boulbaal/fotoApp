@@ -2221,6 +2221,33 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Stabiliteit: Linux forceert GTK3 (voorkomt SIGTRAP-crash bij map kiezen)', () => {
+    const mainCode = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
+    if (!/appendSwitch\(['"]gtk-version['"]\s*,\s*['"]3['"]\)/.test(mainCode)) {
+      throw new Error('main.js forceert GTK3 niet — GTK4-mapkiezer crasht met SIGTRAP');
+    }
+    if (!/process\.platform\s*===\s*['"]linux['"]/.test(mainCode)) {
+      throw new Error('GTK3 moet alleen op Linux geforceerd worden (process.platform-check)');
+    }
+  });
+
+  test('Monitoring: Electron logt renderer- en subproces-crashes', () => {
+    const mainCode = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
+    if (!/render-process-gone/.test(mainCode)) {
+      throw new Error('main.js logt geen renderer-crashes (render-process-gone)');
+    }
+    if (!/child-process-gone/.test(mainCode)) {
+      throw new Error('main.js logt geen subproces-crashes (child-process-gone)');
+    }
+    // Beide moeten naar de foutlog schrijven zodat we de oorzaak terugvinden
+    const rpg = mainCode.indexOf('render-process-gone');
+    const cpg = mainCode.indexOf('child-process-gone');
+    if (!/logFout\(/.test(mainCode.slice(rpg, rpg + 200)) ||
+        !/logFout\(/.test(mainCode.slice(cpg, cpg + 250))) {
+      throw new Error('crash-handlers schrijven niet naar logFout (electron-fout.log)');
+    }
+  });
+
   test('GPS-bulk: backend /fotos/verwijder-bulk verplaatst naar prullenbak + cascade', () => {
     const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
     if (!/router\.post\(['"]\/fotos\/verwijder-bulk['"]/.test(apiCode)) {

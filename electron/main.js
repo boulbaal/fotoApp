@@ -21,6 +21,16 @@ app.setPath('userData', path.join(app.getPath('appData'), 'fotoapp'));
 app.setName('FotoApp');
 app.commandLine.appendSwitch('class', 'FotoApp');
 
+// ── Linux GTK-crash voorkomen (#1 oorzaak van SIGTRAP bij map kiezen) ────────
+// Electron 30+ koos op recente Ubuntu standaard GTK4. De native map-kiezer
+// (GtkFileChooser) onder GTK4 veroorzaakt een vloed van
+// "GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT' failed" en laat de app
+// crashen met SIGTRAP — precies wat gebeurde bij het kiezen van een map om te
+// scannen. GTK3 forceren is de gangbare, stabiele oplossing.
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('gtk-version', '3');
+}
+
 // ── Geheugenplafond ─────────────────────────────────────────────────────────
 // De scan draait in dit (main) proces. Begrens de V8-heap zodat een zware scan
 // nooit zoveel geheugen pakt dat Ubuntu een OOM-kill doet op andere apps.
@@ -189,6 +199,24 @@ function createWindow() {
 
   mainWindow.on('closed', () => { mainWindow = null; });
 }
+
+// ── Crash-monitoring: leg vast WÁT er sneuvelt + of er gescand werd ──────────
+// Als de app onverwacht crasht (zoals de GTK4-SIGTRAP), schrijven we de echte
+// oorzaak naar electron-fout.log i.p.v. enkel een ruwe GLib-vloed in de terminal.
+// Zo zien we bij een volgende crash meteen of het de renderer, het GPU-proces of
+// een ander subproces was — en wanneer (handig om met scan-activiteit te matchen).
+app.on('render-process-gone', (_e, _wc, details) => {
+  logFout(new Error(
+    `Renderer gestopt — reason=${details.reason}, exitCode=${details.exitCode}`
+  ));
+});
+app.on('child-process-gone', (_e, details) => {
+  // type kan zijn: GPU, Utility, Zygote, Sandbox helper, ... → reden helpt diagnose
+  logFout(new Error(
+    `Subproces gestopt — type=${details.type}, name=${details.name || '-'}, ` +
+    `reason=${details.reason}, exitCode=${details.exitCode}`
+  ));
+});
 
 // ── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
