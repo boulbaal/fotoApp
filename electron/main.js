@@ -4,10 +4,17 @@ const { app, BrowserWindow, dialog, shell, Menu, nativeImage } = require('electr
 const path = require('path');
 const fs   = require('fs');
 
+// ── Data-locatie PINNEN (vóór een eventuele naamswijziging) ──────────────────
+// Electron bepaalt userData op basis van de app-naam. Als we hieronder de naam
+// veranderen voor het taakbalk-icoon, zou de databasemap meeverhuizen en lijkt
+// alles leeg. Daarom pinnen we userData expliciet op de oorspronkelijke locatie
+// (~/.config/fotoapp) zodat de bestaande database altijd gevonden wordt.
+app.setPath('userData', path.join(app.getPath('appData'), 'fotoapp'));
+
 // ── App-naam + Linux WM-class ────────────────────────────────────────────────
 // Op Linux (GNOME/Wayland) koppelt de vensterbeheerder het taakbalk-icoon aan de
 // WM_CLASS van het venster. Zonder dit toont Electron in dev-modus het generieke
-// Electron-icoon. We zetten de naam vroeg zodat de WM_CLASS "FotoApp" wordt.
+// Electron-icoon. Naam zetten NÁ het pinnen van userData (zie hierboven).
 app.setName('FotoApp');
 
 // ── Geheugenplafond ─────────────────────────────────────────────────────────

@@ -2164,5 +2164,26 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('Data: userData wordt gepind zodat naamswijziging de database niet verplaatst', () => {
+    // app.setName('FotoApp') zou anders de userData-map verhuizen van
+    // ~/.config/fotoapp naar ~/.config/FotoApp → bestaande database lijkt leeg.
+    const mainCode = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
+    if (!/app\.setPath\(['"]userData['"]\s*,/.test(mainCode)) {
+      throw new Error('main.js pint userData niet (app.setPath(userData, ...))');
+    }
+    const pinIdx = mainCode.indexOf("setPath('userData'") >= 0
+      ? mainCode.indexOf("setPath('userData'")
+      : mainCode.indexOf('setPath("userData"');
+    const nameIdx = mainCode.indexOf("setName('FotoApp'") >= 0
+      ? mainCode.indexOf("setName('FotoApp'")
+      : mainCode.indexOf('setName("FotoApp"');
+    if (pinIdx === -1 || nameIdx === -1 || pinIdx > nameIdx) {
+      throw new Error('userData moet GEPIND worden vóór app.setName, anders verhuist de DB');
+    }
+    if (!/['"]fotoapp['"]/.test(mainCode.slice(pinIdx, pinIdx + 120))) {
+      throw new Error('userData wordt niet op de oorspronkelijke map "fotoapp" gepind');
+    }
+  });
+
   return resultaten;
 };
