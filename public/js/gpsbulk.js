@@ -121,8 +121,12 @@ function groepKaartHtml(g) {
           <div class="bulk-groep-datum">${datumTekst}</div>
           <div class="bulk-groep-teller" id="teller-${g.groep_id}">${fotoLabel}</div>
         </div>
-        <button class="btn btn-primair" style="font-size:13px;flex-shrink:0"
-          onclick="openLocatiePicker('${g.groep_id}')">📍 Locatie toewijzen</button>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button class="btn btn-primair" style="font-size:13px"
+            onclick="openLocatiePicker('${g.groep_id}')">📍 ${i18n.t('gpsbulk_locatie_toewijzen', 'Locatie toewijzen')}</button>
+          <button class="btn btn-gevaar" style="font-size:13px"
+            onclick="verwijderGroep('${g.groep_id}')">🗑️ ${i18n.t('gpsbulk_groep_verwijder', 'Groep verwijderen')}</button>
+        </div>
       </div>
       <div class="bulk-thumbs" id="thumbs-${g.groep_id}" data-groep="${g.groep_id}">${thumbHtml}</div>
       ${pickerHtml}
@@ -477,6 +481,54 @@ async function bevestigBulkLocatie(groepId) {
     groepEl.style.opacity = '';
     groepEl.style.pointerEvents = '';
     alert('Fout bij opslaan. Probeer opnieuw.');
+  }
+}
+
+// ─── GROEP VERWIJDEREN (naar prullenbak) ─────────────────────────────────────
+// Verwijdert een hele groep slechte foto's ineens: bestanden naar de systeem-
+// prullenbak (herstelbaar), DB-records weg, cascade over duplicaatgroepen.
+async function verwijderGroep(groepId) {
+  const groep = groepVindId(groepId);
+  if (!groep || groep.ids.length === 0) return;
+
+  const aantal = groep.ids.length;
+  const vraag = i18n.t('gpsbulk_groep_verwijder_bevestig',
+    'Deze hele groep ({n}) naar de prullenbak verplaatsen? De bestanden zijn herstelbaar via de systeem-prullenbak.')
+    .replace('{n}', aantal.toLocaleString());
+  if (!confirm(vraag)) return;
+
+  const groepEl = document.getElementById(`groep-${groepId}`);
+  groepEl.style.opacity = '0.5';
+  groepEl.style.pointerEvents = 'none';
+
+  try {
+    const r = await fetch('/api/fotos/verwijder-bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: groep.ids })
+    });
+    if (!r.ok) throw new Error();
+    const resp = await r.json();
+
+    groepEl.innerHTML = `
+      <div style="padding:14px 20px;color:#f87171;font-size:14px">
+        🗑️ ${(resp.naarPrullenbak || 0).toLocaleString()} ${i18n.t('gpsbulk_groep_verwijderd', 'naar prullenbak verplaatst')}
+      </div>`;
+
+    gpsBulkGroepen = gpsBulkGroepen.filter(g => g.groep_id != groepId);
+    bijwerkInfo();
+
+    if (gpsBulkGroepen.filter(g => !g.isHold).length === 0) {
+      setTimeout(() => {
+        document.getElementById('gpsBulkGroepen').innerHTML =
+          '<div class="leeg" style="padding:48px;text-align:center;font-size:16px">✅ ' +
+          i18n.t('gpsbulk_klaar', 'Alle groepen verwerkt!') + '</div>';
+      }, 1200);
+    }
+  } catch (e) {
+    groepEl.style.opacity = '';
+    groepEl.style.pointerEvents = '';
+    alert(i18n.t('gpsbulk_verwijder_fout', 'Fout bij verwijderen. Probeer opnieuw.'));
   }
 }
 

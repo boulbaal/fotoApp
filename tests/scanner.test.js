@@ -2221,5 +2221,55 @@ module.exports = async function testScanner() {
     }
   });
 
+  test('GPS-bulk: backend /fotos/verwijder-bulk verplaatst naar prullenbak + cascade', () => {
+    const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
+    if (!/router\.post\(['"]\/fotos\/verwijder-bulk['"]/.test(apiCode)) {
+      throw new Error('api.js mist het /fotos/verwijder-bulk endpoint');
+    }
+    // Pak het blok van het endpoint tot het volgende router.-aanroep
+    const start = apiCode.indexOf("/fotos/verwijder-bulk");
+    const blok = apiCode.slice(start, start + 2500);
+    if (!/require\(['"]trash['"]\)/.test(blok)) {
+      throw new Error('verwijder-bulk gebruikt de prullenbak-module (trash) niet — mag nooit permanent wissen');
+    }
+    if (!/duplicaat_groep/.test(blok)) {
+      throw new Error('verwijder-bulk cascadeert niet over duplicaatgroepen');
+    }
+    if (!/DELETE FROM fotos WHERE id IN/.test(blok)) {
+      throw new Error('verwijder-bulk verwijdert de DB-records niet');
+    }
+    // Geen permanente fs-verwijdering
+    if (/fs\.unlink|fs\.rmSync|fs\.rmdir/.test(blok)) {
+      throw new Error('verwijder-bulk mag geen fs.unlink/rm gebruiken — alleen prullenbak');
+    }
+  });
+
+  test('GPS-bulk: frontend heeft verwijderknop + handler die het endpoint aanroept', () => {
+    const js = fs.readFileSync(path.join(__dirname, '../public/js/gpsbulk.js'), 'utf8');
+    if (!/verwijderGroep\(/.test(js)) {
+      throw new Error('gpsbulk.js mist de verwijderGroep-knop/handler');
+    }
+    if (!/async function verwijderGroep/.test(js)) {
+      throw new Error('gpsbulk.js mist de async verwijderGroep-functie');
+    }
+    if (!/\/api\/fotos\/verwijder-bulk/.test(js)) {
+      throw new Error('verwijderGroep roept /api/fotos/verwijder-bulk niet aan');
+    }
+    if (!/confirm\(/.test(js)) {
+      throw new Error('verwijderGroep vraagt geen bevestiging vóór verwijderen');
+    }
+  });
+
+  test('GPS-bulk: i18n-sleutels voor verwijderknop in alle 4 talen', () => {
+    const i18n = fs.readFileSync(path.join(__dirname, '../public/js/i18n.js'), 'utf8');
+    const keys = ['gpsbulk_groep_verwijder', 'gpsbulk_groep_verwijder_bevestig', 'gpsbulk_groep_verwijderd'];
+    for (const k of keys) {
+      const n = (i18n.match(new RegExp(k + '\\s*:', 'g')) || []).length;
+      if (n < 4) {
+        throw new Error(`i18n-sleutel ${k} ontbreekt in één of meer talen (gevonden: ${n}/4)`);
+      }
+    }
+  });
+
   return resultaten;
 };
