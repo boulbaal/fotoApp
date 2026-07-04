@@ -16,3 +16,7 @@ node_modules/
 .electron.pid
 electron-uitvoer.log
 electron-fout.log
+
+# Diagnose-uitvoer en runtime-logs
+diagnose-*.log
+fotoapp.log

@@ -142,7 +142,6 @@ Ali heeft ~27.000+ foto's verspreid over meerdere locaties (Linux PC, externe SS
 |---|---|
 | `start.sh` | Tests uitvoeren → poort vrijmaken → app starten |
 | `stop.sh` | App stoppen via PID |
-| `fix-landen.js` | Eenmalige migratie: niet-Engelse landnamen + gps_land_code via Nominatim (nu ook automatisch na scan) |
 | `tests/run-tests.js` | Test runner met kleurrijke output, ⚠ voor niet-fatale fouten |
 | `tests/database.test.js` | DB tests (5x) — ⚠ niet-fataal bij Node versie mismatch |
 | `tests/scanner.test.js` | Scanner tests (15x) — code-analyse + UI checks |
@@ -344,7 +343,6 @@ _"Past dit in de huidige fase? Is het nodig of nice-to-have?"_
 cd /home/one/Claude/fotoApp
 sh start.sh        # tests + starten
 sh stop.sh         # stoppen
-node fix-landen.js # landen migratie uitvoeren
 node tests/run-tests.js --api  # ook API tests (server moet draaien)
 ```
 
@@ -357,7 +355,7 @@ App draait op: **http://localhost:3000**
 - Desktop Commander MCP valt periodiek weg (bekend Cowork-probleem)
 - Database tests geven ⚠ waarschuwing in sandbox (Node versie mismatch) — werkt correct op Ali's machine
 - Google Takeout JSON ondersteuning volledig geïmplementeerd (4 juni 2026) ✅
-- Post-scan geocode pass geïmplementeerd (7 juni 2026) — fix-landen.js is nu overbodig voor nieuwe scans ✅
+- Post-scan geocode pass geïmplementeerd (7 juni 2026) — fix-landen.js was hierdoor overbodig en is uit de repo verwijderd (jul 2026) ✅
 - Ali wist de DB regelmatig opnieuw en herscant alles — het systeem is ontworpen om dit te ondersteunen
 - Geocode pass: ~505 unieke locaties in de DB, ~9 minuten bij 1.1s/locatie (Nominatim policy)
 - Fase 3 export geïmplementeerd (10 juni 2026): negeer-cascade, Land_Stad_dd_mm_yyyy.jpg naamgeving, jaar/maand mappen, schijfruimte check, hervatten ✅
