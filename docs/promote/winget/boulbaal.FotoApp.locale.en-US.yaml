@@ -6,7 +6,7 @@ Publisher: boulbaal
 PublisherUrl: https://github.com/boulbaal
 PackageName: FotoApp
 PackageUrl: https://github.com/boulbaal/fotoApp
-License: ISC
+License: GPL-3.0
 LicenseUrl: https://github.com/boulbaal/fotoApp/blob/main/LICENSE
 ShortDescription: Free, local-only desktop app to organize photos and videos — no cloud, no account.
 Description: >-

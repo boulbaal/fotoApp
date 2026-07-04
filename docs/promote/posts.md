@@ -32,7 +32,7 @@ Kopieer en plak deze berichten op de onderstaande platforms. Hoe meer plaatsen d
 > **Website:** https://boulbaal.github.io/fotoApp/
 > **GitHub:** https://github.com/boulbaal/fotoApp
 >
-> It's open source (ISC license). Contributions welcome — all PRs reviewed by me personally.
+> It's open source (GPLv3 license). Contributions welcome — all PRs reviewed by me personally.
 >
 > Happy to answer questions!
 
@@ -60,7 +60,7 @@ Kopieer en plak deze berichten op de onderstaande platforms. Hoe meer plaatsen d
 > - See where everything was taken on a map (OpenStreetMap, no Google API)
 > - Export with clean filenames like `Netherlands_Amsterdam_15_06_2023.jpg`
 >
-> 100% offline, no account, no telemetry. Open source (ISC).
+> 100% offline, no account, no telemetry. Open source (GPLv3).
 >
 > Windows / Mac / Linux: https://github.com/boulbaal/fotoApp/releases/latest
 > GitHub: https://github.com/boulbaal/fotoApp
@@ -197,7 +197,7 @@ Stuur een PR naar deze repositories om FotoApp toe te voegen:
 ```
 ## Photo Management
 
-- [FotoApp](https://github.com/boulbaal/fotoApp) - Free, open-source desktop app for local photo and video management. Features duplicate detection (MD5), GPS map, RAW support, Google Takeout import, automatic geocoding. `ISC` `Nodejs`
+- [FotoApp](https://github.com/boulbaal/fotoApp) - Free, open-source desktop app for local photo and video management. Features duplicate detection (MD5), GPS map, RAW support, Google Takeout import, automatic geocoding. `GPL-3.0` `Nodejs`
 ```
 
 ---
@@ -213,7 +213,7 @@ Ga naar https://alternativeto.net/manage/new/ (log eerst in). Vul in:
 > Free, local-only desktop app to organize photos and videos — duplicate detection, GPS map, RAW support, Google Takeout import. No cloud, no account, no telemetry.
 
 **Full description:**
-> FotoApp organizes thousands of photos and videos entirely on your own machine. It finds duplicates across all your drives (MD5 hash), shows every geotagged photo on an OpenStreetMap map, reads RAW files (Canon, Nikon, Sony, Fuji), imports Google Takeout exports (recovering dates and GPS that Google strips out), and exports everything with clean, sorted filenames like Netherlands_Amsterdam_15_06_2023.jpg. A "Your photo life" screen summarizes your whole collection into one shareable image. No cloud, no subscription, no telemetry — the only network call is optional reverse geocoding (coordinates only). Open source (ISC).
+> FotoApp organizes thousands of photos and videos entirely on your own machine. It finds duplicates across all your drives (MD5 hash), shows every geotagged photo on an OpenStreetMap map, reads RAW files (Canon, Nikon, Sony, Fuji), imports Google Takeout exports (recovering dates and GPS that Google strips out), and exports everything with clean, sorted filenames like Netherlands_Amsterdam_15_06_2023.jpg. A "Your photo life" screen summarizes your whole collection into one shareable image. No cloud, no subscription, no telemetry — the only network call is optional reverse geocoding (coordinates only). Open source (GPLv3).
 
 **Official website:**
 > https://boulbaal.github.io/fotoApp/
@@ -221,7 +221,7 @@ Ga naar https://alternativeto.net/manage/new/ (log eerst in). Vul in:
 **Source code / GitHub:**
 > https://github.com/boulbaal/fotoApp
 
-**License:** Open Source (ISC) · **Free:** Yes
+**License:** Open Source (GPLv3) · **Free:** Yes
 
 **Platforms:** Windows, Mac, Linux, Self-Hosted
 

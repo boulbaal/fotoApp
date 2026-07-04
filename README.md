@@ -9,7 +9,7 @@
 [![Release](https://img.shields.io/github/v/release/boulbaal/fotoApp?color=blue&label=Download)](https://github.com/boulbaal/fotoApp/releases/latest)
 [![Build](https://github.com/boulbaal/fotoApp/actions/workflows/build-windows.yml/badge.svg)](https://github.com/boulbaal/fotoApp/actions)
 [![Stars](https://img.shields.io/github/stars/boulbaal/fotoApp?style=social)](https://github.com/boulbaal/fotoApp/stargazers)
-[![License: ISC](https://img.shields.io/badge/License-ISC-green.svg)](LICENSE)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-green.svg)](LICENSE)
 
 **[⬇️ Download voor Windows](https://github.com/boulbaal/fotoApp/releases/latest)** · **[🍎 Mac & 🐧 Linux](https://github.com/boulbaal/fotoApp/releases/latest)** · **[🌐 Website](https://boulbaal.github.io/fotoApp/)** · **[❤️ Steun het project](#-steun-fotoapp--support-the-project)** · **[🐛 Bug melden](https://github.com/boulbaal/fotoApp/issues/new?template=bug_report.md)**
 

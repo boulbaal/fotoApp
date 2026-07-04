@@ -21,7 +21,7 @@
 
 **Categorie:** Photo Management / Photo Organizer / Gallery
 
-**License:** ISC (open source)
+**License:** GPL-3.0 (open source)
 
 **Platforms:** Windows, macOS, Linux (self-hosted/local)
 
@@ -45,7 +45,7 @@ Als je het tóch nu wil aankaarten, doe het bescheiden in de "Tool Suggestions"-
 > Tool suggestion: FotoApp — local-only photo manager (early stage)
 
 **Bericht:**
-> I'd like to suggest FotoApp for eventual consideration. It's a free, open-source (ISC) desktop app that manages photos and videos entirely locally — no cloud, no account. Features: duplicate detection, GPS map via OpenStreetMap, RAW support, Google Takeout import. Runs on Windows/macOS/Linux.
+> I'd like to suggest FotoApp for eventual consideration. It's a free, open-source (GPLv3) desktop app that manages photos and videos entirely locally — no cloud, no account. Features: duplicate detection, GPS map via OpenStreetMap, RAW support, Google Takeout import. Runs on Windows/macOS/Linux.
 >
 > Full transparency: it's a young project (released June 2026), so I understand if it's premature for the main list. Sharing it for feedback and visibility. Source: https://github.com/boulbaal/fotoApp
 
@@ -57,7 +57,7 @@ Als je het tóch nu wil aankaarten, doe het bescheiden in de "Tool Suggestions"-
 **Status:** Te controleren welke repo actueel is — privacytools.io is meermaals verhuisd/gesplitst. Als er een actieve `privacytools/privacytools.io`-repo is met een `pages/`-databron, kan ik daar een PR voor klaarzetten. Anders: contactformulier.
 
 **Voorstel-tekst (voor formulier of PR-omschrijving):**
-> Suggesting FotoApp for the Photo Management / Local Backup section. Free, open-source (ISC) desktop app to manage photos and videos fully offline — no cloud, no account. Duplicate detection, GPS map (OpenStreetMap), RAW support, Google Takeout import. Windows/macOS/Linux. A privacy-first alternative to Google Photos.
+> Suggesting FotoApp for the Photo Management / Local Backup section. Free, open-source (GPLv3) desktop app to manage photos and videos fully offline — no cloud, no account. Duplicate detection, GPS map (OpenStreetMap), RAW support, Google Takeout import. Windows/macOS/Linux. A privacy-first alternative to Google Photos.
 > Source: https://github.com/boulbaal/fotoApp · Website: https://boulbaal.github.io/fotoApp/
 
 ---
@@ -72,7 +72,7 @@ Als je het tóch nu wil aankaarten, doe het bescheiden in de "Tool Suggestions"-
 - **Category:** Photo Management
 - **Website:** https://boulbaal.github.io/fotoApp/
 - **Description:** (gebruik korte beschrijving hierboven)
-- **Open source:** Yes (ISC)
+- **Open source:** Yes (GPL-3.0)
 - **Source code:** https://github.com/boulbaal/fotoApp
 - **Platforms:** Windows, macOS, Linux
 
@@ -89,7 +89,7 @@ Als je het tóch nu wil aankaarten, doe het bescheiden in de "Tool Suggestions"-
 3. Voeg FotoApp toe in de relevante categorie (Photos / Google Photos-alternatieven). Inhoud staat meestal in markdown/data-bestanden per dienst.
 
 **Voorstel-entry:**
-> **FotoApp** — Free, open-source (ISC) local photo & video manager. No cloud, no account. Duplicate detection, GPS map, RAW support, Google Takeout import. Windows/macOS/Linux. Alternative to Google Photos.
+> **FotoApp** — Free, open-source (GPLv3) local photo & video manager. No cloud, no account. Duplicate detection, GPS map, RAW support, Google Takeout import. Windows/macOS/Linux. Alternative to Google Photos.
 > https://boulbaal.github.io/fotoApp/
 
 > 💡 Tip: switching.software richt zich op vervangers voor grote tech-diensten. Positioneer FotoApp expliciet als Google Photos-vervanger — dat past het beste bij hun structuur.

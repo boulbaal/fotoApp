@@ -21,7 +21,7 @@ Legenda: 🟢 = Claude kan voorbereiden · 🔴 = alleen Ali (account/inloggen/i
 
 **🟢 Kant-en-klare entry (awesome-privacy / degoogle stijl):**
 ```markdown
-- [FotoApp](https://github.com/boulbaal/fotoApp) - Free, local-only desktop app to organize photos and videos. Duplicate detection (MD5), GPS map (OpenStreetMap), RAW support, Google Takeout import, smart export. No cloud, no account, no telemetry. `ISC` `Electron/Node.js`
+- [FotoApp](https://github.com/boulbaal/fotoApp) - Free, local-only desktop app to organize photos and videos. Duplicate detection (MD5), GPS map (OpenStreetMap), RAW support, Google Takeout import, smart export. No cloud, no account, no telemetry. `GPL-3.0` `Electron/Node.js`
 ```
 
 **🔴 Stappen per lijst (Ali, met GitHub-account):** fork → voeg regel toe in juiste categorie (alfabetisch) → lees CONTRIBUTING van die repo → commit → open PR. Claude kan de PR ook via de GitHub-API voor je klaarzetten als je dat wilt.

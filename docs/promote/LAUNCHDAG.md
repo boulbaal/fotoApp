@@ -64,7 +64,7 @@ What it does:
 Installers for Windows, Mac and Linux:
 https://github.com/boulbaal/fotoApp/releases/latest
 
-Open source (ISC). Happy to answer anything — I built this solo.
+Open source (GPLv3). Happy to answer anything — I built this solo.
 ```
 
 **Na het posten:** voeg in een eigen comment de Foto-leven-afbeelding toe (HN ondersteunt geen inline images — link naar het plaatje, bv. de release-pagina of een imgur-link).
