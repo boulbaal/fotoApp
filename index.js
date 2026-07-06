@@ -22,7 +22,7 @@ const origWarn  = console.warn.bind(console);
 
 function broadcast(level, args) {
   const text = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
-  const msg = JSON.stringify({ type: 'log', level, tekst: text, ts: new Date().toISOString() });
+  const msg = JSON.stringify({ type: 'log', level, text: text, ts: new Date().toISOString() });
   wss.clients.forEach(c => { if (c.readyState === 1) c.send(msg); });
 }
 
@@ -33,22 +33,22 @@ console.warn  = (...a) => { origWarn(...a);  broadcast('warn',  a); };
 // === WEBSOCKET — folder picker via zenity ===
 wss.on('connection', (ws) => {
   // Send welcome message
-  ws.send(JSON.stringify({ type: 'log', level: 'info', tekst: '🔌 Connected to FotoApp server', ts: new Date().toISOString() }));
+  ws.send(JSON.stringify({ type: 'log', level: 'info', text: '🔌 Connected to FotoApp server', ts: new Date().toISOString() }));
 
   ws.on('message', (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
 
-    if (msg.type === 'kies_map') {
-      const startPath = msg.startPad || process.env.HOME || process.env.USERPROFILE || '/home';
+    if (msg.type === 'choose_folder') {
+      const startPath = msg.startPath || process.env.HOME || process.env.USERPROFILE || '/home';
 
       if (global.electronPickFolder) {
         // Electron: use the native dialog (works on Windows, Mac AND Linux)
         global.electronPickFolder(startPath).then(folderPath => {
           if (!folderPath) {
-            ws.send(JSON.stringify({ type: 'map_fout', fout: 'No folder selected' }));
+            ws.send(JSON.stringify({ type: 'folder_error', error: 'No folder selected' }));
           } else {
-            ws.send(JSON.stringify({ type: 'map_gekozen', pad: folderPath }));
+            ws.send(JSON.stringify({ type: 'folder_chosen', path: folderPath }));
           }
         });
       } else {
@@ -56,13 +56,13 @@ wss.on('connection', (ws) => {
         execFile('zenity', [
           '--file-selection',
           '--directory',
-          '--title=Kies een map om te scannen',
+          '--title=Choose a folder to scan',
           `--filename=${startPath}/`
         ], (err, stdout) => {
           if (err || !stdout.trim()) {
-            ws.send(JSON.stringify({ type: 'map_fout', fout: 'No folder selected' }));
+            ws.send(JSON.stringify({ type: 'folder_error', error: 'No folder selected' }));
           } else {
-            ws.send(JSON.stringify({ type: 'map_gekozen', pad: stdout.trim() }));
+            ws.send(JSON.stringify({ type: 'folder_chosen', path: stdout.trim() }));
           }
         });
       }

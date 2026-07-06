@@ -43,7 +43,7 @@ app.commandLine.appendSwitch('js-flags', '--max-old-space-size=1024');
 const dataDir = path.join(app.getPath('userData'), 'fotoapp-data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-process.env.DB_PATH       = path.join(dataDir, 'fotos.db');
+process.env.DB_PATH       = path.join(dataDir, 'photos.db');
 process.env.FOTOAPP_DATA  = dataDir;        // scanner uses this for temp files
 process.env.ELECTRON_RUN  = '1';             // flag for index.js
 
@@ -68,20 +68,20 @@ process.on('uncaughtException',  (e) => { if (!serverReady) { serverError = serv
 process.on('unhandledRejection', (e) => { if (!serverReady) { serverError = serverError || e; logError(e); } });
 
 // ── Error diagnosis: translate technical errors into understandable help ─────
-// The returned object keys (titel/uitleg/oplossingen/tekst/cmd/details) and the
-// Dutch strings are read and shown by electron/error.html — keep until phase B.
+// The returned object keys (title/explanation/solutions/text/cmd/details) are
+// read and shown by electron/error.html.
 function diagnoseError(err) {
   const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err || '');
 
   // 1) Native module built for the wrong Node/Electron version
   if (/NODE_MODULE_VERSION|ERR_DLOPEN_FAILED|did not self-register|compiled against a different/i.test(msg)) {
     return {
-      titel: 'De database-module moet opnieuw gebouwd worden',
-      uitleg: 'De native database-module (better-sqlite3) is gebouwd voor een andere Node-versie dan Electron gebruikt. Dit gebeurt na een Node-update of een verse "npm install". Hierdoor kon de interne server niet starten — het ligt NIET aan poort 3000.',
-      oplossingen: [
-        { tekst: 'Bouw de native modules voor Electron (meestal genoeg):', cmd: 'npm run rebuild' },
-        { tekst: 'Werkt dat niet? Verwijder, herinstalleer en bouw opnieuw:', cmd: 'rm -rf node_modules && npm install && npm run rebuild' },
-        { tekst: 'Start daarna de desktop-app opnieuw:', cmd: 'sh start-electron.sh' },
+      title: 'The database module needs to be rebuilt',
+      explanation: 'The native database module (better-sqlite3) was built for a different Node version than the one Electron uses. This happens after a Node update or a fresh "npm install". Because of this the internal server could not start — it is NOT a port 3000 issue.',
+      solutions: [
+        { text: 'Rebuild the native modules for Electron (usually enough):', cmd: 'npm run rebuild' },
+        { text: 'Still not working? Remove, reinstall and rebuild:', cmd: 'rm -rf node_modules && npm install && npm run rebuild' },
+        { text: 'Then start the desktop app again:', cmd: 'sh start-electron.sh' },
       ],
       details: msg,
     };
@@ -90,12 +90,12 @@ function diagnoseError(err) {
   // 2) Port already in use
   if (/EADDRINUSE/i.test(msg)) {
     return {
-      titel: 'Poort 3000 is al in gebruik',
-      uitleg: 'Een ander programma (of een vorige FotoApp die nog draait) gebruikt poort 3000, dus de server kon niet starten.',
-      oplossingen: [
-        { tekst: 'Stop een eventuele vorige instantie:', cmd: 'sh stop-electron.sh' },
-        { tekst: 'Kijk welk proces de poort gebruikt:', cmd: 'lsof -i tcp:3000' },
-        { tekst: 'Start daarna opnieuw:', cmd: 'sh start-electron.sh' },
+      title: 'Port 3000 is already in use',
+      explanation: 'Another program (or a previous FotoApp instance that is still running) is using port 3000, so the server could not start.',
+      solutions: [
+        { text: 'Stop any previous instance:', cmd: 'sh stop-electron.sh' },
+        { text: 'Check which process is using the port:', cmd: 'lsof -i tcp:3000' },
+        { text: 'Then start again:', cmd: 'sh start-electron.sh' },
       ],
       details: msg,
     };
@@ -103,14 +103,14 @@ function diagnoseError(err) {
 
   // 3) Generic (server did not respond in time)
   return {
-    titel: 'Kan de app-server niet bereiken',
-    uitleg: err
-      ? 'De interne server kon niet starten door een onverwachte fout (zie technische details onderaan).'
-      : 'De interne server reageerde niet op tijd. Soms helpt gewoon opnieuw starten.',
-    oplossingen: [
-      { tekst: 'Herstart de desktop-app:', cmd: 'sh stop-electron.sh && sh start-electron.sh' },
-      { tekst: 'Controleer of poort 3000 vrij is:', cmd: 'lsof -i tcp:3000' },
-      { tekst: 'Bouw zo nodig de native modules opnieuw:', cmd: 'npm run rebuild' },
+    title: 'Cannot reach the app server',
+    explanation: err
+      ? 'The internal server could not start due to an unexpected error (see technical details below).'
+      : 'The internal server did not respond in time. Sometimes simply restarting helps.',
+    solutions: [
+      { text: 'Restart the desktop app:', cmd: 'sh stop-electron.sh && sh start-electron.sh' },
+      { text: 'Check whether port 3000 is free:', cmd: 'lsof -i tcp:3000' },
+      { text: 'If needed, rebuild the native modules:', cmd: 'npm run rebuild' },
     ],
     details: msg,
   };
@@ -118,7 +118,7 @@ function diagnoseError(err) {
 
 function logError(err) {
   try {
-    const logPath = path.join(process.env.FOTOAPP_DATA || __dirname, 'electron-fout.log');
+    const logPath = path.join(process.env.FOTOAPP_DATA || __dirname, 'electron-error.log');
     const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
     fs.appendFileSync(logPath, `\n[${new Date().toISOString()}]\n${msg}\n`);
   } catch (_) { /* logging must never crash itself */ }
@@ -204,7 +204,7 @@ function createWindow() {
 
 // ── Crash monitoring: record WHAT died + whether a scan was running ──────────
 // If the app crashes unexpectedly (like the GTK4 SIGTRAP), we write the real
-// cause to electron-fout.log instead of just a raw GLib flood in the terminal.
+// cause to electron-error.log instead of just a raw GLib flood in the terminal.
 // That way the next crash immediately shows whether it was the renderer, the
 // GPU process or another subprocess — and when (handy to match scan activity).
 app.on('render-process-gone', (_e, _wc, details) => {

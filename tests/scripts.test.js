@@ -4,12 +4,12 @@ const path = require('path');
 module.exports = async function testScripts() {
   const resultaten = [];
 
-  function test(naam, fn) {
+  function test(name, fn) {
     try {
       fn();
-      resultaten.push({ naam, ok: true });
+      resultaten.push({ name, ok: true });
     } catch (e) {
-      resultaten.push({ naam, ok: false, fout: e.message });
+      resultaten.push({ name, ok: false, error: e.message });
     }
   }
 
@@ -130,11 +130,11 @@ module.exports = async function testScripts() {
 
   const mainJs = lees('electron/main.js');
 
-  test('electron/main.js bewaart server-fout (serverError)', () => {
+  test('electron/main.js bewaart server-error (serverError)', () => {
     if (!mainJs.includes('serverError')) throw new Error('serverError ontbreekt');
   });
 
-  test('electron/main.js classificeert fouten (diagnoseError)', () => {
+  test('electron/main.js classificeert errors (diagnoseError)', () => {
     if (!mainJs.includes('diagnoseError')) throw new Error('diagnoseError ontbreekt');
   });
 
@@ -155,7 +155,7 @@ module.exports = async function testScripts() {
   });
 
   test('electron/main.js schrijft foutlog', () => {
-    if (!mainJs.includes('logError') || !mainJs.includes('electron-fout.log')) {
+    if (!mainJs.includes('logError') || !mainJs.includes('electron-error.log')) {
       throw new Error('foutlog ontbreekt');
     }
   });
@@ -169,7 +169,7 @@ module.exports = async function testScripts() {
   });
 
   test('error.html toont oplossingen met kopieer-knop', () => {
-    if (!errorHtml.includes('oplossingen') || !errorHtml.includes('clipboard')) {
+    if (!errorHtml.includes('solutions') || !errorHtml.includes('clipboard')) {
       throw new Error('oplossingen of kopieer-knop ontbreekt');
     }
   });

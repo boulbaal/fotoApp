@@ -1,12 +1,12 @@
 // ─── STATE ───────────────────────────────────────────────────────────────────
-let gpsBulkGroepen = [];   // [{ groep_id, datum_start, datum_eind, aantal, ids, voorbeelden }]
-let gpsBulkGekozen = {};   // groepId → locatieobject
+let gpsBulkGroepen = [];   // [{ group_id, date_start, date_end, count, ids, samples }]
+let gpsBulkGekozen = {};   // groupId → locatieobject
 let gpsBulkZoekTimers = {};
-let geselecteerd = new Set(); // Set van "groepId:fotoId" strings
-let volgendGroepId = 10000;   // voor handmatig aangemaakte groepen
-let gpsBulkType = '';         // '' = alles, '0' = foto's, '1' = video's
+let geselecteerd = new Set(); // Set of "groupId:fotoId" strings
+let volgendGroepId = 10000;   // for manually created groups
+let gpsBulkType = '';         // '' = all, '0' = photos, '1' = videos
 
-// Type-filter knop: Alles / Foto's / Video's
+// Type filter button: All / Photos / Videos
 // laadGpsBulk() synchroniseert zelf de actief-markering van de knoppen.
 function setGpsBulkType(type) {
   gpsBulkType = type;
@@ -25,7 +25,7 @@ let bulkKaartZoekTimer = null;
 async function laadGpsBulk() {
   const container = document.getElementById('gpsBulkGroepen');
   const info = document.getElementById('gpsBulkInfo');
-  container.innerHTML = '<div style="padding:24px;color:#9ca3af">Groepen laden...</div>';
+  container.innerHTML = '<div style="padding:24px;color:#9ca3af">Loading groups...</div>';
   info.textContent = '';
   geselecteerd.clear();
 
@@ -38,18 +38,18 @@ async function laadGpsBulk() {
 
   try {
     const qs = gpsBulkType ? `?is_video=${gpsBulkType}` : '';
-    gpsBulkGroepen = await fetch('/api/gps/groepen' + qs).then(r => r.json());
+    gpsBulkGroepen = await fetch('/api/gps/groups' + qs).then(r => r.json());
   } catch (e) {
-    container.innerHTML = '<div style="color:#f87171;padding:24px">Fout bij laden. Probeer opnieuw.</div>';
+    container.innerHTML = '<div style="color:#f87171;padding:24px">Loading failed. Try again.</div>';
     return;
   }
 
-  // Voeg hold zone toe als vaste laatste groep
-  gpsBulkGroepen.push({ groep_id: 'hold', datum_start: null, datum_eind: null, ids: [], voorbeelden: [], isHold: true });
+  // Voeg hold zone toe als vaste laatste group
+  gpsBulkGroepen.push({ group_id: 'hold', date_start: null, date_end: null, ids: [], samples: [], isHold: true });
 
   if (gpsBulkGroepen.filter(g => !g.isHold).length === 0) {
-    const wat = gpsBulkType === '1' ? "video's" : gpsBulkType === '0' ? "foto's" : "foto's en video's";
-    container.innerHTML = `<div class="leeg" style="padding:48px;text-align:center;font-size:16px">✅ Alle ${wat} hebben al een GPS-locatie!</div>`;
+    const wat = gpsBulkType === '1' ? "videos" : gpsBulkType === '0' ? "photos" : "photos and videos";
+    container.innerHTML = `<div class="leeg" style="padding:48px;text-align:center;font-size:16px">✅ All ${wat} already have a GPS location!</div>`;
     return;
   }
 
@@ -58,11 +58,11 @@ async function laadGpsBulk() {
 }
 
 function bijwerkInfo() {
-  const totaal = gpsBulkGroepen.filter(g => !g.isHold).reduce((s, g) => s + g.ids.length, 0);
-  const aantalGroepen = gpsBulkGroepen.filter(g => !g.isHold).length;
-  const wat = gpsBulkType === '1' ? "video's" : gpsBulkType === '0' ? "foto's" : "foto's en video's";
+  const total = gpsBulkGroepen.filter(g => !g.isHold).reduce((s, g) => s + g.ids.length, 0);
+  const groupCount = gpsBulkGroepen.filter(g => !g.isHold).length;
+  const wat = gpsBulkType === '1' ? "videos" : gpsBulkType === '0' ? "photos" : "photos and videos";
   document.getElementById('gpsBulkInfo').textContent =
-    totaal > 0 ? `${aantalGroepen} groepen · ${totaal.toLocaleString()} ${wat} zonder locatie` : '';
+    total > 0 ? `${groupCount} groups · ${total.toLocaleString()} ${wat} without a location` : '';
 }
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────
@@ -101,80 +101,80 @@ function renderGroepen() {
 }
 
 function groepKaartHtml(g) {
-  const datumTekst = !g.datum_start ? '📅 Onbekende datum'
-    : g.datum_start.slice(0, 10) === (g.datum_eind || '').slice(0, 10)
-      ? formatDatum(g.datum_start)
-      : `${formatDatum(g.datum_start)} — ${formatDatum(g.datum_eind)}`;
+  const datumTekst = !g.date_start ? '📅 Onbekende date'
+    : g.date_start.slice(0, 10) === (g.date_end || '').slice(0, 10)
+      ? formatDatum(g.date_start)
+      : `${formatDatum(g.date_start)} — ${formatDatum(g.date_end)}`;
 
   const fotoLabel = `${g.ids.length.toLocaleString()} item${g.ids.length !== 1 ? 's' : ''}`;
 
-  const thumbHtml = g.voorbeelden.length > 0
-    ? g.voorbeelden.map(id => thumbEl(g.groep_id, id)).join('')
-    : '<span style="color:#6b7280;font-size:12px">Geen voorbeelden</span>';
+  const thumbHtml = g.samples.length > 0
+    ? g.samples.map(id => thumbEl(g.group_id, id)).join('')
+    : '<span style="color:#6b7280;font-size:12px">No previews</span>';
 
   const pickerHtml = pickerKaartHtml(g);
 
   return `
-    <div class="bulk-groep" id="groep-${g.groep_id}" data-groep="${g.groep_id}">
-      <div class="bulk-groep-header">
+    <div class="bulk-group" id="group-${g.group_id}" data-group="${g.group_id}">
+      <div class="bulk-group-header">
         <div>
-          <div class="bulk-groep-datum">${datumTekst}</div>
-          <div class="bulk-groep-teller" id="teller-${g.groep_id}">${fotoLabel}</div>
+          <div class="bulk-group-date">${datumTekst}</div>
+          <div class="bulk-group-teller" id="teller-${g.group_id}">${fotoLabel}</div>
         </div>
         <div style="display:flex;gap:8px;flex-shrink:0">
           <button class="btn btn-primair" style="font-size:13px"
-            onclick="openLocatiePicker('${g.groep_id}')">📍 ${i18n.t('gpsbulk_locatie_toewijzen', 'Locatie toewijzen')}</button>
+            onclick="openLocatiePicker('${g.group_id}')">📍 ${i18n.t('gpsbulk_locatie_toewijzen', 'Assign location')}</button>
           <button class="btn btn-gevaar" style="font-size:13px"
-            onclick="verwijderGroep('${g.groep_id}')">🗑️ ${i18n.t('gpsbulk_groep_verwijder', 'Groep verwijderen')}</button>
+            onclick="verwijderGroep('${g.group_id}')">🗑️ ${i18n.t('gpsbulk_groep_verwijder', 'Delete group')}</button>
         </div>
       </div>
-      <div class="bulk-thumbs" id="thumbs-${g.groep_id}" data-groep="${g.groep_id}">${thumbHtml}</div>
+      <div class="bulk-thumbs" id="thumbs-${g.group_id}" data-group="${g.group_id}">${thumbHtml}</div>
       ${pickerHtml}
     </div>`;
 }
 
 function holdGroepHtml(g) {
   const thumbHtml = g.ids.length > 0
-    ? g.voorbeelden.map(id => thumbEl('hold', id)).join('')
-    : '<div class="hold-leeg">Sleep foto\'s of video\'s hierheen om ze apart te zetten</div>';
+    ? g.samples.map(id => thumbEl('hold', id)).join('')
+    : '<div class="hold-leeg">Drag photos or videos here to set them aside</div>';
   return `
-    <div class="bulk-groep bulk-hold-groep" id="groep-hold" data-groep="hold">
-      <div class="bulk-thumbs" id="thumbs-hold" data-groep="hold">${thumbHtml}</div>
+    <div class="bulk-group bulk-hold-group" id="group-hold" data-group="hold">
+      <div class="bulk-thumbs" id="thumbs-hold" data-group="hold">${thumbHtml}</div>
     </div>`;
 }
 
-function thumbEl(groepId, fotoId) {
-  const key = `${groepId}:${fotoId}`;
+function thumbEl(groupId, fotoId) {
+  const key = `${groupId}:${fotoId}`;
   const isGeselecteerd = geselecteerd.has(key);
-  return `<img src="/api/fotos/${fotoId}/thumbnail" loading="lazy"
-    class="bulk-thumb${isGeselecteerd ? ' geselecteerd' : ''}"
+  return `<img src="/api/photos/${fotoId}/thumbnail" loading="lazy"
+    class="bulk-thumb${isGeselecteerd ? ' selected' : ''}"
     draggable="true"
-    data-groep="${groepId}" data-foto="${fotoId}"
+    data-group="${groupId}" data-foto="${fotoId}"
     title="Klik om te selecteren, sleep om te verplaatsen"
     onerror="this.style.display='none'">`;
 }
 
 function pickerKaartHtml(g) {
   return `
-    <div class="bulk-picker" id="picker-${g.groep_id}" style="display:none">
+    <div class="bulk-picker" id="picker-${g.group_id}" style="display:none">
       <div style="display:flex;gap:8px;margin-bottom:6px">
-        <input type="text" class="bulk-zoek" id="zoek-${g.groep_id}"
-          placeholder="🔍 Zoek een stad of land..."
-          oninput="zoekBulkLocatie('${g.groep_id}')" autocomplete="off"
+        <input type="text" class="bulk-search" id="search-${g.group_id}"
+          placeholder="🔍 Search for a city or country..."
+          oninput="zoekBulkLocatie('${g.group_id}')" autocomplete="off"
           style="flex:1;margin-bottom:0">
         <button class="btn btn-secundair" style="font-size:13px;white-space:nowrap;flex-shrink:0"
-          onclick="openBulkKaart('${g.groep_id}')">🗺️ Kaart</button>
+          onclick="openBulkKaart('${g.group_id}')">🗺️ Map</button>
       </div>
-      <div class="bulk-resultaten" id="res-${g.groep_id}"></div>
-      <div class="bulk-gekozen" id="gekozen-${g.groep_id}" style="display:none">
-        <span class="bulk-gekozen-naam" id="gekozen-naam-${g.groep_id}"></span>
+      <div class="bulk-resultaten" id="res-${g.group_id}"></div>
+      <div class="bulk-chosen" id="chosen-${g.group_id}" style="display:none">
+        <span class="bulk-chosen-name" id="chosen-name-${g.group_id}"></span>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="btn btn-primair" style="font-size:13px"
-            onclick="bevestigBulkLocatie('${g.groep_id}')">
-            ✅ Toewijzen aan <span id="bevestig-label-${g.groep_id}">${g.ids.length} items</span>
+            onclick="bevestigBulkLocatie('${g.group_id}')">
+            ✅ Assign to <span id="bevestig-label-${g.group_id}">${g.ids.length} items</span>
           </button>
           <button class="btn btn-secundair" style="font-size:13px"
-            onclick="annuleerBulkLocatie('${g.groep_id}')">Andere locatie</button>
+            onclick="annuleerBulkLocatie('${g.group_id}')">Different location</button>
         </div>
       </div>
     </div>`;
@@ -231,7 +231,7 @@ function toonPreview(el) {
   const preview = document.getElementById('bulkThumbPreview');
   if (!preview) return;
 
-  preview.innerHTML = `<img src="/api/fotos/${fotoId}/thumbnail" alt="">`;
+  preview.innerHTML = `<img src="/api/photos/${fotoId}/thumbnail" alt="">`;
   preview.style.display = 'block';
 
   // Positie berekenen: boven de thumbnail, gecentreerd
@@ -258,12 +258,12 @@ function verbergPreview() {
 
 function onThumbKlik(e) {
   e.stopPropagation();
-  const groepId = e.currentTarget.dataset.groep;
+  const groupId = e.currentTarget.dataset.group;
   const fotoId  = parseInt(e.currentTarget.dataset.foto);
-  const key = `${groepId}:${fotoId}`;
+  const key = `${groupId}:${fotoId}`;
   if (geselecteerd.has(key)) geselecteerd.delete(key);
   else geselecteerd.add(key);
-  e.currentTarget.classList.toggle('geselecteerd', geselecteerd.has(key));
+  e.currentTarget.classList.toggle('selected', geselecteerd.has(key));
 }
 
 // ─── DRAG & DROP ─────────────────────────────────────────────────────────────
@@ -271,9 +271,9 @@ function onThumbKlik(e) {
 let sleepData = []; // [{ vanGroepId, fotoId }]
 
 function onDragStart(e) {
-  const groepId = e.currentTarget.dataset.groep;
+  const groupId = e.currentTarget.dataset.group;
   const fotoId  = parseInt(e.currentTarget.dataset.foto);
-  const key = `${groepId}:${fotoId}`;
+  const key = `${groupId}:${fotoId}`;
 
   // Als de gesleepte foto geselecteerd is, sleep alle geselecteerden mee
   if (geselecteerd.has(key)) {
@@ -283,7 +283,7 @@ function onDragStart(e) {
     });
   } else {
     // Alleen de gesleepte foto
-    sleepData = [{ vanGroepId: isNaN(groepId) ? groepId : groepId, fotoId }];
+    sleepData = [{ vanGroepId: isNaN(groupId) ? groupId : groupId, fotoId }];
   }
 
   e.dataTransfer.effectAllowed = 'move';
@@ -310,7 +310,7 @@ function onDrop(e) {
   e.preventDefault();
   e.currentTarget.classList.remove('dragover');
 
-  const naarGroepId = e.currentTarget.dataset.groep;
+  const naarGroepId = e.currentTarget.dataset.group;
   if (!sleepData.length) return;
 
   // Verplaats foto's in de datastructuur
@@ -321,12 +321,12 @@ function onDrop(e) {
 
     // Verwijder uit brongroep
     vanGroep.ids = vanGroep.ids.filter(id => id !== fotoId);
-    vanGroep.voorbeelden = vanGroep.voorbeelden.filter(id => id !== fotoId);
+    vanGroep.samples = vanGroep.samples.filter(id => id !== fotoId);
 
     // Voeg toe aan doelgroep
     if (!naarGroep.ids.includes(fotoId)) {
       naarGroep.ids.push(fotoId);
-      if (naarGroep.voorbeelden.length < 6) naarGroep.voorbeelden.push(fotoId);
+      if (naarGroep.samples.length < 6) naarGroep.samples.push(fotoId);
     }
   }
 
@@ -336,78 +336,78 @@ function onDrop(e) {
   }
   sleepData = [];
 
-  // Verwijder lege tijdgroepen (behalve hold zone en handmatig aangemaakte)
+  // Verwijder lege tijdgroepen (behalve hold zone en manual aangemaakte)
   gpsBulkGroepen = gpsBulkGroepen.filter(g => g.isHold || g.isHandmatig || g.ids.length > 0);
 
-  // Auto-promote hold zone als er geen normale groepen meer zijn maar hold nog foto's heeft
+  // Auto-promote hold zone als er geen normale groups meer zijn maar hold nog foto's heeft
   const holdGroep = gpsBulkGroepen.find(g => g.isHold);
   const heeftNormaleGroepen = gpsBulkGroepen.some(g => !g.isHold);
   if (!heeftNormaleGroepen && holdGroep && holdGroep.ids.length > 0) {
-    const nieuw = {
-      groep_id: volgendGroepId++,
-      datum_start: null, datum_eind: null,
+    const new_files = {
+      group_id: volgendGroepId++,
+      date_start: null, date_end: null,
       ids: [...holdGroep.ids],
-      voorbeelden: [...holdGroep.voorbeelden],
+      samples: [...holdGroep.samples],
       isHandmatig: true
     };
-    gpsBulkGroepen.splice(gpsBulkGroepen.findIndex(g => g.isHold), 0, nieuw);
+    gpsBulkGroepen.splice(gpsBulkGroepen.findIndex(g => g.isHold), 0, new_files);
     holdGroep.ids = [];
-    holdGroep.voorbeelden = [];
+    holdGroep.samples = [];
   }
 
   bijwerkInfo();
   renderGroepen();
 }
 
-function groepVindId(groepId) {
-  const id = groepId === 'hold' ? 'hold' : (isNaN(groepId) ? groepId : parseInt(groepId));
-  return gpsBulkGroepen.find(g => g.groep_id == id);
+function groepVindId(groupId) {
+  const id = groupId === 'hold' ? 'hold' : (isNaN(groupId) ? groupId : parseInt(groupId));
+  return gpsBulkGroepen.find(g => g.group_id == id);
 }
 
 // ─── NIEUWE GROEP ────────────────────────────────────────────────────────────
 
 function nieuweGroep() {
-  const nieuw = {
-    groep_id: volgendGroepId++,
-    datum_start: null, datum_eind: null,
-    ids: [], voorbeelden: [],
+  const new_files = {
+    group_id: volgendGroepId++,
+    date_start: null, date_end: null,
+    ids: [], samples: [],
     isHandmatig: true
   };
   // Voeg in vóór hold zone
   const holdIdx = gpsBulkGroepen.findIndex(g => g.isHold);
-  gpsBulkGroepen.splice(holdIdx, 0, nieuw);
+  gpsBulkGroepen.splice(holdIdx, 0, new_files);
   renderGroepen();
 }
 
 // ─── LOCATIE PICKER ──────────────────────────────────────────────────────────
 
-function openLocatiePicker(groepId) {
-  const picker = document.getElementById(`picker-${groepId}`);
+function openLocatiePicker(groupId) {
+  const picker = document.getElementById(`picker-${groupId}`);
   if (!picker) return;
   const isOpen = picker.style.display !== 'none';
   picker.style.display = isOpen ? 'none' : 'block';
-  if (!isOpen) document.getElementById(`zoek-${groepId}`)?.focus();
+  if (!isOpen) document.getElementById(`search-${groupId}`)?.focus();
 }
 
-function zoekBulkLocatie(groepId) {
-  clearTimeout(gpsBulkZoekTimers[groepId]);
-  const q = document.getElementById(`zoek-${groepId}`).value.trim();
-  const resEl = document.getElementById(`res-${groepId}`);
+function zoekBulkLocatie(groupId) {
+  clearTimeout(gpsBulkZoekTimers[groupId]);
+  const q = document.getElementById(`search-${groupId}`).value.trim();
+  const resEl = document.getElementById(`res-${groupId}`);
   if (q.length < 2) { resEl.innerHTML = ''; return; }
   resEl.innerHTML = '<div style="padding:8px;color:#9ca3af;font-size:13px">Zoeken...</div>';
 
-  gpsBulkZoekTimers[groepId] = setTimeout(async () => {
+  gpsBulkZoekTimers[groupId] = setTimeout(async () => {
     try {
       const data = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&accept-language=en`
       ).then(r => r.json());
 
-      if (!data.length) { resEl.innerHTML = '<div style="padding:8px;color:#9ca3af;font-size:13px">Geen resultaten</div>'; return; }
+      if (!data.length) { resEl.innerHTML = '<div style="padding:8px;color:#9ca3af;font-size:13px">No results</div>'; return; }
 
       if (!window._bulkZoekData) window._bulkZoekData = {};
-      window._bulkZoekData[groepId] = data;
+      window._bulkZoekData[groupId] = data;
       resEl.innerHTML = data.map((r, i) =>
-        `<div class="bulk-resultaat" onclick="kiesLocatie('${groepId}', ${i})">${r.display_name}</div>`
+        `<div class="bulk-resultaat" onclick="kiesLocatie('${groupId}', ${i})">${r.display_name}</div>`
       ).join('');
     } catch (e) {
       resEl.innerHTML = '<div style="color:#f87171;padding:8px;font-size:13px">Fout bij zoeken</div>';
@@ -415,129 +415,129 @@ function zoekBulkLocatie(groepId) {
   }, 450);
 }
 
-function kiesLocatie(groepId, idx) {
-  const data = window._bulkZoekData?.[groepId];
+function kiesLocatie(groupId, idx) {
+  const data = window._bulkZoekData?.[groupId];
   if (!data?.[idx]) return;
   const r = data[idx];
   const addr = r.address || {};
-  const stad = addr.city || addr.town || addr.village || addr.hamlet || addr.county || r.name || '';
-  const land = addr.country || '';
+  const city = addr.city || addr.town || addr.village || addr.hamlet || addr.county || r.name || '';
+  const country = addr.country || '';
   const land_code = (addr.country_code || '').toUpperCase();
 
-  gpsBulkGekozen[groepId] = { gps_stad: stad, gps_land: land, gps_lat: parseFloat(r.lat), gps_lon: parseFloat(r.lon), gps_land_code: land_code, gps_adres: r.display_name };
+  gpsBulkGekozen[groupId] = { gps_city: city, gps_country: country, gps_lat: parseFloat(r.lat), gps_lon: parseFloat(r.lon), gps_country_code: land_code, gps_address: r.display_name };
 
   const vlag = land_code ? landVlag(land_code) : '';
-  document.getElementById(`res-${groepId}`).innerHTML = '';
-  document.getElementById(`zoek-${groepId}`).style.display = 'none';
-  document.getElementById(`gekozen-naam-${groepId}`).textContent = `${vlag} ${[stad, land].filter(Boolean).join(', ')}`.trim();
-  document.getElementById(`gekozen-${groepId}`).style.display = 'block';
+  document.getElementById(`res-${groupId}`).innerHTML = '';
+  document.getElementById(`search-${groupId}`).style.display = 'none';
+  document.getElementById(`chosen-name-${groupId}`).textContent = `${vlag} ${[city, country].filter(Boolean).join(', ')}`.trim();
+  document.getElementById(`chosen-${groupId}`).style.display = 'block';
 }
 
-function annuleerBulkLocatie(groepId) {
-  delete gpsBulkGekozen[groepId];
-  const zoek = document.getElementById(`zoek-${groepId}`);
-  zoek.style.display = '';
-  zoek.value = '';
-  document.getElementById(`res-${groepId}`).innerHTML = '';
-  document.getElementById(`gekozen-${groepId}`).style.display = 'none';
+function annuleerBulkLocatie(groupId) {
+  delete gpsBulkGekozen[groupId];
+  const search = document.getElementById(`search-${groupId}`);
+  search.style.display = '';
+  search.value = '';
+  document.getElementById(`res-${groupId}`).innerHTML = '';
+  document.getElementById(`chosen-${groupId}`).style.display = 'none';
 }
 
-async function bevestigBulkLocatie(groepId) {
-  const locatie = gpsBulkGekozen[groepId];
-  const groep = groepVindId(groepId);
-  if (!locatie || !groep || groep.ids.length === 0) return;
+async function bevestigBulkLocatie(groupId) {
+  const location = gpsBulkGekozen[groupId];
+  const group = groepVindId(groupId);
+  if (!location || !group || group.ids.length === 0) return;
 
-  const groepEl = document.getElementById(`groep-${groepId}`);
+  const groepEl = document.getElementById(`group-${groupId}`);
   groepEl.style.opacity = '0.5';
   groepEl.style.pointerEvents = 'none';
 
   try {
-    const r = await fetch('/api/gps/bulk-toewijzen', {
+    const r = await fetch('/api/gps/bulk-assign', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: groep.ids, ...locatie })
+      body: JSON.stringify({ ids: group.ids, ...location })
     });
     if (!r.ok) throw new Error();
     const resp = await r.json();
 
-    const vlag = locatie.gps_land_code ? landVlag(locatie.gps_land_code) : '';
-    const naamTekst = `${vlag} ${[locatie.gps_stad, locatie.gps_land].filter(Boolean).join(', ')}`.trim();
-    const dupTekst = resp.duplicaten_bijgewerkt ? ' (incl. duplicaten)' : '';
+    const vlag = location.gps_country_code ? landVlag(location.gps_country_code) : '';
+    const naamTekst = `${vlag} ${[location.gps_city, location.gps_country].filter(Boolean).join(', ')}`.trim();
+    const dupTekst = resp.duplicaten_bijgewerkt ? ' (incl. duplicates)' : '';
     groepEl.innerHTML = `
       <div style="padding:14px 20px;color:#4ade80;font-size:14px">
-        ✅ ${resp.bijgewerkt.toLocaleString()} item${resp.bijgewerkt !== 1 ? 's' : ''}${dupTekst} toegewezen aan ${naamTekst}
+        ✅ ${resp.updated.toLocaleString()} item${resp.updated !== 1 ? 's' : ''}${dupTekst} assigned aan ${naamTekst}
       </div>`;
 
-    gpsBulkGroepen = gpsBulkGroepen.filter(g => g.groep_id != groepId);
+    gpsBulkGroepen = gpsBulkGroepen.filter(g => g.group_id != groupId);
     bijwerkInfo();
 
     if (gpsBulkGroepen.filter(g => !g.isHold).length === 0) {
       setTimeout(() => {
         document.getElementById('gpsBulkGroepen').innerHTML =
-          '<div class="leeg" style="padding:48px;text-align:center;font-size:16px">✅ Alle groepen toegewezen!</div>';
+          '<div class="leeg" style="padding:48px;text-align:center;font-size:16px">✅ All groups assigned!</div>';
       }, 1200);
     }
   } catch (e) {
     groepEl.style.opacity = '';
     groepEl.style.pointerEvents = '';
-    alert('Fout bij opslaan. Probeer opnieuw.');
+    alert('Save failed. Try again.');
   }
 }
 
 // ─── GROEP VERWIJDEREN (naar prullenbak) ─────────────────────────────────────
-// Verwijdert een hele groep slechte foto's ineens: bestanden naar de systeem-
+// Verwijdert een hele group slechte foto's ineens: bestanden naar de systeem-
 // prullenbak (herstelbaar), DB-records weg, cascade over duplicaatgroepen.
-async function verwijderGroep(groepId) {
-  const groep = groepVindId(groepId);
-  if (!groep || groep.ids.length === 0) return;
+async function verwijderGroep(groupId) {
+  const group = groepVindId(groupId);
+  if (!group || group.ids.length === 0) return;
 
-  const aantal = groep.ids.length;
+  const count = group.ids.length;
   const vraag = i18n.t('gpsbulk_groep_verwijder_bevestig',
-    'Deze hele groep ({n}) naar de prullenbak verplaatsen? De bestanden zijn herstelbaar via de systeem-prullenbak.')
-    .replace('{n}', aantal.toLocaleString());
+    'Move this whole group ({n}) to the trash? The files can be restored from the system trash.')
+    .replace('{n}', count.toLocaleString());
   if (!confirm(vraag)) return;
 
-  const groepEl = document.getElementById(`groep-${groepId}`);
+  const groepEl = document.getElementById(`group-${groupId}`);
   groepEl.style.opacity = '0.5';
   groepEl.style.pointerEvents = 'none';
 
   try {
-    const r = await fetch('/api/fotos/verwijder-bulk', {
+    const r = await fetch('/api/photos/delete-bulk', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: groep.ids })
+      body: JSON.stringify({ ids: group.ids })
     });
     if (!r.ok) throw new Error();
     const resp = await r.json();
 
     groepEl.innerHTML = `
       <div style="padding:14px 20px;color:#f87171;font-size:14px">
-        🗑️ ${(resp.naarPrullenbak || 0).toLocaleString()} ${i18n.t('gpsbulk_groep_verwijderd', 'naar prullenbak verplaatst')}
+        🗑️ ${(resp.movedToTrash || 0).toLocaleString()} ${i18n.t('gpsbulk_groep_verwijderd', 'moved to trash')}
       </div>`;
 
-    gpsBulkGroepen = gpsBulkGroepen.filter(g => g.groep_id != groepId);
+    gpsBulkGroepen = gpsBulkGroepen.filter(g => g.group_id != groupId);
     bijwerkInfo();
 
     if (gpsBulkGroepen.filter(g => !g.isHold).length === 0) {
       setTimeout(() => {
         document.getElementById('gpsBulkGroepen').innerHTML =
           '<div class="leeg" style="padding:48px;text-align:center;font-size:16px">✅ ' +
-          i18n.t('gpsbulk_klaar', 'Alle groepen verwerkt!') + '</div>';
+          i18n.t('gpsbulk_klaar', 'All groups processed!') + '</div>';
       }, 1200);
     }
   } catch (e) {
     groepEl.style.opacity = '';
     groepEl.style.pointerEvents = '';
-    alert(i18n.t('gpsbulk_verwijder_fout', 'Fout bij verwijderen. Probeer opnieuw.'));
+    alert(i18n.t('gpsbulk_verwijder_fout', 'Delete failed. Try again.'));
   }
 }
 
 // ─── BULK KAART MODAL ────────────────────────────────────────────────────────
 
-function openBulkKaart(groepId) {
-  bulkKaartActieveGroep = groepId;
+function openBulkKaart(groupId) {
+  bulkKaartActieveGroep = groupId;
   bulkKaartGekozenLocatie = null;
-  document.getElementById('bulkKaartStatus').textContent = 'Klik op de kaart om een locatie te kiezen';
+  document.getElementById('bulkKaartStatus').textContent = 'Click the map to pick a location';
   document.getElementById('bulkKaartGekozenInfo').textContent = '';
   document.getElementById('bulkKaartOpslaanKnop').disabled = true;
   document.getElementById('bulkKaartZoek').value = '';
@@ -569,25 +569,25 @@ async function onBulkKaartKlik(e) {
     ).then(r => r.json());
 
     const addr = data.address || {};
-    const stad = addr.city || addr.town || addr.village || addr.hamlet || addr.county || '';
-    const land = addr.country || '';
+    const city = addr.city || addr.town || addr.village || addr.hamlet || addr.county || '';
+    const country = addr.country || '';
     const land_code = (addr.country_code || '').toUpperCase();
     const vlag = land_code ? landVlag(land_code) : '';
 
     bulkKaartGekozenLocatie = {
-      gps_stad: stad, gps_land: land,
+      gps_city: city, gps_country: country,
       gps_lat: lat, gps_lon: lng,
-      gps_land_code: land_code,
-      gps_adres: data.display_name || ''
+      gps_country_code: land_code,
+      gps_address: data.display_name || ''
     };
 
-    const naamTekst = `${vlag} ${[stad, land].filter(Boolean).join(', ')}`.trim();
+    const naamTekst = `${vlag} ${[city, country].filter(Boolean).join(', ')}`.trim();
     document.getElementById('bulkKaartStatus').textContent = naamTekst || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     document.getElementById('bulkKaartGekozenInfo').textContent = naamTekst;
     document.getElementById('bulkKaartOpslaanKnop').disabled = false;
   } catch (e) {
     document.getElementById('bulkKaartStatus').textContent = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    bulkKaartGekozenLocatie = { gps_stad: '', gps_land: '', gps_lat: lat, gps_lon: lng, gps_land_code: '', gps_adres: '' };
+    bulkKaartGekozenLocatie = { gps_city: '', gps_country: '', gps_lat: lat, gps_lon: lng, gps_country_code: '', gps_address: '' };
     document.getElementById('bulkKaartOpslaanKnop').disabled = false;
   }
 }
@@ -604,9 +604,9 @@ function zoekBulkKaartLocatie() {
       const data = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&accept-language=en`
       ).then(r => r.json());
-      if (!data.length) { resEl.innerHTML = '<div style="padding:6px 12px;color:#9ca3af;font-size:13px">Geen resultaten</div>'; return; }
+      if (!data.length) { resEl.innerHTML = '<div style="padding:6px 12px;color:#9ca3af;font-size:13px">No results</div>'; return; }
       resEl.innerHTML = data.map((r, i) =>
-        `<div class="gps-zoek-resultaat" onclick="kiesBulkKaartResultaat(${i})" data-idx="${i}">${r.display_name}</div>`
+        `<div class="gps-search-resultaat" onclick="kiesBulkKaartResultaat(${i})" data-idx="${i}">${r.display_name}</div>`
       ).join('');
       window._bulkKaartZoekData = data;
     } catch (e) { resEl.innerHTML = ''; }
@@ -619,7 +619,7 @@ function kiesBulkKaartResultaat(idx) {
   const r = data[idx];
   const lat = parseFloat(r.lat), lng = parseFloat(r.lon);
   bulkKaartInstantie.setView([lat, lng], 12);
-  // Simuleer klik om locatie in te stellen
+  // Simuleer klik om location in te stellen
   onBulkKaartKlik({ latlng: { lat, lng } });
   document.getElementById('bulkKaartZoekResultaten').innerHTML = '';
   document.getElementById('bulkKaartZoek').value = r.display_name.split(',')[0];
@@ -627,20 +627,20 @@ function kiesBulkKaartResultaat(idx) {
 
 function bevestigBulkKaartLocatie() {
   if (!bulkKaartGekozenLocatie || !bulkKaartActieveGroep) return;
-  const groepId = bulkKaartActieveGroep;
-  gpsBulkGekozen[groepId] = bulkKaartGekozenLocatie;
+  const groupId = bulkKaartActieveGroep;
+  gpsBulkGekozen[groupId] = bulkKaartGekozenLocatie;
 
-  const vlag = bulkKaartGekozenLocatie.gps_land_code ? landVlag(bulkKaartGekozenLocatie.gps_land_code) : '';
-  const naamTekst = `${vlag} ${[bulkKaartGekozenLocatie.gps_stad, bulkKaartGekozenLocatie.gps_land].filter(Boolean).join(', ')}`.trim();
+  const vlag = bulkKaartGekozenLocatie.gps_country_code ? landVlag(bulkKaartGekozenLocatie.gps_country_code) : '';
+  const naamTekst = `${vlag} ${[bulkKaartGekozenLocatie.gps_city, bulkKaartGekozenLocatie.gps_country].filter(Boolean).join(', ')}`.trim();
 
   // Zorg dat picker open is
-  const picker = document.getElementById(`picker-${groepId}`);
+  const picker = document.getElementById(`picker-${groupId}`);
   if (picker) picker.style.display = 'block';
 
-  document.getElementById(`zoek-${groepId}`).style.display = 'none';
-  document.getElementById(`gekozen-naam-${groepId}`).textContent = naamTekst;
-  document.getElementById(`gekozen-${groepId}`).style.display = 'block';
-  document.getElementById(`res-${groepId}`).innerHTML = '';
+  document.getElementById(`search-${groupId}`).style.display = 'none';
+  document.getElementById(`chosen-name-${groupId}`).textContent = naamTekst;
+  document.getElementById(`chosen-${groupId}`).style.display = 'block';
+  document.getElementById(`res-${groupId}`).innerHTML = '';
 
   sluitBulkKaartDirect();
 }

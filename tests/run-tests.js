@@ -19,8 +19,8 @@ function lijn(char = '─', lengte = 60) {
   return char.repeat(lengte);
 }
 
-async function voerUit(naam, testFn) {
-  console.log(`\n${CYAAN}${BOLD}▶ ${naam}${RESET}`);
+async function voerUit(name, testFn) {
+  console.log(`\n${CYAAN}${BOLD}▶ ${name}${RESET}`);
   console.log(DIM + lijn() + RESET);
 
   let resultaten;
@@ -28,31 +28,31 @@ async function voerUit(naam, testFn) {
     resultaten = await testFn();
   } catch (e) {
     console.log(`${ROOD}  ✗ Kon tests niet laden: ${e.message}${RESET}`);
-    return { totaal: 0, geslaagd: 0, gefaald: 1 };
+    return { total: 0, geslaagd: 0, gefaald: 1 };
   }
 
   let geslaagd = 0, gefaald = 0, gewaarschuwd = 0;
   for (const r of resultaten) {
     if (r.ok) {
-      console.log(`${GROEN}  ✓ ${r.naam}${RESET}`);
+      console.log(`${GROEN}  ✓ ${r.name}${RESET}`);
       geslaagd++;
     } else if (r.waarschuwing) {
-      console.log(`${GEEL}  ⚠ ${r.naam}${RESET}`);
-      console.log(`${GEEL}    → ${r.fout}${RESET}`);
+      console.log(`${GEEL}  ⚠ ${r.name}${RESET}`);
+      console.log(`${GEEL}    → ${r.error}${RESET}`);
       gewaarschuwd++;
     } else {
-      console.log(`${ROOD}  ✗ ${r.naam}${RESET}`);
-      console.log(`${ROOD}    → ${r.fout}${RESET}`);
+      console.log(`${ROOD}  ✗ ${r.name}${RESET}`);
+      console.log(`${ROOD}    → ${r.error}${RESET}`);
       gefaald++;
     }
   }
 
   const kleur = gefaald === 0 ? GROEN : ROOD;
   console.log(DIM + lijn() + RESET);
-  const waarschuwTekst = gewaarschuwd > 0 ? ` (${gewaarschuwd} ⚠ overgeslagen)` : '';
+  const waarschuwTekst = gewaarschuwd > 0 ? ` (${gewaarschuwd} ⚠ skipped)` : '';
   console.log(`${kleur}  ${geslaagd}/${resultaten.length - gewaarschuwd} geslaagd${waarschuwTekst}${RESET}`);
 
-  return { totaal: resultaten.length - gewaarschuwd, geslaagd, gefaald, gewaarschuwd };
+  return { total: resultaten.length - gewaarschuwd, geslaagd, gefaald, gewaarschuwd };
 }
 
 async function main() {
@@ -62,34 +62,34 @@ async function main() {
   console.log(`${DIM}${new Date().toLocaleString('nl-BE')}${RESET}`);
 
   const suites = [
-    { naam: 'Database',  fn: require('./database.test.js') },
-    { naam: 'Scanner',   fn: require('./scanner.test.js')  },
-    { naam: 'Scripts',   fn: require('./scripts.test.js')  },
+    { name: 'Database',  fn: require('./database.test.js') },
+    { name: 'Scanner',   fn: require('./scanner.test.js')  },
+    { name: 'Scripts',   fn: require('./scripts.test.js')  },
   ];
 
   if (metApi) {
-    suites.push({ naam: 'API (live server)', fn: require('./api.test.js') });
+    suites.push({ name: 'API (live server)', fn: require('./api.test.js') });
   } else {
-    console.log(`\n${GEEL}ℹ️  API tests overgeslagen (start met --api voor live server tests)${RESET}`);
+    console.log(`\n${GEEL}ℹ️  API tests skipped (start met --api voor live server tests)${RESET}`);
   }
 
   let totaalGeslaagd = 0, totaalGefaald = 0, totaalTests = 0, totaalWaarschuwingen = 0;
 
   for (const suite of suites) {
-    const r = await voerUit(suite.naam, suite.fn);
+    const r = await voerUit(suite.name, suite.fn);
     totaalGeslaagd       += r.geslaagd;
     totaalGefaald        += r.gefaald;
-    totaalTests          += r.totaal;
+    totaalTests          += r.total;
     totaalWaarschuwingen += r.gewaarschuwd || 0;
   }
 
   console.log(`\n${BOLD}${lijn('═')}${RESET}`);
   const allesOk = totaalGefaald === 0;
   const kleur = allesOk ? GROEN : ROOD;
-  const icoon = allesOk ? '✅' : '❌';
-  console.log(`${kleur}${BOLD}${icoon}  Totaal: ${totaalGeslaagd}/${totaalTests} geslaagd${RESET}`);
+  const icon = allesOk ? '✅' : '❌';
+  console.log(`${kleur}${BOLD}${icon}  Totaal: ${totaalGeslaagd}/${totaalTests} geslaagd${RESET}`);
   if (totaalWaarschuwingen > 0) {
-    console.log(`${GEEL}   ⚠ ${totaalWaarschuwingen} test(s) overgeslagen (omgeving)${RESET}`);
+    console.log(`${GEEL}   ⚠ ${totaalWaarschuwingen} test(s) skipped (omgeving)${RESET}`);
   }
 
   if (totaalGefaald > 0) {
@@ -102,6 +102,6 @@ async function main() {
 }
 
 main().catch(e => {
-  console.error(`${ROOD}Test runner fout: ${e.message}${RESET}`);
+  console.error(`${ROOD}Test runner error: ${e.message}${RESET}`);
   process.exit(1);
 });

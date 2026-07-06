@@ -9,25 +9,25 @@ const { keeperIds } = require('./keeper');
 // Export status (in memory — restart = fresh status).
 // Property names are the /api/export/status response contract — keep as-is.
 let exportStatus = {
-  bezig: false,
-  gestopt: false,
-  totaal: 0,
-  gedaan: 0,
-  fouten: 0,
-  huidigBestand: '',
-  doelmap: '',
-  gestart: null,
-  klaar: false,
+  running: false,
+  stopped: false,
+  total: 0,
+  done: 0,
+  errors: 0,
+  currentFile: '',
+  target_folder: '',
+  started: null,
+  ready: false,
   foutLog: []
 };
 
 // ─── Helpers ─────────────────────────────────────────────
 
 function createFilename(foto) {
-  const country = sanitize(foto.gps_land  || 'onbekend');
-  const city    = sanitize(foto.gps_stad  || '');
-  const date    = formatDateForFilename(foto.datum_foto);
-  const ext     = (path.extname(foto.bestandsnaam) || '.jpg').toLowerCase();
+  const country = sanitize(foto.gps_country  || 'unknown');
+  const city    = sanitize(foto.gps_city  || '');
+  const date    = formatDateForFilename(foto.photo_date);
+  const ext     = (path.extname(foto.filename) || '.jpg').toLowerCase();
   return `${country}_${city}_${date}${ext}`;
 }
 
@@ -36,10 +36,10 @@ function sanitize(text) {
 }
 
 function formatDateForFilename(date) {
-  if (!date) return 'onbekend';
+  if (!date) return 'unknown';
   // date can be: "2023-07-15" or "2023-07-15T..." or "2023:07:15..."
   const match = String(date).match(/(\d{4})[-:](\d{2})[-:](\d{2})/);
-  if (!match) return 'onbekend';
+  if (!match) return 'unknown';
   return `${match[3]}_${match[2]}_${match[1]}`; // dd_mm_yyyy
 }
 
@@ -60,9 +60,9 @@ function uniquePath(targetFolder, subfolder, baseName) {
 }
 
 function subfolderFromDate(date) {
-  if (!date) return 'onbekend';
+  if (!date) return 'unknown';
   const match = String(date).match(/(\d{4})[-:](\d{2})/);
-  if (!match) return 'onbekend';
+  if (!match) return 'unknown';
   return path.join(match[1], match[2]); // "2023/07"
 }
 
@@ -96,8 +96,8 @@ function writeGpsToFile(targetPath, foto) {
   ];
 
   // Add city and country as XMP if available
-  if (foto.gps_stad)  args.push(`-XMP:City=${foto.gps_stad}`);
-  if (foto.gps_land)  args.push(`-XMP:Country=${foto.gps_land}`);
+  if (foto.gps_city)  args.push(`-XMP:City=${foto.gps_city}`);
+  if (foto.gps_country)  args.push(`-XMP:Country=${foto.gps_country}`);
 
   args.push(targetPath);
 
@@ -115,31 +115,31 @@ function writeGpsToFile(targetPath, foto) {
 //   - all non-duplicates
 //   - PLUS exactly one "keeper" per duplicate group (based on the stored priority)
 //
-// Previously this query filtered on `is_duplicaat = 0`, which dropped ALL members
+// Previously this query filtered on `is_duplicate = 0`, which dropped ALL members
 // of a duplicate group (including the copy to keep) from the export. That made
 // photos disappear that were supposed to be "unique" in one place. Now we include
 // the keeper explicitly so every group is exported with exactly one copy.
 function selectPhotos() {
   const db = getDb();
   const keepers = keeperIds(db);
-  const fotos = db.prepare(`
-    SELECT id, volledig_pad, bestandsnaam, bestandsgrootte,
-           datum_foto, gps_land, gps_stad, gps_lat, gps_lon, geexporteerd, is_duplicaat
-    FROM fotos
-    WHERE (genegeerd = 0 OR genegeerd IS NULL)
-    ORDER BY datum_foto ASC NULLS LAST
+  const photos = db.prepare(`
+    SELECT id, full_path, filename, file_size,
+           photo_date, gps_country, gps_city, gps_lat, gps_lon, exported, is_duplicate
+    FROM photos
+    WHERE (ignored = 0 OR ignored IS NULL)
+    ORDER BY photo_date ASC NULLS LAST
   `).all();
   db.close();
-  return fotos.filter(f => !f.is_duplicaat || keepers.has(f.id));
+  return photos.filter(f => !f.is_duplicate || keepers.has(f.id));
 }
 
 // ─── Preview (before export) ─────────────────────────────
 
 function calculatePreview(targetFolder) {
-  const fotos = selectPhotos();
-  const totalPhotos = fotos.length;
-  const totalBytes  = fotos.reduce((s, f) => s + (f.bestandsgrootte || 0), 0);
-  const alreadyDone = fotos.filter(f => f.geexporteerd).length;
+  const photos = selectPhotos();
+  const totalPhotos = photos.length;
+  const totalBytes  = photos.reduce((s, f) => s + (f.file_size || 0), 0);
+  const alreadyDone = photos.filter(f => f.exported).length;
   const stillToDo   = totalPhotos - alreadyDone;
 
   let space = -1;
@@ -156,7 +156,7 @@ function calculatePreview(targetFolder) {
 
   // Response field names are the frontend contract — keep as-is.
   return {
-    totaalFotos: totalPhotos,
+    totalPhotos: totalPhotos,
     totaalBytes: totalBytes,
     reedsDone: alreadyDone,
     nogTeDoen: stillToDo,
@@ -169,65 +169,65 @@ function calculatePreview(targetFolder) {
 // ─── Run the export ──────────────────────────────────────
 
 async function startExport(targetFolder) {
-  if (exportStatus.bezig) return { fout: 'Export already running' };
+  if (exportStatus.running) return { error: 'Export already running' };
 
   exportStatus = {
-    bezig: true,
-    gestopt: false,
-    totaal: 0,
-    gedaan: 0,
-    fouten: 0,
-    huidigBestand: '',
-    doelmap: targetFolder,
-    gestart: new Date().toISOString(),
-    klaar: false,
+    running: true,
+    stopped: false,
+    total: 0,
+    done: 0,
+    errors: 0,
+    currentFile: '',
+    target_folder: targetFolder,
+    started: new Date().toISOString(),
+    ready: false,
     foutLog: []
   };
 
-  const fotos = selectPhotos().filter(f => !f.geexporteerd);
-  exportStatus.totaal = fotos.length;
+  const photos = selectPhotos().filter(f => !f.exported);
+  exportStatus.total = photos.length;
 
   // Run asynchronously
-  setImmediate(() => runExport(fotos, targetFolder));
+  setImmediate(() => runExport(photos, targetFolder));
 
-  return { ok: true, totaal: fotos.length };
+  return { ok: true, total: photos.length };
 }
 
-async function runExport(fotos, targetFolder) {
+async function runExport(photos, targetFolder) {
   const db = getDb();
-  const updateStmt = db.prepare('UPDATE fotos SET geexporteerd = 1 WHERE id = ?');
+  const updateStmt = db.prepare('UPDATE photos SET exported = 1 WHERE id = ?');
 
-  for (const foto of fotos) {
-    if (exportStatus.gestopt) break;
+  for (const foto of photos) {
+    if (exportStatus.stopped) break;
 
     const baseName  = createFilename(foto);
-    const subfolder = subfolderFromDate(foto.datum_foto);
+    const subfolder = subfolderFromDate(foto.photo_date);
 
-    exportStatus.huidigBestand = baseName;
+    exportStatus.currentFile = baseName;
 
     try {
-      if (!fs.existsSync(foto.volledig_pad)) {
+      if (!fs.existsSync(foto.full_path)) {
         throw new Error('Source file not found');
       }
       const target = uniquePath(targetFolder, subfolder, baseName);
-      fs.copyFileSync(foto.volledig_pad, target);
+      fs.copyFileSync(foto.full_path, target);
       writeGpsToFile(target, foto);
       updateStmt.run(foto.id);
-      exportStatus.gedaan++;
+      exportStatus.done++;
     } catch (err) {
-      exportStatus.fouten++;
-      exportStatus.foutLog.push({ id: foto.id, bestand: foto.volledig_pad, fout: err.message });
+      exportStatus.errors++;
+      exportStatus.foutLog.push({ id: foto.id, bestand: foto.full_path, error: err.message });
     }
   }
 
   db.close();
-  exportStatus.bezig  = false;
-  exportStatus.klaar  = !exportStatus.gestopt;
-  exportStatus.huidigBestand = '';
+  exportStatus.running  = false;
+  exportStatus.ready  = !exportStatus.stopped;
+  exportStatus.currentFile = '';
 }
 
 function stopExport() {
-  exportStatus.gestopt = true;
+  exportStatus.stopped = true;
   return { ok: true };
 }
 
@@ -236,11 +236,11 @@ function getStatus() {
 }
 
 function resetExport() {
-  if (exportStatus.bezig) return { fout: 'Export is running, stop it first' };
+  if (exportStatus.running) return { error: 'Export is running, stop it first' };
   exportStatus = {
-    bezig: false, gestopt: false, totaal: 0, gedaan: 0,
-    fouten: 0, huidigBestand: '', doelmap: '',
-    gestart: null, klaar: false, foutLog: []
+    running: false, stopped: false, total: 0, done: 0,
+    errors: 0, currentFile: '', target_folder: '',
+    started: null, ready: false, foutLog: []
   };
   return { ok: true };
 }

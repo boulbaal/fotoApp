@@ -27,24 +27,24 @@ function formatDuur(seconden) {
   return `${u}u ${m}m`;
 }
 
-// ISO datum → dd/mm/yyyy voor weergave in invoerveld
+// ISO date → dd/mm/yyyy voor weergave in invoerveld
 function datumNaarDdMmYyyy(iso) {
   if (!iso) return '';
   const d = new Date(iso);
   if (isNaN(d)) return '';
-  const dag   = String(d.getUTCDate()).padStart(2, '0');
-  const maand = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const jaar  = d.getUTCFullYear();
-  return `${dag}/${maand}/${jaar}`;
+  const day   = String(d.getUTCDate()).padStart(2, '0');
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const year  = d.getUTCFullYear();
+  return `${day}/${month}/${year}`;
 }
 
 // dd/mm/yyyy → ISO string (voor opslaan in DB)
 function ddMmYyyyNaarIso(tekst) {
   const m = tekst.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (!m) return null;
-  const [, dag, maand, jaar] = m.map(Number);
-  if (maand < 1 || maand > 12 || dag < 1 || dag > 31) return null;
-  return `${jaar}-${String(maand).padStart(2,'0')}-${String(dag).padStart(2,'0')}T00:00:00.000Z`;
+  const [, day, month, year] = m.map(Number);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T00:00:00.000Z`;
 }
 
 // Landcode (2 letters) → vlag emoji
@@ -82,13 +82,13 @@ const LAND_CODES = {
   'Zambia':'ZM','Zimbabwe':'ZW'
 };
 
-function landVlagVanNaam(naam) {
-  if (!naam) return '';
-  const code = LAND_CODES[naam] || LAND_CODES[naam.trim()];
+function landVlagVanNaam(name) {
+  if (!name) return '';
+  const code = LAND_CODES[name] || LAND_CODES[name.trim()];
   return code ? landVlag(code) : '';
 }
 
-// Auto-format datuminvoer: voeg / toe na dag en maand
+// Auto-format datuminvoer: voeg / toe na day en month
 function formateerDatumInput(input) {
   let v = input.value.replace(/[^\d]/g, '');
   if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2);

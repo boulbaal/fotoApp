@@ -4,40 +4,40 @@ let tickerSec      = 0;
 let vorigeBericht  = '';   // voorkom dubbele log-regels
 
 // === START SCAN ===
-// Eenmalige prioriteit-vraag: vóór de scan checken we of de bron-volgorde
-// (welke bron telt als "origineel" bij duplicaten) al is ingesteld. Zo niet,
-// en er zijn meerdere bronnen, dan vragen we die éénmalig via de prioriteit-modal
+// Eenmalige priority-vraag: vóór de scan checken we of de bron-volgorde
+// (welke bron telt als "origineel" bij duplicates) al is ingesteld. Zo niet,
+// en er zijn meerdere sources, dan vragen we die éénmalig via de priority-modal
 // en starten de scan pas nadat de gebruiker heeft opgeslagen.
-async function startScan(bronId, bronNaam) {
-  logClient(`🖱 Klik: Start scan — ${bronNaam || 'bron #' + bronId}`);
+async function startScan(sourceId, sourceName) {
+  logClient(`🖱 Klik: Start scan — ${sourceName || 'bron #' + sourceId}`);
 
   if (await prioriteitNodigVoorScan()) {
-    logClient('🏷 Eerst even instellen welke bron het origineel is bij duplicaten...');
-    openPrioModal(() => echtStartScan(bronId, bronNaam));
+    logClient('🏷 First set which source counts as the original for duplicates...');
+    openPrioModal(() => echtStartScan(sourceId, sourceName));
     return;
   }
 
-  echtStartScan(bronId, bronNaam);
+  echtStartScan(sourceId, sourceName);
 }
 
-// Is een eenmalige prioriteit-vraag nodig vóór deze scan?
-// Ja als er ≥2 bronnen zijn én er nog geen bron-volgorde is opgeslagen.
+// Is een eenmalige priority-vraag nodig vóór deze scan?
+// Ja als er ≥2 sources zijn én er nog geen bron-volgorde is opgeslagen.
 async function prioriteitNodigVoorScan() {
   try {
-    const [prio, bronnen] = await Promise.all([
-      fetch('/api/duplicaten/prioriteit').then(r => r.json()),
-      fetch('/api/bronnen').then(r => r.json())
+    const [prio, sources] = await Promise.all([
+      fetch('/api/duplicates/priority').then(r => r.json()),
+      fetch('/api/sources').then(r => r.json())
     ]);
-    const volgorde = Array.isArray(prio.bronVolgorde) ? prio.bronVolgorde : [];
-    return Array.isArray(bronnen) && bronnen.length >= 2 && volgorde.length === 0;
+    const volgorde = Array.isArray(prio.sourceOrder) ? prio.sourceOrder : [];
+    return Array.isArray(sources) && sources.length >= 2 && volgorde.length === 0;
   } catch (_) {
     return false; // bij twijfel niet blokkeren — gewoon scannen
   }
 }
 
-async function echtStartScan(bronId, bronNaam) {
+async function echtStartScan(sourceId, sourceName) {
   // Onmiddellijke visuele feedback — nog voor server antwoord
-  const kaart = document.getElementById('bronKaart_' + bronId);
+  const kaart = document.getElementById('bronKaart_' + sourceId);
   if (kaart) {
     const knop = kaart.querySelector('.btn-groot');
     if (knop) {
@@ -51,21 +51,21 @@ async function echtStartScan(bronId, bronNaam) {
   logClient(`📤 Verzoek verzonden naar server...`);
 
   try {
-    const r = await fetch('/api/scan/' + bronId, { method: 'POST' });
+    const r = await fetch('/api/scan/' + sourceId, { method: 'POST' });
     const data = await r.json();
 
-    if (data.fout) {
-      logClient(`❌ Server fout: ${data.fout}`);
+    if (data.error) {
+      logClient(`❌ Server error: ${data.error}`);
       return;
     }
 
     logClient(`📨 Server antwoord ontvangen`);
 
-    if (data.bezig && data.bron_id === bronId) {
-      logClient(`▶ Scan gestart voor ${bronNaam}`);
-    } else if ((data.wachtrij || []).find(w => w.id === bronId)) {
-      const pos = data.wachtrij.findIndex(w => w.id === bronId) + 1;
-      logClient(`📋 ${bronNaam} toegevoegd aan wachtrij — positie #${pos}`);
+    if (data.running && data.source_id === sourceId) {
+      logClient(`▶ Scan started for ${sourceName}`);
+    } else if ((data.queue || []).find(w => w.id === sourceId)) {
+      const pos = data.queue.findIndex(w => w.id === sourceId) + 1;
+      logClient(`📋 ${sourceName} added to queue — position #${pos}`);
     }
 
     startTicker();
@@ -85,15 +85,15 @@ async function stopScan() {
 
   try {
     await fetch('/api/scan/stop', { method: 'POST' });
-    logClient(`📨 Server bevestigt: stoppen verwerkt`);
-    logClient(`⏳ Wachten tot huidige bestand klaar is...`);
+    logClient(`📨 Server confirms: stop processed`);
+    logClient(`⏳ Waiting until the current file is ready...`);
 
     for (let i = 0; i < 40; i++) {
       await new Promise(r => setTimeout(r, 500));
       const status = await fetch('/api/scan/status').then(r => r.json());
       setScanBalkStatus('stoppend', `Stoppen... (${Math.round((i+1)*0.5)}s)`);
-      if (!status.bezig) {
-        logClient(`✅ Scan gestopt`);
+      if (!status.running) {
+        logClient(`✅ Scan stopped`);
         break;
       }
     }
@@ -108,10 +108,10 @@ async function stopScan() {
   laadBronnen();
 }
 
-async function verwijderUitWachtrij(bronId) {
-  logClient(`🗑 Verwijderen uit wachtrij — bron #${bronId}`);
-  await fetch('/api/scan/wachtrij/' + bronId, { method: 'DELETE' });
-  logClient(`✅ Verwijderd uit wachtrij`);
+async function verwijderUitWachtrij(sourceId) {
+  logClient(`🗑 Removing from queue — source #${sourceId}`);
+  await fetch('/api/scan/queue/' + sourceId, { method: 'DELETE' });
+  logClient(`✅ Removed from queue`);
   laadBronnen();
 }
 
@@ -144,8 +144,8 @@ function resetTicker() {
 function startScanPolling() {
   if (scanInterval) clearInterval(scanInterval);
   // Initialiseer vorigeBericht zodat voltooiing altijd herkend wordt,
-  // ook als de scan < 1.5s duurt (eerste poll ziet al status.bezig = false)
-  if (!vorigeBericht) vorigeBericht = 'gestart';
+  // ook als de scan < 1.5s duurt (eerste poll ziet al status.running = false)
+  if (!vorigeBericht) vorigeBericht = 'started';
 
   scanInterval = setInterval(async () => {
     try {
@@ -154,33 +154,33 @@ function startScanPolling() {
       setScanBalk(status);
 
       // Log alleen bij statuswijziging
-      const bericht = status.bezig
-        ? `${status.huidig_bestand || ''}|${status.verwerkt}`
-        : 'klaar';
+      const message = status.running
+        ? `${status.current_file || ''}|${status.processed}`
+        : 'ready';
 
-      if (bericht !== vorigeBericht) {
-        if (status.bezig) {
-          // Log elke 50 bestanden of bij nieuw bestand
-          if (status.verwerkt % 50 === 0 && status.verwerkt > 0) {
-            logClient(`⚙️  Verwerkt: ${status.verwerkt.toLocaleString()} / ${status.totaal.toLocaleString()} — ${status.huidig_bestand}`);
+      if (message !== vorigeBericht) {
+        if (status.running) {
+          // Log elke 50 bestanden of bij new_files bestand
+          if (status.processed % 50 === 0 && status.processed > 0) {
+            logClient(`⚙️  Processed: ${status.processed.toLocaleString()} / ${status.total.toLocaleString()} — ${status.current_file}`);
           }
-        } else if (vorigeBericht !== 'klaar' && vorigeBericht !== '') {
-          logClient(`✅ Scan voltooid — polling stopt`);
+        } else if (vorigeBericht !== 'ready' && vorigeBericht !== '') {
+          logClient(`✅ Scan completed — polling stopt`);
           clearInterval(scanInterval);
           stopTicker();
           scanInterval = null;
           laadBronnen();
           laadStats();
-          // Start geocode-polling als geocoding bezig is
+          // Start geocode-polling als geocoding running is
           startGeocodePolling();
         }
-        vorigeBericht = bericht;
+        vorigeBericht = message;
       }
 
       // Geocode status tonen in balk (ook tijdens scan)
       if (status.geocode) toonGeocodeBalk(status.geocode);
     } catch (e) {
-      logClient(`⚠️  Poll mislukt: ${e.message} — probeer opnieuw...`);
+      logClient(`⚠️  Poll failed: ${e.message} — retrying...`);
     }
   }, 1500);
 }
@@ -207,25 +207,25 @@ function setScanBalk(status) {
 
   if (!balk) return;
 
-  if (!status || !status.bezig) {
-    // Flash als balk net klaar was
+  if (!status || !status.running) {
+    // Flash als balk net ready was
     const progress = document.getElementById('scanBalkProgress');
-    if (balk.classList.contains('bezig') && progress) {
+    if (balk.classList.contains('running') && progress) {
       fill.style.width = '100%';
       const camera = document.getElementById('scanCamera');
       if (camera) camera.style.left = '100%';
-      progress.classList.add('klaar-flash');
+      progress.classList.add('ready-flash');
       setTimeout(() => {
-        progress.classList.remove('klaar-flash');
-        balk.className     = 'scan-balk klaar';
+        progress.classList.remove('ready-flash');
+        balk.className     = 'scan-balk ready';
         fill.style.width   = '0%';
         if (camera) camera.style.left = '0%';
       }, 700);
     } else {
-      balk.className     = 'scan-balk klaar';
+      balk.className     = 'scan-balk ready';
       fill.style.width   = '0%';
     }
-    dot.className        = 'scan-dot klaar';
+    dot.className        = 'scan-dot ready';
     titel.textContent    = window.i18n ? window.i18n.t('stat_ready') : 'Klaar';
     sub.textContent      = '';
     mid.textContent      = '';
@@ -236,15 +236,15 @@ function setScanBalk(status) {
     return;
   }
 
-  const pct = status.totaal > 0 ? Math.round(status.verwerkt / status.totaal * 100) : 0;
+  const pct = status.total > 0 ? Math.round(status.processed / status.total * 100) : 0;
 
-  balk.className       = 'scan-balk bezig';
-  dot.className        = 'scan-dot bezig';
-  titel.textContent    = status.bron_naam || 'Scanning...';
-  sub.textContent      = (status.wachtrij?.length > 0)
-    ? `+${status.wachtrij.length} in wachtrij`
-    : (status.nieuw > 0 ? `${status.nieuw} nieuw` : '');
-  mid.textContent      = status.huidig_bestand || '';
+  balk.className       = 'scan-balk running';
+  dot.className        = 'scan-dot running';
+  titel.textContent    = status.source_name || 'Scanning...';
+  sub.textContent      = (status.queue?.length > 0)
+    ? `+${status.queue.length} in queue`
+    : (status.new_files > 0 ? `${status.new_files} new_files` : '');
+  mid.textContent      = status.current_file || '';
   fill.style.width     = pct + '%';
   stop.style.display   = 'inline-block';
   if (ticker) ticker.style.display = 'inline';
@@ -253,11 +253,11 @@ function setScanBalk(status) {
   const camera = document.getElementById('scanCamera');
   if (camera) camera.style.left = Math.max(pct, 2) + '%';
 
-  teller.innerHTML = status.totaal > 0
-    ? `<span style="color:#a78bf7">${pct}%</span> &nbsp;${status.verwerkt.toLocaleString()} / ${status.totaal.toLocaleString()}`
+  teller.innerHTML = status.total > 0
+    ? `<span style="color:#a78bf7">${pct}%</span> &nbsp;${status.processed.toLocaleString()} / ${status.total.toLocaleString()}`
     : `<span style="color:#888">inventariseren...</span>`;
 
-  ind.className = 'scan-indicator bezig';
+  ind.className = 'scan-indicator running';
   ind.innerHTML = `<div class="pulse"></div> ${pct > 0 ? pct + '%' : '...'}`;
 }
 
@@ -267,16 +267,16 @@ let geocodeInterval = null;
 function toonGeocodeBalk(geocode) {
   const el = document.getElementById('geocodeBalk');
   if (!el) return;
-  if (geocode.bezig && geocode.totaal > 0) {
-    const pct = Math.round(geocode.gedaan / geocode.totaal * 100);
+  if (geocode.running && geocode.total > 0) {
+    const pct = Math.round(geocode.done / geocode.total * 100);
     el.style.display = 'flex';
     el.innerHTML = `<span style="color:#34d399">🌍 Locaties ophalen</span> &nbsp;
-      <span style="color:#6b7280;font-size:12px">${geocode.gedaan}/${geocode.totaal}
-      ${geocode.huidig_land ? '— ' + geocode.huidig_land : ''}</span>
+      <span style="color:#6b7280;font-size:12px">${geocode.done}/${geocode.total}
+      ${geocode.current_country ? '— ' + geocode.current_country : ''}</span>
       <span style="margin-left:auto;color:#a78bf7;font-size:12px">${pct}%</span>`;
   } else {
     el.style.display = 'none';
-    if (geocode.gedaan > 0 && !geocode.bezig) laadStats();
+    if (geocode.done > 0 && !geocode.running) laadStats();
   }
 }
 
@@ -286,7 +286,7 @@ function startGeocodePolling() {
     try {
       const g = await fetch('/api/scan/geocode').then(r => r.json());
       toonGeocodeBalk(g);
-      if (!g.bezig) {
+      if (!g.running) {
         clearInterval(geocodeInterval);
         geocodeInterval = null;
       }
@@ -297,13 +297,13 @@ function startGeocodePolling() {
 // === WAARSCHUWING BIJ REFRESH TIJDENS SCAN ===
 window.addEventListener('beforeunload', (e) => {
   const balk = document.getElementById('scanBalk');
-  if (balk && balk.classList.contains('bezig')) {
+  if (balk && balk.classList.contains('running')) {
     e.preventDefault();
-    e.returnValue = 'Een scan is bezig. De scan gaat door op de server, maar je verliest de live voortgang. Wil je toch de pagina verlaten?';
+    e.returnValue = 'A scan is running. It will continue on the server, but you will lose the live progress. Leave the page anyway?';
   }
 });
 
-// === INIT: check bij laden of scan of geocoding al bezig ===
+// === INIT: check bij laden of scan of geocoding al running ===
 (async () => {
   try {
     const [status, geocode] = await Promise.all([
@@ -312,16 +312,16 @@ window.addEventListener('beforeunload', (e) => {
     ]);
     setScanBalk(status);
     toonGeocodeBalk(geocode);
-    if (status.bezig) {
-      logClient(`ℹ️  Scan was al bezig bij laden — polling hervat`);
+    if (status.running) {
+      logClient(`ℹ️  Scan was already running at load — polling resumed`);
       startTicker();
       startScanPolling();
     }
-    if (geocode.bezig) {
-      logClient(`ℹ️  Geocoding was al bezig bij laden — polling hervat`);
+    if (geocode.running) {
+      logClient(`ℹ️  Geocoding was already running at load — polling resumed`);
       startGeocodePolling();
     }
   } catch (e) {
-    logClient(`⚠️  Kon status niet ophalen: ${e.message}`);
+    logClient(`⚠️  Could not fetch status: ${e.message}`);
   }
 })();

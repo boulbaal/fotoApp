@@ -5,16 +5,16 @@ let exportPolling = null;
 // ─── Preview laden ────────────────────────────────────────
 
 async function laadExportPreview() {
-  const doelmap = document.getElementById('exportDoelmap').value.trim();
-  if (!doelmap) {
-    alert('Kies eerst een bestemmingsmap.');
+  const target_folder = document.getElementById('exportDoelmap').value.trim();
+  if (!target_folder) {
+    alert('Choose a destination folder first.');
     return;
   }
 
   const knop = document.getElementById('exportStartKnop');
   knop.disabled = true;
 
-  const params = new URLSearchParams({ doelmap });
+  const params = new URLSearchParams({ target_folder });
   const data = await fetch('/api/export/preview?' + params).then(r => r.json());
 
   document.getElementById('prevFotos').textContent =
@@ -37,7 +37,7 @@ async function laadExportPreview() {
   const alDoneRij = document.getElementById('prevAlDoneRij');
   if (data.reedsDone > 0) {
     alDoneRij.style.display = '';
-    document.getElementById('prevAlDone').textContent = data.reedsDone.toLocaleString() + ' foto\'s (worden overgeslagen)';
+    document.getElementById('prevAlDone').textContent = data.reedsDone.toLocaleString() + ' photos (will be skipped)';
   } else {
     alDoneRij.style.display = 'none';
   }
@@ -45,7 +45,7 @@ async function laadExportPreview() {
   const warn = document.getElementById('prevWaarschuwing');
   if (data.nogTeDoen === 0) {
     warn.style.display = '';
-    warn.innerHTML = '<div class="export-waarschuwing">Alle foto\'s zijn al geëxporteerd naar deze locatie.</div>';
+    warn.innerHTML = '<div class="export-waarschuwing">All photos have already been exported to this location.</div>';
   } else {
     warn.style.display = 'none';
   }
@@ -59,16 +59,16 @@ async function laadExportPreview() {
 // ─── Export starten ───────────────────────────────────────
 
 async function startExport() {
-  const doelmap = document.getElementById('exportDoelmap').value.trim();
-  if (!doelmap) return;
+  const target_folder = document.getElementById('exportDoelmap').value.trim();
+  if (!target_folder) return;
 
   const r = await fetch('/api/export/start', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ doelmap })
+    body: JSON.stringify({ target_folder })
   });
   const data = await r.json();
-  if (data.fout) { alert('Fout: ' + data.fout); return; }
+  if (data.error) { alert('Fout: ' + data.error); return; }
 
   // Toon voortgangsscherm
   document.getElementById('exportSetup').style.display = 'none';
@@ -85,10 +85,10 @@ function startExportPolling() {
   exportPolling = setInterval(async () => {
     const status = await fetch('/api/export/status').then(r => r.json());
     updateExportVoortgang(status);
-    if (!status.bezig) {
+    if (!status.running) {
       clearInterval(exportPolling);
       exportPolling = null;
-      if (status.klaar || status.gestopt) {
+      if (status.ready || status.stopped) {
         toonExportKlaar(status);
       }
     }
@@ -96,19 +96,19 @@ function startExportPolling() {
 }
 
 function updateExportVoortgang(status) {
-  const totaal = status.totaal || 1;
-  const pct = Math.round((status.gedaan / totaal) * 100);
+  const total = status.total || 1;
+  const pct = Math.round((status.done / total) * 100);
 
   document.getElementById('exportBalk').style.width = pct + '%';
   document.getElementById('exportVoortgangTekst').textContent =
-    `Kopiëren... ${status.gedaan.toLocaleString()} / ${status.totaal.toLocaleString()}  (${pct}%)`;
+    `Kopiëren... ${status.done.toLocaleString()} / ${status.total.toLocaleString()}  (${pct}%)`;
   document.getElementById('exportHuidigBestand').textContent =
-    status.huidigBestand ? 'Bezig met: ' + status.huidigBestand : '';
+    status.currentFile ? 'Working on: ' + status.currentFile : '';
 
-  if (status.fouten > 0) {
+  if (status.errors > 0) {
     const el = document.getElementById('exportFoutenTekst');
     el.style.display = '';
-    el.textContent = status.fouten + ' fout(en)';
+    el.textContent = status.errors + ' error(en)';
   }
 }
 
@@ -125,16 +125,16 @@ function toonExportKlaar(status) {
   document.getElementById('exportKlaar').style.display = 'block';
 
   document.getElementById('klaarGedaan').textContent =
-    status.gedaan.toLocaleString() + ' foto\'s';
+    status.done.toLocaleString() + ' foto\'s';
   document.getElementById('klaarFouten').textContent =
-    status.fouten === 0 ? '0 ✅' : status.fouten + ' ⚠';
-  document.getElementById('klaarLocatie').textContent = status.doelmap;
+    status.errors === 0 ? '0 ✅' : status.errors + ' ⚠';
+  document.getElementById('klaarLocatie').textContent = status.target_folder;
 
   if (status.foutLog && status.foutLog.length > 0) {
     const log = document.getElementById('klaarFoutLog');
     log.style.display = 'block';
     log.innerHTML = '<strong>Fouten:</strong><br>' +
-      status.foutLog.map(f => `${f.bestand}: ${f.fout}`).join('<br>');
+      status.foutLog.map(f => `${f.bestand}: ${f.error}`).join('<br>');
   }
 }
 
@@ -150,17 +150,17 @@ async function resetExportUI() {
   document.getElementById('exportStartKnop').disabled = true;
 }
 
-// ─── Hervatten bij pagina laden ───────────────────────────
+// ─── Hervatten bij page laden ───────────────────────────
 
 async function controleerExportStatus() {
   const status = await fetch('/api/export/status').then(r => r.json());
-  if (status.bezig) {
+  if (status.running) {
     document.getElementById('exportSetup').style.display = 'none';
     document.getElementById('exportVoortgang').style.display = 'block';
     document.getElementById('exportKlaar').style.display = 'none';
-    if (status.doelmap) document.getElementById('exportDoelmap').value = status.doelmap;
+    if (status.target_folder) document.getElementById('exportDoelmap').value = status.target_folder;
     startExportPolling();
-  } else if (status.klaar || status.gestopt) {
+  } else if (status.ready || status.stopped) {
     document.getElementById('exportSetup').style.display = 'none';
     document.getElementById('exportVoortgang').style.display = 'none';
     document.getElementById('exportKlaar').style.display = 'block';

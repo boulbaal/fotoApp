@@ -8,17 +8,17 @@ function verbindMapWs() {
     const msg = JSON.parse(evt.data);
 
     if (msg.type === 'log') {
-      voegLogToe(msg.level, msg.tekst, msg.ts);
+      voegLogToe(msg.level, msg.text, msg.ts);
       return;
     }
-    if (msg.type === 'map_gekozen' && msg.pad) {
+    if (msg.type === 'folder_chosen' && msg.path) {
       const el = document.getElementById(mapDoelInput);
-      if (el) el.value = msg.pad;
+      if (el) el.value = msg.path;
     }
   };
 
   mapWs.onclose = () => {
-    voegLogToe('warn', '⚠️ Verbinding verbroken — herverbinden...', new Date().toISOString());
+    voegLogToe('warn', '⚠️ Connection lost — reconnecting...', new Date().toISOString());
     setTimeout(verbindMapWs, 3000);
   };
   mapWs.onerror = () => mapWs.close();
@@ -29,12 +29,12 @@ function openMapKiezer(doelId) {
   mapDoelInput = doelId || 'bronPad';
 
   if (!mapWs || mapWs.readyState !== WebSocket.OPEN) {
-    alert('WebSocket niet verbonden. Herstart de app.');
+    alert('WebSocket not connected. Restart the app.');
     return;
   }
 
   const huidigPad = document.getElementById(mapDoelInput)?.value || '/home/one';
-  mapWs.send(JSON.stringify({ type: 'kies_map', startPad: huidigPad }));
+  mapWs.send(JSON.stringify({ type: 'choose_folder', startPath: huidigPad }));
 }
 
 verbindMapWs();

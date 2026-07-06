@@ -15,7 +15,7 @@ function toggleSelectieModus() {
   if (balk) balk.style.display = selectieModus ? 'flex' : 'none';
   const knop = document.getElementById('selectieKnop');
   if (knop) {
-    knop.textContent = selectieModus ? '✕ ' + tt('selectie_stop', 'Stop selecteren') : '☑️ ' + tt('selectie_start', 'Selecteren');
+    knop.textContent = selectieModus ? '✕ ' + tt('selectie_stop', 'Stop selecting') : '☑️ ' + tt('selectie_start', 'Select');
     knop.classList.toggle('actief', selectieModus);
   }
   werkSelectieUiBij();
@@ -45,12 +45,12 @@ function toggleSelectie(id) {
 
 function werkSelectieUiBij() {
   const t = document.getElementById('selectieTeller');
-  if (t) t.textContent = `${geselecteerdeIds.size} ${tt('selectie_geselecteerd', 'geselecteerd')}`;
+  if (t) t.textContent = `${geselecteerdeIds.size} ${tt('selectie_geselecteerd', 'selected')}`;
 }
 
 function herstelSelectieMarkering() {
   document.querySelectorAll('#fotoGrid .foto-item[data-id]').forEach(el => {
-    el.classList.toggle('geselecteerd', geselecteerdeIds.has(Number(el.dataset.id)));
+    el.classList.toggle('selected', geselecteerdeIds.has(Number(el.dataset.id)));
   });
 }
 
@@ -63,15 +63,15 @@ function fotoItemKlik(id) {
 async function bulkNegeer(negeren) {
   const ids = [...geselecteerdeIds];
   if (ids.length === 0) {
-    alert(tt('selectie_niets', 'Selecteer eerst een of meer foto\'s.'));
+    alert(tt('selectie_niets', 'Select one or more photos first.'));
     return;
   }
-  const r = await fetch('/api/fotos/negeer-bulk', {
+  const r = await fetch('/api/photos/ignore-bulk', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ids, genegeerd: negeren })
+    body: JSON.stringify({ ids, ignored: negeren })
   });
-  if (!r.ok) { alert(tt('selectie_fout', 'Bulk-actie mislukt')); return; }
+  if (!r.ok) { alert(tt('selectie_fout', 'Bulk action failed')); return; }
   geselecteerdeIds.clear();
   werkSelectieUiBij();
   await laadFotos(huidigePagina);
@@ -82,27 +82,27 @@ function setActieveFilter(filter) {
   const el = document.getElementById('actieveFilters');
   if (!el) return;
   // Sla filter op in data-attribuut
-  el.dataset.land         = filter?.params?.land         || '';
-  el.dataset.cameraMerk   = filter?.params?.camera_merk  || '';
+  el.dataset.country         = filter?.params?.country         || '';
+  el.dataset.cameraMerk   = filter?.params?.camera_make  || '';
   el.dataset.cameraModel  = filter?.params?.camera_model || '';
-  el.dataset.zonderGps    = filter?.params?.zonder_gps   || '';
+  el.dataset.withoutGps    = filter?.params?.without_gps   || '';
   el.dataset.label        = filter?.label                || '';
 }
 
 function getActieveFilter() {
   const el = document.getElementById('actieveFilters');
   if (!el) return null;
-  const land        = el.dataset.land        || '';
+  const country        = el.dataset.country        || '';
   const cameraMerk  = el.dataset.cameraMerk  || '';
   const cameraModel = el.dataset.cameraModel || '';
-  const zonderGps   = el.dataset.zonderGps   || '';
+  const withoutGps   = el.dataset.withoutGps   || '';
   const label       = el.dataset.label       || '';
-  if (!land && !cameraMerk && !cameraModel && !zonderGps) return null;
+  if (!country && !cameraMerk && !cameraModel && !withoutGps) return null;
   const params = {};
-  if (land)        params.land         = land;
-  if (cameraMerk)  params.camera_merk  = cameraMerk;
+  if (country)        params.country         = country;
+  if (cameraMerk)  params.camera_make  = cameraMerk;
   if (cameraModel) params.camera_model = cameraModel;
-  if (zonderGps)   params.zonder_gps   = zonderGps;
+  if (withoutGps)   params.without_gps   = withoutGps;
   return { params, label };
 }
 
@@ -111,38 +111,38 @@ function clearActieveFilter() {
   laadFotos(1);
 }
 
-// Scheidingsteken om camera_merk + camera_model in één dropdown-waarde te coderen
+// Scheidingsteken om camera_make + camera_model in één dropdown-value te coderen
 const CAMERA_SEP = '|::|';
 
 async function laadBronnenFilter() {
-  const [bronnen, stats] = await Promise.all([
-    fetch('/api/bronnen').then(r => r.json()),
+  const [sources, stats] = await Promise.all([
+    fetch('/api/sources').then(r => r.json()),
     fetch('/api/stats').then(r => r.json())
   ]);
 
   const t = (k, val) => (window.i18n ? window.i18n.t(k) : val);
 
   const selBron = document.getElementById('filterBron');
-  selBron.innerHTML = `<option value="">${t('filter_alle_bronnen', 'Alle bronnen')}</option>` +
-    bronnen.map(b => `<option value="${b.id}">${b.icoon} ${b.naam}</option>`).join('');
+  selBron.innerHTML = `<option value="">${t('filter_alle_bronnen', 'All sources')}</option>` +
+    sources.map(b => `<option value="${b.id}">${b.icon} ${b.name}</option>`).join('');
 
   const selJaar = document.getElementById('filterJaar');
   const huidigJaar = selJaar.value;
-  selJaar.innerHTML = `<option value="">${t('filter_alle_jaren', 'Alle jaren')}</option>` +
-    (stats.perJaar || []).sort((a, b) => b.jaar - a.jaar)
-      .map(j => `<option value="${j.jaar}">${j.jaar} (${j.aantal.toLocaleString()})</option>`)
+  selJaar.innerHTML = `<option value="">${t('filter_alle_jaren', 'All years')}</option>` +
+    (stats.perYear || []).sort((a, b) => b.year - a.year)
+      .map(j => `<option value="${j.year}">${j.year} (${j.count.toLocaleString()})</option>`)
       .join('');
   if (huidigJaar) selJaar.value = huidigJaar;
 
-  // Camera-filter (merk + model gecodeerd in de waarde)
+  // Camera-filter (merk + model gecodeerd in de value)
   const selCamera = document.getElementById('filterCamera');
   if (selCamera) {
     const huidigeCamera = selCamera.value;
-    selCamera.innerHTML = `<option value="">${t('filter_alle_cameras', "Alle camera's")}</option>` +
+    selCamera.innerHTML = `<option value="">${t('filter_alle_cameras', "All cameras")}</option>` +
       (stats.perCamera || []).map(c => {
-        const label = [c.camera_merk, c.camera_model].filter(Boolean).join(' ') || '?';
-        const waarde = `${c.camera_merk || ''}${CAMERA_SEP}${c.camera_model || ''}`;
-        return `<option value="${waarde}">${label} (${(c.aantal || 0).toLocaleString()})</option>`;
+        const label = [c.camera_make, c.camera_model].filter(Boolean).join(' ') || '?';
+        const value = `${c.camera_make || ''}${CAMERA_SEP}${c.camera_model || ''}`;
+        return `<option value="${value}">${label} (${(c.count || 0).toLocaleString()})</option>`;
       }).join('');
     if (huidigeCamera) selCamera.value = huidigeCamera;
   }
@@ -151,10 +151,10 @@ async function laadBronnenFilter() {
   const selLand = document.getElementById('filterLand');
   if (selLand) {
     const huidigLand = selLand.value;
-    selLand.innerHTML = `<option value="">${t('filter_alle_landen', 'Alle landen')}</option>` +
-      (stats.perLand || []).map(r => {
-        const vlag = r.gps_land_code ? landVlag(r.gps_land_code) : landVlagVanNaam(r.gps_land);
-        return `<option value="${r.gps_land}">${vlag ? vlag + ' ' : ''}${r.gps_land} (${(r.aantal || 0).toLocaleString()})</option>`;
+    selLand.innerHTML = `<option value="">${t('filter_alle_landen', 'All countries')}</option>` +
+      (stats.perCountry || []).map(r => {
+        const vlag = r.gps_country_code ? landVlag(r.gps_country_code) : landVlagVanNaam(r.gps_country);
+        return `<option value="${r.gps_country}">${vlag ? vlag + ' ' : ''}${r.gps_country} (${(r.count || 0).toLocaleString()})</option>`;
       }).join('');
     if (huidigLand) selLand.value = huidigLand;
   }
@@ -188,35 +188,35 @@ function wisAlleFilters(type) {
   }
 }
 
-async function laadFotos(pagina = 1) {
-  huidigePagina = pagina;
-  const zoek    = document.getElementById('zoekInput').value;
+async function laadFotos(page = 1) {
+  huidigePagina = page;
+  const search    = document.getElementById('zoekInput').value;
   const bron    = document.getElementById('filterBron').value;
-  const jaar    = document.getElementById('filterJaar').value;
+  const year    = document.getElementById('filterJaar').value;
   const camera  = document.getElementById('filterCamera')?.value  || '';
-  const land    = document.getElementById('filterLand')?.value    || '';
-  const locatie = document.getElementById('filterLocatie')?.value || '';
+  const country    = document.getElementById('filterLand')?.value    || '';
+  const location = document.getElementById('filterLocatie')?.value || '';
   const dup     = document.getElementById('filterDup')?.value     || '';
 
-  // Camera-waarde "merkmodel" splitsen
+  // Camera-value "merkmodel" splitsen
   let cameraMerk = '', cameraModel = '';
   if (camera) { [cameraMerk, cameraModel] = camera.split(CAMERA_SEP); }
 
   const actieveFilter = getActieveFilter();
 
   const params = new URLSearchParams({
-    pagina, per_pagina: 50, zonder_thumbnail: 1,
-    zonder_kopien: 1, is_video: 0,
-    ...(zoek && { zoek }),
-    ...(bron && { bron_id: bron }),
-    ...(jaar && { jaar }),
-    ...(cameraMerk  && { camera_merk:  cameraMerk }),
+    page, per_page: 50, without_thumbnail: 1,
+    without_copies: 1, is_video: 0,
+    ...(search && { search }),
+    ...(bron && { source_id: bron }),
+    ...(year && { year }),
+    ...(cameraMerk  && { camera_make:  cameraMerk }),
     ...(cameraModel && { camera_model: cameraModel }),
-    ...(land && { land }),
-    ...(locatie === 'met'    && { met_gps: 1 }),
-    ...(locatie === 'zonder' && { zonder_gps: 1 }),
-    ...(dup === 'uniek'  && { alleen_uniek: 1 }),
-    ...(dup === 'dubbel' && { alleen_dubbel: 1 }),
+    ...(country && { country }),
+    ...(location === 'with'    && { with_gps: 1 }),
+    ...(location === 'without' && { without_gps: 1 }),
+    ...(dup === 'unique'  && { unique_only: 1 }),
+    ...(dup === 'duplicate' && { duplicates_only: 1 }),
     ...(actieveFilter?.params || {})
   });
 
@@ -230,48 +230,48 @@ async function laadFotos(pagina = 1) {
       : '';
   }
 
-  console.log('[laadFotos] URL:', '/api/fotos?' + params.toString());
+  console.log('[laadFotos] URL:', '/api/photos?' + params.toString());
 
-  const data = await fetch('/api/fotos?' + params).then(r => r.json());
-  document.getElementById('fotosTeller').textContent = `${data.totaal.toLocaleString()} foto${data.totaal === 1 ? '' : "'s"}`;
+  const data = await fetch('/api/photos?' + params).then(r => r.json());
+  document.getElementById('fotosTeller').textContent = `${data.total.toLocaleString()} foto${data.total === 1 ? '' : "'s"}`;
 
   const grid = document.getElementById('fotoGrid');
-  if (data.fotos.length === 0) {
-    // Lege pagina maar er zijn wél foto's (bv. laatste item van laatste pagina
-    // net verwijderd) → ga automatisch een pagina terug i.p.v. leeg tonen.
-    if (pagina > 1 && data.totaal > 0) { return laadFotos(pagina - 1); }
+  if (data.photos.length === 0) {
+    // Lege page maar er zijn wél foto's (bv. laatste item van laatste page
+    // net deleted) → ga automatisch een page terug i.p.v. leeg tonen.
+    if (page > 1 && data.total > 0) { return laadFotos(page - 1); }
     grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">' + window.i18n.t('geen_fotos') + '</div>';
     return;
   }
 
-  grid.innerHTML = data.fotos.map(f => `
-    <div class="foto-item${geselecteerdeIds.has(f.id) ? ' geselecteerd' : ''}" data-id="${f.id}" onclick="fotoItemKlik(${f.id})">
+  grid.innerHTML = data.photos.map(f => `
+    <div class="foto-item${geselecteerdeIds.has(f.id) ? ' selected' : ''}" data-id="${f.id}" onclick="fotoItemKlik(${f.id})">
       <div class="selectie-vink">✓</div>
-      ${f.is_duplicaat ? '<div class="dup-badge">DUP</div>' : ''}
-      ${f.geexporteerd ? '<div class="export-badge">✓</div>' : ''}
-      ${f.is_video ? `<div class="video-badge">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>` : ''}
-      <div class="bron-badge">${f.bron_icoon || '💻'}</div>
-      ${f.heeft_thumbnail
-        ? `<img src="/api/fotos/${f.id}/thumbnail" loading="lazy" alt="${f.bestandsnaam}">`
+      ${f.is_duplicate ? '<div class="dup-badge">DUP</div>' : ''}
+      ${f.exported ? '<div class="export-badge">✓</div>' : ''}
+      ${f.is_video ? `<div class="video-badge">▶${f.duration ? ' ' + formatDuur(f.duration) : ''}</div>` : ''}
+      <div class="bron-badge">${f.source_icon || '💻'}</div>
+      ${f.has_thumbnail
+        ? `<img src="/api/photos/${f.id}/thumbnail" loading="lazy" alt="${f.filename}">`
         : `<div class="no-img">${f.is_video ? '🎬' : '🖼️'}</div>`}
       <div class="info">
-        <div class="naam">${f.bestandsnaam}</div>
-        <div class="datum">${formatDatum(f.datum_foto)}${f.gps_stad ? ' · ' + f.gps_stad : ''}</div>
+        <div class="name">${f.filename}</div>
+        <div class="date">${formatDatum(f.photo_date)}${f.gps_city ? ' · ' + f.gps_city : ''}</div>
       </div>
     </div>
   `).join('');
 
   // Paginering
-  const totaalPaginas = Math.ceil(data.totaal / 50);
-  bouwPaginering(document.getElementById('fotosPaginering'), pagina, totaalPaginas, laadFotos);
+  const totaalPaginas = Math.ceil(data.total / 50);
+  bouwPaginering(document.getElementById('fotosPaginering'), page, totaalPaginas, laadFotos);
 }
 
 // Herbruikbare paginering. Vaste indeling, links én rechts symmetrisch:
 //   «  ‹‹(−10)  ‹(−1)   [ venster van max 10 paginanummers ]   ›(+1)  ››(+10)  »
-// Het nummervenster schuift mee met de huidige pagina (altijd 10 nummers
-// als er genoeg pagina's zijn). Gedeeld door foto's, video's, duplicaten.
+// Het nummervenster schuift mee met de huidige page (altijd 10 nummers
+// when there are enough pages). Shared by photos, videos, duplicates.
 const PAG_VENSTER = 10;
-function bouwPaginering(pag, pagina, totaalPaginas, laadFn) {
+function bouwPaginering(pag, page, totaalPaginas, laadFn) {
   pag.innerHTML = '';
   if (totaalPaginas <= 1) return;
 
@@ -286,22 +286,22 @@ function bouwPaginering(pag, pagina, totaalPaginas, laadFn) {
   };
 
   // Spring-knoppen vooraan (links)
-  pag.appendChild(maakKnop('«',  1,                          { titel: 'Eerste pagina', uit: pagina === 1 }));
-  pag.appendChild(maakKnop('‹‹', Math.max(1, pagina - 10),   { titel: '10 terug',      uit: pagina === 1 }));
-  pag.appendChild(maakKnop('‹',  pagina - 1,                 { titel: 'Vorige',        uit: pagina === 1 }));
+  pag.appendChild(maakKnop('«',  1,                          { titel: 'First page', uit: page === 1 }));
+  pag.appendChild(maakKnop('‹‹', Math.max(1, page - 10),   { titel: '10 back',      uit: page === 1 }));
+  pag.appendChild(maakKnop('‹',  page - 1,                 { titel: 'Previous',        uit: page === 1 }));
 
-  // Schuivend venster van (max) 10 nummers, gecentreerd op de huidige pagina.
-  let start = Math.max(1, pagina - Math.floor(PAG_VENSTER / 2));
+  // Schuivend venster van (max) 10 nummers, gecentreerd op de huidige page.
+  let start = Math.max(1, page - Math.floor(PAG_VENSTER / 2));
   let einde = Math.min(totaalPaginas, start + PAG_VENSTER - 1);
   start = Math.max(1, einde - PAG_VENSTER + 1);   // herijken zodat er 10 getoond worden
   for (let p = start; p <= einde; p++) {
-    pag.appendChild(maakKnop(p, p, { actief: p === pagina }));
+    pag.appendChild(maakKnop(p, p, { actief: p === page }));
   }
 
   // Spring-knoppen achteraan (rechts) — spiegelbeeld van links
-  pag.appendChild(maakKnop('›',  pagina + 1,                                 { titel: 'Volgende',      uit: pagina === totaalPaginas }));
-  pag.appendChild(maakKnop('››', Math.min(totaalPaginas, pagina + 10),       { titel: '10 vooruit',    uit: pagina === totaalPaginas }));
-  pag.appendChild(maakKnop('»',  totaalPaginas,                              { titel: 'Laatste pagina', uit: pagina === totaalPaginas }));
+  pag.appendChild(maakKnop('›',  page + 1,                                 { titel: 'Next',      uit: page === totaalPaginas }));
+  pag.appendChild(maakKnop('››', Math.min(totaalPaginas, page + 10),       { titel: '10 forward',    uit: page === totaalPaginas }));
+  pag.appendChild(maakKnop('»',  totaalPaginas,                              { titel: 'Last page', uit: page === totaalPaginas }));
 }
 
 let huidigeFotoId = null;
@@ -317,49 +317,49 @@ function slaOriginelenOp() {
 }
 
 function heeftOnopgeslagenWijzigingen() {
-  const stad  = (document.getElementById('bewerkStad')?.value  || '').trim();
-  const land  = (document.getElementById('bewerkLand')?.value  || '').trim();
-  const datum = (document.getElementById('bewerkDatum')?.value || '').trim();
-  return stad !== origStad || land !== origLand || datum !== origDatum;
+  const city  = (document.getElementById('bewerkStad')?.value  || '').trim();
+  const country  = (document.getElementById('bewerkLand')?.value  || '').trim();
+  const date = (document.getElementById('bewerkDatum')?.value || '').trim();
+  return city !== origStad || country !== origLand || date !== origDatum;
 }
 
 async function toonDetail(id) {
   huidigeFotoId = id;
   huidigeItemIsVideo = false;
-  const f = await fetch('/api/fotos/' + id).then(r => r.json());
+  const f = await fetch('/api/photos/' + id).then(r => r.json());
   renderModal(f);
   document.getElementById('modalOverlay').classList.add('open');
 }
 
 function renderModal(f) {
-  document.getElementById('modalTitel').textContent = f.bestandsnaam;
+  document.getElementById('modalTitel').textContent = f.filename;
   document.getElementById('modalImg').innerHTML = (f.thumbnail
-    ? `<img src="${f.thumbnail}" alt="${f.bestandsnaam}">`
+    ? `<img src="${f.thumbnail}" alt="${f.filename}">`
     : `<div style="font-size:60px;padding:40px">🖼️</div>`)
-    + `<a href="/api/fotos/${f.id}/bestand" target="_blank" class="open-origineel-knop">🔍 Open origineel</a>`;
+    + `<a href="/api/photos/${f.id}/file" target="_blank" class="open-origineel-knop">🔍 Open original</a>`;
 
-  const padEscaped = f.volledig_pad.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const padEscaped = f.full_path.replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const velden = [
-    ['Bron',        f.bron_icoon + ' ' + f.bron_naam],
-    ['Pad',         `<a href="#" class="pad-link" title="Toon in bestandsbeheerder" onclick="toonInMap(event, ${f.id})">📂 ${padEscaped}</a>`],
-    ['Datum foto',  formatDatum(f.datum_foto) + (f.datum_bron ? ` <span style="color:#6b7280;font-size:11px">(${f.datum_bron})</span>` : '')],
-    ['Camera',      [f.camera_merk, f.camera_model].filter(Boolean).join(' ') || '—'],
+    ['Source',        f.source_icon + ' ' + f.source_name],
+    ['Path',         `<a href="#" class="path-link" title="Show in file manager" onclick="toonInMap(event, ${f.id})">📂 ${padEscaped}</a>`],
+    ['Photo date',  formatDatum(f.photo_date) + (f.date_source ? ` <span style="color:#6b7280;font-size:11px">(${f.date_source})</span>` : '')],
+    ['Camera',      [f.camera_make, f.camera_model].filter(Boolean).join(' ') || '—'],
     ['Lens',        f.lens || '—'],
-    ['Grootte',     formatGrootte(f.bestandsgrootte)],
-    ['Resolutie',   f.breedte && f.hoogte ? `${f.breedte} × ${f.hoogte}` : '—'],
+    ['Size',     formatGrootte(f.file_size)],
+    ['Resolution',   f.width && f.height ? `${f.width} × ${f.height}` : '—'],
     ['ISO',         f.iso || '—'],
-    ['Sluitertijd', f.sluitertijd || '—'],
-    ['Diafragma',   f.diafragma ? 'f/' + f.diafragma : '—'],
-    ['Brandpunt',   f.brandpuntsafstand ? f.brandpuntsafstand + ' mm' : '—'],
-    ['Locatie',     (() => {
-      if (!f.gps_stad && !f.gps_land) return '—';
-      const vlag = f.gps_land_code ? landVlag(f.gps_land_code) : landVlagVanNaam(f.gps_land);
-      return `${vlag} ${[f.gps_stad, f.gps_land].filter(Boolean).join(', ')}`.trim();
+    ['Shutter speed', f.shutter_speed || '—'],
+    ['Aperture',   f.aperture ? 'f/' + f.aperture : '—'],
+    ['Focal length',   f.focal_length ? f.focal_length + ' mm' : '—'],
+    ['Location',     (() => {
+      if (!f.gps_city && !f.gps_country) return '—';
+      const vlag = f.gps_country_code ? landVlag(f.gps_country_code) : landVlagVanNaam(f.gps_country);
+      return `${vlag} ${[f.gps_city, f.gps_country].filter(Boolean).join(', ')}`.trim();
     })()],
     ['GPS',         f.gps_lat ? `${f.gps_lat.toFixed(4)}, ${f.gps_lon.toFixed(4)}` : '—'],
-    ['Duplicaat',   f.is_duplicaat
-      ? (f.is_origineel ? '✅ Behouden exemplaar — kopieën op andere locaties' : '📋 Kopie — behouden exemplaar op andere locatie')
-      : 'Nee'],
+    ['Duplicate',   f.is_duplicate
+      ? (f.is_original ? '✅ Kept copy — duplicates at other locations' : '📋 Copy — kept copy at another location')
+      : 'No'],
     ['Software',    f.software || '—'],
   ];
 
@@ -371,27 +371,27 @@ function renderModal(f) {
   // Duplicaatlocaties tonen
   const dupEl = document.getElementById('modalDuplicaten');
   if (dupEl) {
-    const locs = f.duplicaat_locaties || [];
+    const locs = f.duplicate_locations || [];
     if (locs.length > 0) {
-      const titelTekst = f.is_origineel
-        ? '📋 Kopieën van dit behouden exemplaar:'
-        : '📂 Dit is een kopie — zelfde foto ook op:';
+      const titelTekst = f.is_original
+        ? '📋 Copies of this kept original:'
+        : '📂 This is a copy — same photo also at:';
 
       dupEl.innerHTML = `
         <div class="dup-sectie">
           <div class="dup-sectie-titel">${titelTekst}</div>
           ${locs.map(d => {
-            const padEsc = d.volledig_pad.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-            const badge = d.is_origineel
+            const padEsc = d.full_path.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+            const badge = d.is_original
               ? '<span class="dup-origineel-badge">BEHOUDEN</span>'
               : '';
-            return `<div class="dup-locatie">
+            return `<div class="dup-location">
               <div style="display:flex;align-items:center;gap:6px">
-                <span class="dup-bron">${d.bron_icoon} ${d.bron_naam}</span>
+                <span class="dup-bron">${d.source_icon} ${d.source_name}</span>
                 ${badge}
               </div>
-              <a href="#" class="pad-link dup-pad" title="Toon in bestandsbeheerder" onclick="toonInMap(event, ${d.id})">📂 ${padEsc}</a>
-              <span class="dup-grootte">${formatGrootte(d.bestandsgrootte)}</span>
+              <a href="#" class="path-link dup-path" title="Show in file manager" onclick="toonInMap(event, ${d.id})">📂 ${padEsc}</a>
+              <span class="dup-size">${formatGrootte(d.file_size)}</span>
             </div>`;
           }).join('')}
         </div>`;
@@ -401,60 +401,60 @@ function renderModal(f) {
   }
 
   // Bewerkformulier — in tabelstijl, consistent met metadata
-  const datumRij = !f.datum_foto ? `
+  const datumRij = !f.photo_date ? `
     <tr class="bewerk-tr">
       <td>Datum</td>
       <td><input id="bewerkDatum" type="text" placeholder="dd/mm/yyyy"
         maxlength="10" oninput="formateerDatumInput(this)" class="meta-input"></td>
-    </tr>` : `<input type="hidden" id="bewerkDatum" value="${datumNaarDdMmYyyy(f.datum_foto)}">`;
+    </tr>` : `<input type="hidden" id="bewerkDatum" value="${datumNaarDdMmYyyy(f.photo_date)}">`;
 
   document.getElementById('modalBewerkFormulier').innerHTML = `
     <table class="meta-tabel bewerk-tabel">
       <tr class="bewerk-tr">
-        <td>Stad</td>
-        <td><input id="bewerkStad" value="${f.gps_stad || ''}" placeholder="bv. Brussel" class="meta-input"></td>
+        <td>City</td>
+        <td><input id="bewerkStad" value="${f.gps_city || ''}" placeholder="e.g. Brussels" class="meta-input"></td>
       </tr>
       <tr class="bewerk-tr">
-        <td>Land</td>
-        <td><input id="bewerkLand" value="${f.gps_land || ''}" placeholder="bv. Belgium" class="meta-input"></td>
+        <td>Country</td>
+        <td><input id="bewerkLand" value="${f.gps_country || ''}" placeholder="e.g. Belgium" class="meta-input"></td>
       </tr>
       ${datumRij}
     </table>
     <div style="display:flex;gap:8px;margin-top:12px">
-      <button id="opslaanKnop" class="btn btn-primair" style="flex:1;font-size:13px" onclick="slaaBewerkingOpFoto()">💾 Opslaan</button>
-      <button class="btn btn-secundair" style="font-size:13px" onclick="openGpsKaart(${f.gps_lat || 'null'}, ${f.gps_lon || 'null'})">📍 GPS kiezen</button>
+      <button id="opslaanKnop" class="btn btn-primair" style="flex:1;font-size:13px" onclick="slaaBewerkingOpFoto()">💾 Save</button>
+      <button class="btn btn-secundair" style="font-size:13px" onclick="openGpsKaart(${f.gps_lat || 'null'}, ${f.gps_lon || 'null'})">📍 Pick GPS</button>
     </div>
     <div id="bewerkStatus" style="font-size:12px;color:#888;margin-top:6px"></div>
-    <button id="verwijderFotoKnop" class="verwijder-definitief-knop" style="width:100%;margin-top:10px"
+    <button id="verwijderFotoKnop" class="delete-definitief-knop" style="width:100%;margin-top:10px"
       onclick="verwijderFotoDefinitief(${f.id})" data-i18n="foto_verwijder">
-      🗑️ Definitief verwijderen
+      🗑️ Permanently delete
     </button>
   `;
 
   // Sla originelen op voor unsaved-changes detectie
   setTimeout(slaOriginelenOp, 0);
 
-  // Als GPS coördinaten bestaan maar stad/land ontbreekt → auto-geocode
-  if (f.gps_lat && f.gps_lon && !f.gps_stad && !f.gps_land) {
+  // Als GPS coördinaten bestaan maar city/country ontbreekt → auto-geocode
+  if (f.gps_lat && f.gps_lon && !f.gps_city && !f.gps_country) {
     const status = document.getElementById('bewerkStatus');
     status.textContent = '🌍 Locatie ophalen...';
     fetch(`https://nominatim.openstreetmap.org/reverse?lat=${f.gps_lat}&lon=${f.gps_lon}&format=json&accept-language=en`)
       .then(r => r.json())
       .then(data => {
         const addr = data.address || {};
-        const stad = addr.city || addr.town || addr.village || addr.hamlet || addr.county || '';
-        const land = addr.country || '';
-        if (stad) document.getElementById('bewerkStad').value = stad;
-        if (land) document.getElementById('bewerkLand').value = land;
-        status.textContent = stad || land ? '📍 Locatie ingevuld — sla op om te bewaren' : '';
+        const city = addr.city || addr.town || addr.village || addr.hamlet || addr.county || '';
+        const country = addr.country || '';
+        if (city) document.getElementById('bewerkStad').value = city;
+        if (country) document.getElementById('bewerkLand').value = country;
+        status.textContent = city || country ? '📍 Locatie ingevuld — sla op om te bewaren' : '';
       })
       .catch(() => { status.textContent = ''; });
   }
 }
 
 async function slaaBewerkingOpFoto() {
-  const stad  = document.getElementById('bewerkStad').value.trim();
-  const land  = document.getElementById('bewerkLand').value.trim();
+  const city  = document.getElementById('bewerkStad').value.trim();
+  const country  = document.getElementById('bewerkLand').value.trim();
   const datumTekst = document.getElementById('bewerkDatum')?.value?.trim() || '';
   const status = document.getElementById('bewerkStatus');
 
@@ -462,44 +462,44 @@ async function slaaBewerkingOpFoto() {
   let datumIso = null;
   if (datumTekst) {
     const iso = ddMmYyyyNaarIso(datumTekst);
-    if (!iso) { status.textContent = '❌ Ongeldige datum (gebruik dd/mm/yyyy)'; return; }
+    if (!iso) { status.textContent = '❌ Ongeldige date (gebruik dd/mm/yyyy)'; return; }
     datumIso = iso;
   }
 
   const opslaanKnop = document.getElementById('opslaanKnop');
   if (opslaanKnop) { opslaanKnop.disabled = true; opslaanKnop.textContent = '⏳ Opslaan...'; }
 
-  // Als stad én land leeg zijn → wis ook coördinaten
-  const wisGps = !stad && !land;
+  // Als city én country leeg zijn → delete ook coördinaten
+  const wisGps = !city && !country;
   // Leid land_code af uit ingetypte landnaam (voor correcte vlag)
-  const landCode = land ? (LAND_CODES[land] || LAND_CODES[land.trim()] || null) : null;
+  const landCode = country ? (LAND_CODES[country] || LAND_CODES[country.trim()] || null) : null;
 
-  const r = await fetch('/api/fotos/' + huidigeFotoId, {
+  const r = await fetch('/api/photos/' + huidigeFotoId, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      gps_stad:      stad      || null,
-      gps_land:      land      || null,
-      gps_land_code: landCode,
+      gps_city:      city      || null,
+      gps_country:      country      || null,
+      gps_country_code: landCode,
       gps_lat:       wisGps ? null : undefined,
       gps_lon:       wisGps ? null : undefined,
-      gps_adres:     wisGps ? null : undefined,
-      datum_foto: datumIso || undefined,
+      gps_address:     wisGps ? null : undefined,
+      photo_date: datumIso || undefined,
     })
   });
   if (r.ok) {
-    const bijgewerkt = await r.json();
+    const updated = await r.json();
     origStad = ''; origLand = ''; origDatum = ''; // reset vóór render
-    if (bijgewerkt.is_video && typeof renderVideoModal === 'function') {
-      renderVideoModal(bijgewerkt);
+    if (updated.is_video && typeof renderVideoModal === 'function') {
+      renderVideoModal(updated);
     } else {
-      renderModal(bijgewerkt);
+      renderModal(updated);
     }
     // Knop instellen NA renderModal (renderModal herbouwt het formulier)
     const knopNa = document.getElementById('opslaanKnop');
     if (knopNa) { knopNa.disabled = true; knopNa.textContent = '✅ Opgeslagen'; }
 
-    // Kaart bijwerken bij elke GPS-wijziging (ook nieuwe locatie, niet alleen wissen)
+    // Kaart bijwerken bij elke GPS-wijziging (ook nieuwe location, niet alleen wissen)
     if (typeof herlaadLocaties === 'function') herlaadLocaties();
 
     // Kaart-panel herladen als het open is
@@ -515,7 +515,7 @@ async function slaaBewerkingOpFoto() {
       origStad = ''; origLand = ''; origDatum = '';
     }, 1000);
   } else {
-    if (opslaanKnop) { opslaanKnop.disabled = false; opslaanKnop.textContent = '💾 Opslaan'; }
+    if (opslaanKnop) { opslaanKnop.disabled = false; opslaanKnop.textContent = '💾 Save'; }
     status.textContent = '❌ Fout bij opslaan';
   }
 }
@@ -538,21 +538,21 @@ function sluitModal(e) {
   }
 }
 
-// Toon een foto (hoofdpad of duplicaat-locatie) in de bestandsbeheerder
+// Toon een foto (hoofdpad of duplicaat-location) in de bestandsbeheerder
 async function toonInMap(event, id) {
   if (event) event.preventDefault();
   const link = event && event.currentTarget;
   const oudeTitel = link ? link.getAttribute('title') : null;
-  if (link) link.setAttribute('title', 'Bestandsbeheerder openen...');
+  if (link) link.setAttribute('title', 'Opening file manager...');
   try {
-    const r = await fetch('/api/fotos/' + id + '/toon-in-map', { method: 'POST' });
+    const r = await fetch('/api/photos/' + id + '/show-in-folder', { method: 'POST' });
     const data = await r.json();
     if (!r.ok || !data.ok) {
-      alert('Kon de locatie niet openen: ' + (data.fout || 'onbekende fout') +
-        (data.pad ? '\n\n' + data.pad : ''));
+      alert('Could not open the location: ' + (data.error || 'unknown error') +
+        (data.path ? '\n\n' + data.path : ''));
     }
   } catch (e) {
-    alert('Kon de bestandsbeheerder niet openen: ' + e.message);
+    alert('Could not open the file manager: ' + e.message);
   } finally {
     if (link && oudeTitel) link.setAttribute('title', oudeTitel);
   }
@@ -562,31 +562,31 @@ async function toonInMap(event, id) {
 // Verwijder de getoonde foto definitief: naar prullenbak + uit database
 async function verwijderFotoDefinitief(id) {
   const bevestig = confirm(
-    "LET OP — deze foto wordt ECHT verwijderd:\n\n" +
-    "• Het bestand gaat naar de prullenbak van je computer (herstelbaar)\n" +
-    "• Het wordt uit de database gewist, zodat het niet opnieuw gescand wordt\n\n" +
-    "Weet je het zeker?"
+    "WARNING — this photo will be PERMANENTLY deleted:\n\n" +
+    "• The file goes to your computer's trash (recoverable)\n" +
+    "• It is removed from the database so it will not be rescanned\n\n" +
+    "Are you sure?"
   );
   if (!bevestig) return;
 
   const knop = document.getElementById('verwijderFotoKnop');
-  if (knop) { knop.disabled = true; knop.textContent = '🗑️ Bezig met verwijderen...'; }
+  if (knop) { knop.disabled = true; knop.textContent = '🗑️ Deleting...'; }
 
   try {
-    const r = await fetch('/api/fotos/' + id + '/verwijder', { method: 'POST' });
+    const r = await fetch('/api/photos/' + id + '/delete', { method: 'POST' });
     const data = await r.json();
     if (!r.ok || !data.ok) {
-      alert('Verwijderen mislukt: ' + (data.fout || data.detail || 'onbekende fout'));
-      if (knop) { knop.disabled = false; knop.textContent = '🗑️ Definitief verwijderen'; }
+      alert('Delete failed: ' + (data.error || data.detail || 'unknown error'));
+      if (knop) { knop.disabled = false; knop.textContent = '🗑️ Permanently delete'; }
       return;
     }
     // Geen onopgeslagen-waarschuwing meer tonen
     origStad = ''; origLand = ''; origDatum = '';
     document.querySelectorAll('#modalOverlay video').forEach(v => { v.pause(); v.src = ''; });
     document.getElementById('modalOverlay').classList.remove('open');
-    // Herlaad de juiste lijst op DEZELFDE pagina (niet terug naar 1).
-    // Als dit het laatste item op de laatste pagina was, vangt de lege-pagina
-    // afhandeling in laadFotos/laadVideos dit op en gaat een pagina terug.
+    // Herlaad de juiste lijst op DEZELFDE page (niet terug naar 1).
+    // Als dit het laatste item op de laatste page was, vangt de lege-page
+    // afhandeling in laadFotos/laadVideos dit op en gaat een page terug.
     if (typeof huidigeItemIsVideo !== 'undefined' && huidigeItemIsVideo && typeof laadVideos === 'function') {
       laadVideos(typeof huidigePaginaVideo !== 'undefined' ? huidigePaginaVideo : 1);
     } else {
@@ -601,7 +601,7 @@ async function verwijderFotoDefinitief(id) {
       if (typeof herlaadLocaties === 'function') herlaadLocaties();
     }
   } catch (e) {
-    alert('Verwijderen mislukt: ' + e.message);
-    if (knop) { knop.disabled = false; knop.textContent = '🗑️ Definitief verwijderen'; }
+    alert('Delete failed: ' + e.message);
+    if (knop) { knop.disabled = false; knop.textContent = '🗑️ Permanently delete'; }
   }
 }

@@ -1,63 +1,63 @@
 // === FASE 2: NEGEREN ===
 
-async function laadNegeren(pagina = 1) {
-  const zoek = document.getElementById('negerenZoek')?.value || '';
-  const filter = document.getElementById('negerenFilter')?.value || 'nog-niet';
+async function laadNegeren(page = 1) {
+  const search = document.getElementById('negerenZoek')?.value || '';
+  const filter = document.getElementById('negerenFilter')?.value || 'pending';
 
   const params = new URLSearchParams({
-    pagina, per_pagina: 50, zonder_thumbnail: 1,
-    zonder_kopien: 1,
-    genegeerd: filter === 'alle' ? '' : '0',
-    ...(zoek && { zoek })
+    page, per_page: 50, without_thumbnail: 1,
+    without_copies: 1,
+    ignored: filter === 'all' ? '' : '0',
+    ...(search && { search })
   });
 
-  const data = await fetch('/api/fotos?' + params).then(r => r.json());
+  const data = await fetch('/api/photos?' + params).then(r => r.json());
   const teller = document.getElementById('negerenTeller');
-  if (teller) teller.textContent = `${data.totaal.toLocaleString()} foto's`;
+  if (teller) teller.textContent = `${data.total.toLocaleString()} photos`;
 
   const grid = document.getElementById('negerenGrid');
   if (!grid) return;
 
-  if (data.fotos.length === 0) {
+  if (data.photos.length === 0) {
     grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">' + window.i18n.t('geen_negeren') + '</div>';
     return;
   }
 
-  grid.innerHTML = data.fotos.map(f => `
-    <div class="foto-item negeer-item ${f.genegeerd ? 'foto-genegeerd' : ''}"
+  grid.innerHTML = data.photos.map(f => `
+    <div class="foto-item ignore-item ${f.ignored ? 'foto-ignored' : ''}"
          data-foto="${f.id}"
          onclick="toggleNegeerItem(${f.id}, this)">
-      ${f.is_duplicaat ? '<div class="status-badge badge-dup">DUP</div>' : ''}
-      ${f.geexporteerd ? '<div class="export-badge">✓</div>' : ''}
-      <div class="status-badge ${f.genegeerd ? 'badge-negeren' : 'badge-meenemen'}">
-        ${f.genegeerd ? 'NEGEREN' : 'MEENEMEN'}
+      ${f.is_duplicate ? '<div class="status-badge badge-dup">DUP</div>' : ''}
+      ${f.exported ? '<div class="export-badge">✓</div>' : ''}
+      <div class="status-badge ${f.ignored ? 'badge-negeren' : 'badge-meenemen'}">
+        ${f.ignored ? 'NEGEREN' : 'MEENEMEN'}
       </div>
-      <div class="bron-badge">${f.bron_icoon || '💻'}</div>
-      ${f.heeft_thumbnail
-        ? `<img src="/api/fotos/${f.id}/thumbnail" loading="lazy" alt="${f.bestandsnaam}">`
+      <div class="bron-badge">${f.source_icon || '💻'}</div>
+      ${f.has_thumbnail
+        ? `<img src="/api/photos/${f.id}/thumbnail" loading="lazy" alt="${f.filename}">`
         : `<div class="no-img">${f.is_video ? '🎬' : '🖼️'}</div>`}
-      ${f.is_video ? `<div class="video-badge">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>` : ''}
+      ${f.is_video ? `<div class="video-badge">▶${f.duration ? ' ' + formatDuur(f.duration) : ''}</div>` : ''}
       <div class="info">
-        <div class="naam">${f.bestandsnaam}</div>
-        <div class="datum">${formatDatum(f.datum_foto)}${f.gps_stad ? ' · ' + f.gps_stad : ''}</div>
+        <div class="name">${f.filename}</div>
+        <div class="date">${formatDatum(f.photo_date)}${f.gps_city ? ' · ' + f.gps_city : ''}</div>
       </div>
     </div>
   `).join('');
 
   bindNegerenHoverPreview();
 
-  const totaalPaginas = Math.ceil(data.totaal / 50);
-  bouwPaginering(document.getElementById('negerenPaginering'), pagina, totaalPaginas, laadNegeren);
+  const totaalPaginas = Math.ceil(data.total / 50);
+  bouwPaginering(document.getElementById('negerenPaginering'), page, totaalPaginas, laadNegeren);
 }
 
 async function toggleNegeerItem(id, el) {
-  const isNuGenegeerd = el.classList.contains('foto-genegeerd');
+  const isNuGenegeerd = el.classList.contains('foto-ignored');
   const nieuwGenegeerd = !isNuGenegeerd;
 
-  const r = await fetch(`/api/fotos/${id}/negeer`, {
+  const r = await fetch(`/api/photos/${id}/ignore`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ genegeerd: nieuwGenegeerd })
+    body: JSON.stringify({ ignored: nieuwGenegeerd })
   });
 
   if (!r.ok) return;
@@ -69,13 +69,13 @@ async function toggleNegeerItem(id, el) {
     setTimeout(() => {
       el.remove();
       const grid = document.getElementById('negerenGrid');
-      if (grid && grid.querySelectorAll('.negeer-item').length === 0) {
+      if (grid && grid.querySelectorAll('.ignore-item').length === 0) {
         grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">' + window.i18n.t('geen_negeren') + '</div>';
       }
     }, 320);
   } else {
     // MEENEMEN → blijft staan, alleen de badge terugzetten
-    el.classList.remove('foto-genegeerd');
+    el.classList.remove('foto-ignored');
     const badge = el.querySelector('.badge-negeren, .badge-meenemen');
     if (badge) {
       badge.className = 'status-badge badge-meenemen';
@@ -90,35 +90,35 @@ function verlaagNegerenTeller() {
   if (!teller) return;
   const huidig = parseInt((teller.textContent || '').replace(/[^\d]/g, ''), 10);
   if (!isNaN(huidig) && huidig > 0) {
-    teller.textContent = `${(huidig - 1).toLocaleString()} foto's`;
+    teller.textContent = `${(huidig - 1).toLocaleString()} photos`;
   }
 }
 
-// Bewaar toggleNegeer voor achterwaartse compatibiliteit (genegeerd-pagina)
+// Bewaar toggleNegeer voor achterwaartse compatibiliteit (ignored-page)
 async function toggleNegeer(id, knop) {
   const isNuGenegeerd = knop.classList.contains('hersteld');
-  const r = await fetch(`/api/fotos/${id}/negeer`, {
+  const r = await fetch(`/api/photos/${id}/ignore`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ genegeerd: !isNuGenegeerd })
+    body: JSON.stringify({ ignored: !isNuGenegeerd })
   });
   if (r.ok) {
     const fotoItem = knop.closest('.foto-item');
     if (!isNuGenegeerd) {
-      fotoItem.classList.add('foto-genegeerd');
+      fotoItem.classList.add('foto-ignored');
       knop.classList.add('hersteld');
       knop.textContent = '↩ Herstellen';
     } else {
-      fotoItem.classList.remove('foto-genegeerd');
+      fotoItem.classList.remove('foto-ignored');
       knop.classList.remove('hersteld');
       knop.textContent = '🚫 Negeren';
     }
   }
 }
 
-async function laadGenegeerd(pagina = 1) {
-  const params = new URLSearchParams({ pagina, per_pagina: 50, zonder_thumbnail: 1, genegeerd: '1', zonder_kopien: 1 });
-  const data = await fetch('/api/fotos?' + params).then(r => r.json());
+async function laadGenegeerd(page = 1) {
+  const params = new URLSearchParams({ page, per_page: 50, without_thumbnail: 1, ignored: '1', without_copies: 1 });
+  const data = await fetch('/api/photos?' + params).then(r => r.json());
 
   const grid = document.getElementById('genegeerGrid');
   const leeg = document.getElementById('genegeerLeeg');
@@ -127,9 +127,9 @@ async function laadGenegeerd(pagina = 1) {
 
   const pag = document.getElementById('genegeerPaginering');
 
-  if (data.fotos.length === 0) {
-    // Lege pagina maar er zijn wél genegeerde foto's → ga een pagina terug.
-    if (pagina > 1 && data.totaal > 0) return laadGenegeerd(pagina - 1);
+  if (data.photos.length === 0) {
+    // Lege page maar er zijn wél genegeerde foto's → ga een page terug.
+    if (page > 1 && data.total > 0) return laadGenegeerd(page - 1);
     grid.innerHTML = '';
     if (pag) pag.innerHTML = '';
     if (leeg) leeg.style.display = 'block';
@@ -139,21 +139,21 @@ async function laadGenegeerd(pagina = 1) {
   if (leeg) leeg.style.display = 'none';
   if (verwijderKnop) verwijderKnop.style.display = '';
 
-  grid.innerHTML = data.fotos.map(f => `
-    <div class="foto-item negeer-item foto-genegeerd" data-foto="${f.id}">
-      ${f.is_duplicaat ? '<div class="status-badge badge-dup">DUP</div>' : ''}
+  grid.innerHTML = data.photos.map(f => `
+    <div class="foto-item ignore-item foto-ignored" data-foto="${f.id}">
+      ${f.is_duplicate ? '<div class="status-badge badge-dup">DUP</div>' : ''}
       <div class="status-badge badge-negeren">NEGEREN</div>
-      <div class="bron-badge">${f.bron_icoon || '💻'}</div>
-      ${f.heeft_thumbnail
-        ? `<img src="/api/fotos/${f.id}/thumbnail" loading="lazy" alt="${f.bestandsnaam}">`
+      <div class="bron-badge">${f.source_icon || '💻'}</div>
+      ${f.has_thumbnail
+        ? `<img src="/api/photos/${f.id}/thumbnail" loading="lazy" alt="${f.filename}">`
         : `<div class="no-img">${f.is_video ? '🎬' : '🖼️'}</div>`}
-      ${f.is_video ? `<div class="video-badge">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>` : ''}
+      ${f.is_video ? `<div class="video-badge">▶${f.duration ? ' ' + formatDuur(f.duration) : ''}</div>` : ''}
       <div class="info">
-        <div class="naam">${f.bestandsnaam}</div>
-        <div class="datum">${formatDatum(f.datum_foto)}${f.gps_stad ? ' · ' + f.gps_stad : ''}</div>
+        <div class="name">${f.filename}</div>
+        <div class="date">${formatDatum(f.photo_date)}${f.gps_city ? ' · ' + f.gps_city : ''}</div>
       </div>
-      <button class="negeer-knop hersteld"
-        onclick="event.stopPropagation(); toggleNegeer(${f.id}, this); setTimeout(() => laadGenegeerd(${pagina}), 200)">
+      <button class="ignore-knop hersteld"
+        onclick="event.stopPropagation(); toggleNegeer(${f.id}, this); setTimeout(() => laadGenegeerd(${page}), 200)">
         ↩ Herstellen
       </button>
     </div>
@@ -161,43 +161,43 @@ async function laadGenegeerd(pagina = 1) {
 
   bindNegerenHoverPreview();
 
-  const totaalPaginas = Math.ceil(data.totaal / 50);
-  bouwPaginering(document.getElementById('genegeerPaginering'), pagina, totaalPaginas, laadGenegeerd);
+  const totaalPaginas = Math.ceil(data.total / 50);
+  bouwPaginering(document.getElementById('genegeerPaginering'), page, totaalPaginas, laadGenegeerd);
 }
 
 // Verwijder ALLE genegeerde foto's definitief (naar prullenbak + uit database)
 async function verwijderAlleGenegeerd() {
   const teller = document.getElementById('genegeerGrid');
-  const aantal = teller ? teller.querySelectorAll('.negeer-item').length : 0;
+  const count = teller ? teller.querySelectorAll('.ignore-item').length : 0;
 
   const bevestig = confirm(
-    "LET OP — dit verwijdert de genegeerde foto's ECHT:\n\n" +
+    "WARNING — this PERMANENTLY deletes the ignored photos:\n\n" +
     "• De bestanden gaan naar de prullenbak van je computer (herstelbaar)\n" +
-    "• Ze worden uit de database gewist, zodat ze niet opnieuw gescand worden\n" +
-    "• Alle duplicaten in dezelfde groep gaan mee\n\n" +
-    "Weet je het zeker?"
+    "• They are removed from the database so they will not be rescanned\n" +
+    "• Alle duplicates in dezelfde group gaan mee\n\n" +
+    "Are you sure?"
   );
   if (!bevestig) return;
 
   const knop = document.getElementById('verwijderGenegeerdKnop');
-  if (knop) { knop.disabled = true; knop.textContent = '🗑️ Bezig met verwijderen...'; }
+  if (knop) { knop.disabled = true; knop.textContent = '🗑️ Deleting...'; }
 
   try {
-    const r = await fetch('/api/genegeerd/verwijder', { method: 'POST' });
+    const r = await fetch('/api/ignored/delete', { method: 'POST' });
     const data = await r.json();
     if (!r.ok || !data.ok) {
-      alert('Verwijderen mislukt: ' + (data.fout || data.detail || 'onbekende fout'));
+      alert('Delete failed: ' + (data.error || data.detail || 'unknown error'));
       return;
     }
-    let bericht = `${data.verwijderd} foto('s) verwijderd.`;
-    if (data.naarPrullenbak) bericht += `\n${data.naarPrullenbak} naar de prullenbak verplaatst.`;
-    if (data.ontbrak) bericht += `\n${data.ontbrak} bestand(en) bestonden al niet meer (alleen DB opgeschoond).`;
-    if (data.mislukt && data.mislukt.length) bericht += `\n${data.mislukt.length} bestand(en) konden niet verplaatst worden.`;
-    alert(bericht);
+    let message = `${data.deleted} photo(s) deleted.`;
+    if (data.movedToTrash) message += `\n${data.movedToTrash} moved to the trash.`;
+    if (data.missing) message += `\n${data.missing} file(s) no longer existed (only DB cleaned up).`;
+    if (data.failed && data.failed.length) message += `\n${data.failed.length} file(s) could not be moved.`;
+    alert(message);
   } catch (e) {
-    alert('Verwijderen mislukt: ' + e.message);
+    alert('Delete failed: ' + e.message);
   } finally {
-    if (knop) { knop.disabled = false; knop.textContent = '🗑️ Verwijder alle genegeerde definitief'; }
+    if (knop) { knop.disabled = false; knop.textContent = '🗑️ Permanently delete all ignored'; }
     laadGenegeerd(1);
   }
 }
@@ -208,7 +208,7 @@ let negerenPreviewTimer = null;
 let negerenMusX = 0, negerenMusY = 0;
 
 function bindNegerenHoverPreview() {
-  document.querySelectorAll('.negeer-item').forEach(el => {
+  document.querySelectorAll('.ignore-item').forEach(el => {
     el.addEventListener('mouseenter', onNegerenHoverIn);
     el.addEventListener('mousemove',  onNegerenMusBeweeg);
     el.addEventListener('mouseleave', onNegerenHoverUit);
@@ -239,7 +239,7 @@ function toonNegerenPreview(el) {
   const preview = document.getElementById('bulkThumbPreview');
   if (!preview) return;
 
-  preview.innerHTML = `<img src="/api/fotos/${fotoId}/thumbnail" alt="" style="width:100%;height:100%;object-fit:contain;">`;
+  preview.innerHTML = `<img src="/api/photos/${fotoId}/thumbnail" alt="" style="width:100%;height:100%;object-fit:contain;">`;
   preview.style.display = 'block';
 
   const pw = 480, ph = 360;

@@ -1,123 +1,123 @@
-// === DUPLICATEN: opruimen op basis van bron-prioriteit ===
+// === DUPLICATEN: opruimen op basis van bron-priority ===
 //
-// De prioriteit (bron-volgorde + handmatige keuzes) is server-side opgeslagen in
-// de database (zie /api/duplicaten/prioriteit), zodat de backend-export exact
+// De priority (bron-volgorde + manual keuzes) is server-side opgeslagen in
+// de database (zie /api/duplicates/priority), zodat de backend-export exact
 // hetzelfde "behouden exemplaar" kiest als de UI. localStorage dient nog als
 // synchrone cache zodat het renderen zonder await kan blijven werken.
 
-function getBronVolgorde() {
-  try { return JSON.parse(localStorage.getItem('dupBronVolgorde') || '[]'); }
+function getSourceOrder() {
+  try { return JSON.parse(localStorage.getItem('dupSourceOrder') || '[]'); }
   catch { return []; }
 }
 function setBronVolgorde(v) {
-  localStorage.setItem('dupBronVolgorde', JSON.stringify(v));
-  bewaarPrioOpServer({ bronVolgorde: v });
+  localStorage.setItem('dupSourceOrder', JSON.stringify(v));
+  bewaarPrioOpServer({ sourceOrder: v });
 }
 
-function getHandmatig() {
-  try { return JSON.parse(localStorage.getItem('dupHandmatig') || '{}'); }
+function getManual() {
+  try { return JSON.parse(localStorage.getItem('dupManual') || '{}'); }
   catch { return {}; }
 }
 function setHandmatig(h) {
-  localStorage.setItem('dupHandmatig', JSON.stringify(h));
-  bewaarPrioOpServer({ handmatig: h });
+  localStorage.setItem('dupManual', JSON.stringify(h));
+  bewaarPrioOpServer({ manual: h });
 }
 
-// Schrijf prioriteit naar de server (bron van waarheid, gedeeld met export).
+// Schrijf priority naar de server (bron van waarheid, gedeeld met export).
 function bewaarPrioOpServer(payload) {
-  return fetch('/api/duplicaten/prioriteit', {
+  return fetch('/api/duplicates/priority', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
-  }).catch(() => {}); // offline/fout: localStorage blijft als fallback werken
+  }).catch(() => {}); // offline/error: localStorage blijft als fallback werken
 }
 
-// Haal de opgeslagen prioriteit van de server en spiegel ze naar localStorage,
+// Haal de opgeslagen priority van de server en spiegel ze naar localStorage,
 // zodat de synchrone render-functies (bepaalOrigineelClient) de juiste keuze maken.
 async function syncPrioVanServer() {
   try {
-    const p = await fetch('/api/duplicaten/prioriteit').then(r => r.json());
-    if (Array.isArray(p.bronVolgorde)) localStorage.setItem('dupBronVolgorde', JSON.stringify(p.bronVolgorde));
-    if (p.handmatig && typeof p.handmatig === 'object') localStorage.setItem('dupHandmatig', JSON.stringify(p.handmatig));
+    const p = await fetch('/api/duplicates/priority').then(r => r.json());
+    if (Array.isArray(p.sourceOrder)) localStorage.setItem('dupSourceOrder', JSON.stringify(p.sourceOrder));
+    if (p.manual && typeof p.manual === 'object') localStorage.setItem('dupManual', JSON.stringify(p.manual));
   } catch (_) { /* server onbereikbaar: localStorage-cache gebruiken */ }
 }
 
-// Bepaal het origineel (= behouden) exemplaar binnen een groep.
+// Bepaal het origineel (= behouden) exemplaar binnen een group.
 // Spiegelt exact de backend-logica in bepaalOrigineel().
-function bepaalOrigineelClient(fotos, groep) {
-  const volgorde = getBronVolgorde();
-  const handmatigId = getHandmatig()[groep];
-  if (handmatigId != null && fotos.some(f => f.id === handmatigId)) return handmatigId;
+function bepaalOrigineelClient(photos, group) {
+  const volgorde = getSourceOrder();
+  const manualId = getManual()[group];
+  if (manualId != null && photos.some(f => f.id === manualId)) return manualId;
   const rang = id => { const i = volgorde.indexOf(id); return i === -1 ? Infinity : i; };
-  const gerangschikt = fotos.filter(f => rang(f.bron_id) !== Infinity);
+  const gerangschikt = photos.filter(f => rang(f.source_id) !== Infinity);
   if (gerangschikt.length === 0) {
     // Alle kopieën uit dezelfde bron → niets te kiezen, behoud laagste id.
-    // Meerdere bronnen zonder prioriteit → keuze nodig (null). Spiegelt bepaalKeeper().
-    const eenBron = fotos.every(f => f.bron_id === fotos[0].bron_id);
-    if (eenBron) return fotos.slice().sort((a, b) => a.id - b.id)[0].id;
+    // Meerdere sources zonder priority → keuze nodig (null). Spiegelt bepaalKeeper().
+    const eenBron = photos.every(f => f.source_id === photos[0].source_id);
+    if (eenBron) return photos.slice().sort((a, b) => a.id - b.id)[0].id;
     return null;
   }
-  gerangschikt.sort((a, b) => rang(a.bron_id) - rang(b.bron_id) || a.id - b.id);
+  gerangschikt.sort((a, b) => rang(a.source_id) - rang(b.source_id) || a.id - b.id);
   return gerangschikt[0].id;
 }
 
-async function laadDuplicaten(pagina = 1) {
-  await syncPrioVanServer(); // server-prioriteit naar lokale cache vóór render
-  const data = await fetch(`/api/duplicaten?pagina=${pagina}&per_pagina=10`).then(r => r.json());
+async function laadDuplicaten(page = 1) {
+  await syncPrioVanServer(); // server-priority naar lokale cache vóór render
+  const data = await fetch(`/api/duplicates?page=${page}&per_page=10`).then(r => r.json());
 
   const t = (k, fallback) => (window.i18n ? window.i18n.t(k) : fallback) || fallback;
   document.getElementById('dupInfo').textContent =
-    `${data.totaal_groepen.toLocaleString()} ${t('dup_groepen', 'groepen met duplicaten')}`;
+    `${data.totaal_groepen.toLocaleString()} ${t('dup_groepen', 'groups met duplicates')}`;
 
   const lijst = document.getElementById('duplicatenLijst');
-  if (data.groepen.length === 0) {
-    lijst.innerHTML = `<div class="leeg">${t('dup_geen', 'Geen duplicaten gevonden.')}</div>`;
+  if (data.groups.length === 0) {
+    lijst.innerHTML = `<div class="leeg">${t('dup_geen', 'No duplicates found.')}</div>`;
     document.getElementById('dupPaginering').innerHTML = '';
     return;
   }
 
-  lijst.innerHTML = data.groepen.map(g => {
-    const keeperId = bepaalOrigineelClient(g.fotos, g.duplicaat_groep);
-    const keuzeNodig = keeperId == null;
+  lijst.innerHTML = data.groups.map(g => {
+    const keeperId = bepaalOrigineelClient(g.photos, g.duplicate_group);
+    const choiceNeeded = keeperId == null;
 
-    const kop = keuzeNodig
-      ? `<h4 class="dup-keuze-nodig">⚠️ ${g.aantal}× ${t('dup_keuze_nodig', 'hetzelfde bestand — kies welk exemplaar je behoudt')}</h4>`
-      : `<h4>📋 ${g.aantal}× ${t('dup_zelfde', 'hetzelfde bestand')} · ${formatDatum(g.datum)}</h4>`;
+    const kop = choiceNeeded
+      ? `<h4 class="dup-keuze-nodig">⚠️ ${g.count}× ${t('dup_keuze_nodig', 'the same file — choose which copy to keep')}</h4>`
+      : `<h4>📋 ${g.count}× ${t('dup_zelfde', 'the same file')} · ${formatDatum(g.date)}</h4>`;
 
-    const fotosHtml = g.fotos.map(f => {
+    const fotosHtml = g.photos.map(f => {
       const isKeeper = f.id === keeperId;
       const badge = isKeeper
-        ? `<div class="dup-badge dup-badge-origineel">★ ${t('dup_origineel', 'BEHOUDEN')}</div>`
-        : (keuzeNodig ? '' : `<div class="dup-badge dup-badge-kopie">${t('dup_kopie', 'KOPIE')}</div>`);
+        ? `<div class="dup-badge dup-badge-origineel">★ ${t('dup_origineel', 'KEEP')}</div>`
+        : (choiceNeeded ? '' : `<div class="dup-badge dup-badge-kopie">${t('dup_kopie', 'COPY')}</div>`);
       return `
         <div class="dup-foto ${isKeeper ? 'is-keeper' : ''}">
           ${badge}
           <div onclick="toonDetail(${f.id})" style="cursor:pointer">
-            ${f.thumbnail ? `<img src="${f.thumbnail}" alt="${f.bestandsnaam}">` : `<div class="no-img">🖼️</div>`}
+            ${f.thumbnail ? `<img src="${f.thumbnail}" alt="${f.filename}">` : `<div class="no-img">🖼️</div>`}
           </div>
-          <div class="bron">${f.bron_icoon || '💻'} ${f.bron_naam}</div>
-          <div class="pad">${f.volledig_pad}</div>
-          ${f.gps_lat ? `<div class="pad" style="color:#7c6af7">📍 ${f.gps_stad || ''} ${f.gps_land || ''}</div>` : ''}
-          ${isKeeper ? '' : `<button class="dup-maak-origineel" onclick="maakOrigineel('${g.duplicaat_groep}', ${f.id})">★ ${t('dup_maak_origineel', 'Dit exemplaar behouden')}</button>`}
+          <div class="bron">${f.source_icon || '💻'} ${f.source_name}</div>
+          <div class="path">${f.full_path}</div>
+          ${f.gps_lat ? `<div class="path" style="color:#7c6af7">📍 ${f.gps_city || ''} ${f.gps_country || ''}</div>` : ''}
+          ${isKeeper ? '' : `<button class="dup-maak-origineel" onclick="maakOrigineel('${g.duplicate_group}', ${f.id})">★ ${t('dup_maak_origineel', 'Keep this copy')}</button>`}
         </div>`;
     }).join('');
 
-    const groepActie = keuzeNodig
-      ? `<div class="dup-groep-actie dup-groep-wacht">${t('dup_wacht', 'Maak eerst een keuze hierboven om deze groep op te ruimen.')}</div>`
-      : `<button class="dup-groep-wis" onclick="wisGroep('${g.duplicaat_groep}', ${g.aantal - 1})">🗑️ ${t('dup_wis_groep', 'Duplicaten van deze groep wissen')} (${g.aantal - 1})</button>`;
+    const groepActie = choiceNeeded
+      ? `<div class="dup-group-actie dup-group-wacht">${t('dup_wacht', 'Make a choice above first to clean up this group.')}</div>`
+      : `<button class="dup-group-delete" onclick="wisGroep('${g.duplicate_group}', ${g.count - 1})">🗑️ ${t('dup_wis_groep', 'Delete duplicates of this group')} (${g.count - 1})</button>`;
 
-    return `<div class="dup-groep ${keuzeNodig ? 'dup-groep-keuze' : ''}">${kop}<div class="dup-fotos">${fotosHtml}</div>${groepActie}</div>`;
+    return `<div class="dup-group ${choiceNeeded ? 'dup-group-keuze' : ''}">${kop}<div class="dup-photos">${fotosHtml}</div>${groepActie}</div>`;
   }).join('');
 
   // Paginering — gedeelde helper (volledige nummerreeks + snel-spring-knoppen)
   const totaalPaginas = Math.ceil(data.totaal_groepen / 10);
-  bouwPaginering(document.getElementById('dupPaginering'), pagina, totaalPaginas, laadDuplicaten);
+  bouwPaginering(document.getElementById('dupPaginering'), page, totaalPaginas, laadDuplicaten);
 }
 
-// Handmatige override: kies dit exemplaar als origineel voor deze groep
-function maakOrigineel(groep, fotoId) {
-  const h = getHandmatig();
-  h[groep] = fotoId;
+// Handmatige override: kies dit exemplaar als origineel voor deze group
+function maakOrigineel(group, fotoId) {
+  const h = getManual();
+  h[group] = fotoId;
   setHandmatig(h);
   laadDuplicaten(huidigeDupPagina());
 }
@@ -129,30 +129,30 @@ function huidigeDupPagina() {
 
 // === WISSEN ===
 
-async function wisGroep(groep, aantalKopien) {
+async function wisGroep(group, copyCount) {
   const t = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
   if (!confirm(t('dup_wis_groep_bevestig',
-    `LET OP — ${aantalKopien} kopie(ën) van deze groep gaan naar de prullenbak.\n\n` +
+    `WARNING — ${copyCount} copy(ies) of this group will go to the trash.\n\n` +
     `• Bestanden zijn herstelbaar via de prullenbak\n` +
-    `• Ze worden uit de database gewist (niet opnieuw gescand)\n` +
+    `• They are removed from the database (not rescanned)\n` +
     `• Het origineel blijft staan\n\nDoorgaan?`))) return;
 
-  await stuurWis({ groep });
+  await stuurWis({ group });
 }
 
 async function wisAlleDuplicaten() {
   const t = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
-  const body = { bronVolgorde: getBronVolgorde(), handmatig: getHandmatig() };
+  const body = { sourceOrder: getSourceOrder(), manual: getManual() };
 
   // Preview ophalen voor een eerlijke bevestiging
-  const pv = await fetch('/api/duplicaten/wis-preview', {
+  const pv = await fetch('/api/duplicates/delete-preview', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
   }).then(r => r.json());
 
   if (pv.bestanden === 0) {
-    alert(pv.keuzeNodig > 0
-      ? t('dup_alles_keuze', `Er zijn nog ${pv.keuzeNodig} groep(en) waar je eerst een keuze moet maken.`)
-      : t('dup_niets', 'Er zijn geen duplicaten om te wissen.'));
+    alert(pv.choiceNeeded > 0
+      ? t('dup_alles_keuze', `There are still ${pv.choiceNeeded} group(s) where you need to make a choice first.`)
+      : t('dup_niets', 'There are no duplicates to delete.'));
     return;
   }
 
@@ -160,10 +160,10 @@ async function wisAlleDuplicaten() {
     `LET OP — ${pv.bestanden} duplicaat-bestand(en) gaan naar de prullenbak\n` +
     `(${formatGrootte(pv.bytes)} vrijgemaakt).\n\n` +
     `• Herstelbaar via de prullenbak\n` +
-    `• Uit de database gewist (niet opnieuw gescand)\n` +
+    `• Removed from the database (not rescanned)\n` +
     `• Alleen de originelen blijven staan`;
-  if (pv.keuzeNodig > 0) {
-    waarschuwing += `\n\n⚠️ ${pv.keuzeNodig} groep(en) worden OVERGESLAGEN omdat je daar nog geen keuze hebt gemaakt.`;
+  if (pv.choiceNeeded > 0) {
+    waarschuwing += `\n\n⚠️ ${pv.choiceNeeded} group(s) will be SKIPPED because you have not made a choice there yet.`;
   }
   waarschuwing += `\n\nDoorgaan?`;
   if (!confirm(waarschuwing)) return;
@@ -174,17 +174,17 @@ async function wisAlleDuplicaten() {
 async function stuurWis(body) {
   const t = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
   try {
-    const data = await fetch('/api/duplicaten/wis', {
+    const data = await fetch('/api/duplicates/delete', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     }).then(r => r.json());
-    if (!data.ok) { alert('Wissen mislukt: ' + (data.fout || 'onbekende fout')); return; }
+    if (!data.ok) { alert('Delete failed: ' + (data.error || 'unknown error')); return; }
 
-    let bericht = `${data.verwijderd} duplicaat(en) verwijderd`;
-    if (data.bytesVrij) bericht += ` · ${formatGrootte(data.bytesVrij)} vrijgemaakt`;
-    if (data.overgeslagen) bericht += `\n${data.overgeslagen} groep(en) overgeslagen (keuze nodig)`;
-    alert(bericht);
+    let message = `${data.deleted} duplicate(s) deleted`;
+    if (data.bytesVrij) message += ` · ${formatGrootte(data.bytesVrij)} vrijgemaakt`;
+    if (data.skipped) message += `\n${data.skipped} group(s) skipped (choice needed)`;
+    alert(message);
   } catch (e) {
-    alert('Wissen mislukt: ' + e.message);
+    alert('Delete failed: ' + e.message);
   } finally {
     laadDuplicaten(1);
   }
@@ -192,13 +192,13 @@ async function stuurWis(body) {
 
 // === PRIORITEIT MODAL ===
 
-let prioBronnen = []; // {id, naam, icoon, type}
+let prioBronnen = []; // {id, name, icon, type}
 let prioVervolg = null; // optionele actie na opslaan (bv. scan starten)
 
 async function openPrioModal(vervolg) {
   prioVervolg = typeof vervolg === 'function' ? vervolg : null;
-  prioBronnen = await fetch('/api/bronnen').then(r => r.json());
-  const opgeslagen = getBronVolgorde();
+  prioBronnen = await fetch('/api/sources').then(r => r.json());
+  const opgeslagen = getSourceOrder();
 
   // Gerangschikt = in opgeslagen volgorde; rest = ongerangschikt.
   // Eerste keer (niets opgeslagen): alles gerangschikt op type (pc, gsm, usb, overig) → huidig gedrag.
@@ -206,7 +206,7 @@ async function openPrioModal(vervolg) {
   if (opgeslagen.length === 0) {
     const typeRang = { pc: 0, gsm: 1, usb: 2 };
     gerangschikt = [...prioBronnen].sort((a, b) =>
-      (typeRang[a.type] ?? 3) - (typeRang[b.type] ?? 3) || a.naam.localeCompare(b.naam)
+      (typeRang[a.type] ?? 3) - (typeRang[b.type] ?? 3) || a.name.localeCompare(b.name)
     ).map(b => b.id);
     ongerangschikt = [];
   } else {
@@ -222,16 +222,16 @@ function bronById(id) { return prioBronnen.find(b => b.id === id); }
 
 function rendePrioLijsten(gerangschikt, ongerangschikt) {
   const t = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
-  const item = (id, inGerangschikt, idx, totaal) => {
+  const item = (id, inGerangschikt, idx, total) => {
     const b = bronById(id);
     if (!b) return '';
     const knoppen = inGerangschikt
       ? `<button class="prio-btn" ${idx === 0 ? 'disabled' : ''} onclick="prioOmhoog(${id})">▲</button>
-         <button class="prio-btn" ${idx === totaal - 1 ? 'disabled' : ''} onclick="prioOmlaag(${id})">▼</button>
-         <button class="prio-btn prio-btn-uit" title="${t('dup_prio_verwijder', 'Niet rangschikken')}" onclick="prioNaarOngerangschikt(${id})">✕</button>`
-      : `<button class="prio-btn prio-btn-in" title="${t('dup_prio_toevoegen', 'Toevoegen aan rangschikking')}" onclick="prioNaarGerangschikt(${id})">＋</button>`;
+         <button class="prio-btn" ${idx === total - 1 ? 'disabled' : ''} onclick="prioOmlaag(${id})">▼</button>
+         <button class="prio-btn prio-btn-uit" title="${t('dup_prio_verwijder', 'Do not rank')}" onclick="prioNaarOngerangschikt(${id})">✕</button>`
+      : `<button class="prio-btn prio-btn-in" title="${t('dup_prio_toevoegen', 'Add to ranking')}" onclick="prioNaarGerangschikt(${id})">＋</button>`;
     return `<li data-id="${id}">
-      <span class="prio-naam">${inGerangschikt ? `<b>${idx + 1}.</b> ` : ''}${b.icoon || '💻'} ${b.naam}</span>
+      <span class="prio-name">${inGerangschikt ? `<b>${idx + 1}.</b> ` : ''}${b.icon || '💻'} ${b.name}</span>
       <span class="prio-knoppen">${knoppen}</span>
     </li>`;
   };
@@ -239,7 +239,7 @@ function rendePrioLijsten(gerangschikt, ongerangschikt) {
   document.getElementById('prioGerangschikt').innerHTML =
     gerangschikt.length
       ? gerangschikt.map((id, i) => item(id, true, i, gerangschikt.length)).join('')
-      : `<li class="prio-leeg">${t('dup_prio_geen', 'Geen bronnen gerangschikt')}</li>`;
+      : `<li class="prio-leeg">${t('dup_prio_geen', 'No sources ranked')}</li>`;
   document.getElementById('prioOngerangschikt').innerHTML =
     ongerangschikt.length
       ? ongerangschikt.map(id => item(id, false)).join('')
@@ -300,11 +300,11 @@ function sluitPrioModal(e) {
 async function deelGpsMetDuplicaten() {
   const knop = event.target;
   knop.disabled = true;
-  knop.textContent = '⏳ Bezig...';
+  knop.textContent = '⏳ Working...';
 
-  const data = await fetch('/api/duplicaten/gps-delen', { method: 'POST' }).then(r => r.json());
+  const data = await fetch('/api/duplicates/gps-share', { method: 'POST' }).then(r => r.json());
 
   knop.disabled = false;
-  knop.textContent = `✅ ${data.bijgewerkt.toLocaleString()} foto's bijgewerkt`;
+  knop.textContent = `✅ ${data.updated.toLocaleString()} photos updated`;
   setTimeout(() => laadDuplicaten(1), 2000);
 }

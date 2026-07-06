@@ -2,14 +2,14 @@ let kaartInstantie   = null;
 let alleLocaties     = [];
 let markerGroep      = null;
 let actieveLocatie   = null;
-let kaartTypeFilter  = ''; // '' = alles, '0' = foto's, '1' = video's
-let kaartGewensteLand = null; // gewenst land bij openen vanuit dashboard
-let kaartVideoNadruk  = false; // video-locaties extra uitlichten (vanuit Landen video-grafiek)
+let kaartTypeFilter  = ''; // '' = all, '0' = photos, '1' = videos
+let kaartGewensteLand = null; // gewenst country bij openen vanuit dashboard
+let kaartVideoNadruk  = false; // video-locations extra uitlichten (vanuit Landen video-grafiek)
 
 // ─── INITIALISATIE ────────────────────────────────────────────────────────────
 
 async function laadKaart(extraFilter) {
-  // Vanuit dashboard: type-filter (foto/video) + gewenst land instellen
+  // Vanuit dashboard: type-filter (foto/video) + gewenst country instellen
   kaartVideoNadruk = !!(extraFilter && extraFilter.video_nadruk);
   if (kaartVideoNadruk) {
     // Gecombineerde weergave: alle media tonen, video's uitgelicht
@@ -17,8 +17,8 @@ async function laadKaart(extraFilter) {
   } else if (extraFilter && extraFilter.is_video !== undefined) {
     kaartTypeFilter = String(extraFilter.is_video);
   }
-  if (extraFilter && extraFilter.land) {
-    kaartGewensteLand = extraFilter.land;
+  if (extraFilter && extraFilter.country) {
+    kaartGewensteLand = extraFilter.country;
   }
 
   if (kaartInstantie) {
@@ -49,11 +49,11 @@ async function laadKaart(extraFilter) {
 
 async function herlaadLocaties() {
   const params = kaartTypeFilter !== '' ? `?is_video=${kaartTypeFilter}` : '';
-  alleLocaties = await fetch('/api/kaart/locaties' + params).then(r => r.json());
+  alleLocaties = await fetch('/api/map/locations' + params).then(r => r.json());
   vulJaarFilter();
   vulLandFilter();
 
-  // Vanuit dashboard geopend op een specifiek land → dropdown zetten en filteren
+  // Vanuit dashboard geopend op een specifiek country → dropdown zetten en filteren
   if (kaartGewensteLand) {
     const sel = document.getElementById('kaartLandFilter');
     if (sel) sel.value = kaartGewensteLand;
@@ -74,23 +74,23 @@ function vulJaarFilter() {
 
   const sel = document.getElementById('kaartJaarFilter');
   const huidig = sel.value;
-  sel.innerHTML = '<option value="">Alle jaren</option>' +
+  sel.innerHTML = '<option value="">All years</option>' +
     jaren.map(j => `<option value="${j}">${j}</option>`).join('');
   if (huidig) sel.value = huidig;
 }
 
 function vulLandFilter() {
   const landen = [...new Map(alleLocaties
-    .filter(l => l.gps_land)
-    .map(l => [l.gps_land, l])
-  ).values()].sort((a, b) => a.gps_land.localeCompare(b.gps_land));
+    .filter(l => l.gps_country)
+    .map(l => [l.gps_country, l])
+  ).values()].sort((a, b) => a.gps_country.localeCompare(b.gps_country));
 
   const sel = document.getElementById('kaartLandFilter');
   const huidig = sel.value;
-  sel.innerHTML = '<option value="">Alle landen</option>' +
+  sel.innerHTML = '<option value="">All countries</option>' +
     landen.map(l => {
-      const vlag = l.gps_land_code ? landVlag(l.gps_land_code) : '';
-      return `<option value="${l.gps_land}">${vlag} ${l.gps_land}</option>`;
+      const vlag = l.gps_country_code ? landVlag(l.gps_country_code) : '';
+      return `<option value="${l.gps_country}">${vlag} ${l.gps_country}</option>`;
     }).join('');
   if (huidig) sel.value = huidig;
 }
@@ -107,18 +107,18 @@ function updateKaartTypeKnoppen() {
 
 function setKaartTypeFilter(type) {
   kaartTypeFilter = type;
-  kaartVideoNadruk = false; // handmatige typewissel heft de video-nadruk op
+  kaartVideoNadruk = false; // manual typewissel heft de video-nadruk op
   updateKaartTypeKnoppen();
   herlaadLocaties();
 }
 
 function filterKaart() {
-  const jaar = document.getElementById('kaartJaarFilter').value;
-  const land = document.getElementById('kaartLandFilter').value;
+  const year = document.getElementById('kaartJaarFilter').value;
+  const country = document.getElementById('kaartLandFilter').value;
 
   const gefilterd = alleLocaties.filter(l => {
-    if (jaar && !(l.jaar_min <= parseInt(jaar) && l.jaar_max >= parseInt(jaar))) return false;
-    if (land && l.gps_land !== land) return false;
+    if (year && !(l.jaar_min <= parseInt(year) && l.jaar_max >= parseInt(year))) return false;
+    if (country && l.gps_country !== country) return false;
     return true;
   });
 
@@ -134,20 +134,20 @@ function resetKaartFilters() {
 
 // ─── MARKERS TEKENEN ──────────────────────────────────────────────────────────
 
-function tekenMarkers(locaties) {
+function tekenMarkers(locations) {
   if (markerGroep) kaartInstantie.removeLayer(markerGroep);
 
-  const totaal = locaties.reduce((s, l) => s + l.aantal, 0);
-  const totaalVideos = locaties.reduce((s, l) => s + (l.aantal_videos || 0), 0);
-  const totaalFotos  = totaal - totaalVideos;
+  const total = locations.reduce((s, l) => s + l.count, 0);
+  const totalVideos = locations.reduce((s, l) => s + (l.aantal_videos || 0), 0);
+  const totalPhotos  = total - totalVideos;
 
   let tellerTekst;
   if (kaartTypeFilter === '1') {
-    tellerTekst = `${locaties.length.toLocaleString()} locaties · ${totaal.toLocaleString()} video's`;
+    tellerTekst = `${locations.length.toLocaleString()} locations · ${total.toLocaleString()} videos`;
   } else if (kaartTypeFilter === '0') {
-    tellerTekst = `${locaties.length.toLocaleString()} locaties · ${totaal.toLocaleString()} foto's`;
+    tellerTekst = `${locations.length.toLocaleString()} locations · ${total.toLocaleString()} photos`;
   } else {
-    tellerTekst = `${locaties.length.toLocaleString()} locaties · ${totaalFotos.toLocaleString()} foto's · ${totaalVideos.toLocaleString()} video's`;
+    tellerTekst = `${locations.length.toLocaleString()} locations · ${totalPhotos.toLocaleString()} photos · ${totalVideos.toLocaleString()} videos`;
   }
   document.getElementById('kaartTeller').textContent = tellerTekst;
 
@@ -158,7 +158,7 @@ function tekenMarkers(locaties) {
     iconCreateFunction: maakClusterIcon,
   });
 
-  for (const loc of locaties) {
+  for (const loc of locations) {
     const marker = L.marker([loc.lat, loc.lon], { icon: maakFotoIcon(loc) });
     marker.on('click', (e) => {
       L.DomEvent.stopPropagation(e);
@@ -172,22 +172,22 @@ function tekenMarkers(locaties) {
 
 function maakFotoIcon(loc) {
   const heeftThumbnail = !!loc.voorbeeld_id;
-  const badge = loc.aantal > 1
-    ? `<div class="km-badge">${loc.aantal > 99 ? '99+' : loc.aantal}</div>`
+  const badge = loc.count > 1
+    ? `<div class="km-badge">${loc.count > 99 ? '99+' : loc.count}</div>`
     : '';
-  const alleVideos = loc.aantal_videos > 0 && loc.aantal_videos === loc.aantal;
-  const gemengd    = loc.aantal_videos > 0 && loc.aantal_videos < loc.aantal;
+  const alleVideos = loc.aantal_videos > 0 && loc.aantal_videos === loc.count;
+  const gemengd    = loc.aantal_videos > 0 && loc.aantal_videos < loc.count;
   const videoBadge = alleVideos ? '<div class="km-video-badge">▶</div>'
                    : gemengd   ? '<div class="km-video-badge km-gemengd">▶/📷</div>'
                    : '';
 
-  // Video-nadruk: locaties met video's krijgen een uitgelichte ring
+  // Video-nadruk: locations met video's krijgen een uitgelichte ring
   const nadruk = (kaartVideoNadruk && loc.aantal_videos > 0) ? ' km-video-nadruk' : '';
 
   return L.divIcon({
     className: '',
     html: `<div class="km-marker ${heeftThumbnail ? 'km-heeft-thumb' : ''}${nadruk}"
-                style="${heeftThumbnail ? `background-image:url('/api/fotos/${loc.voorbeeld_id}/thumbnail')` : ''}">
+                style="${heeftThumbnail ? `background-image:url('/api/photos/${loc.voorbeeld_id}/thumbnail')` : ''}">
              ${badge}${videoBadge}
            </div>`,
     iconSize: [52, 52],
@@ -211,8 +211,8 @@ function maakClusterIcon(cluster) {
 
 async function toonLocatiePanel(loc) {
   actieveLocatie = loc;
-  const vlag    = loc.gps_land_code ? landVlag(loc.gps_land_code) : '';
-  const locNaam = [loc.gps_stad, loc.gps_land].filter(Boolean).join(', ') || 'Onbekende locatie';
+  const vlag    = loc.gps_country_code ? landVlag(loc.gps_country_code) : '';
+  const locNaam = [loc.gps_city, loc.gps_country].filter(Boolean).join(', ') || 'Unknown location';
 
   document.getElementById('kaartPanelLocatie').textContent = `${vlag} ${locNaam}`.trim();
 
@@ -220,10 +220,10 @@ async function toonLocatiePanel(loc) {
     ? loc.jaar_min || ''
     : `${loc.jaar_min}–${loc.jaar_max}`;
   document.getElementById('kaartPanelInfo').textContent =
-    `📷 ${loc.aantal.toLocaleString()} item${loc.aantal !== 1 ? 's' : ''} · ${jaarTekst}`;
+    `📷 ${loc.count.toLocaleString()} item${loc.count !== 1 ? 's' : ''} · ${jaarTekst}`;
 
   document.getElementById('kaartPanelFotos').innerHTML =
-    '<div class="kp-laden">Laden...</div>';
+    '<div class="kp-laden">Loading...</div>';
   document.getElementById('kaartPanelOverlay').classList.add('open');
 
   await laadPanelFotos();
@@ -235,12 +235,12 @@ async function laadPanelFotos() {
   const zonder = '1';
   const typeParam = kaartTypeFilter !== '' ? `&is_video=${kaartTypeFilter}` : '';
 
-  const fotos = await fetch(
-    `/api/kaart/fotos?lat=${loc.lat}&lon=${loc.lon}&limit=60&zonder_kopien=${zonder}${typeParam}`
+  const photos = await fetch(
+    `/api/map/photos?lat=${loc.lat}&lon=${loc.lon}&limit=60&without_copies=${zonder}${typeParam}`
   ).then(r => r.json());
 
-  const aantalVideos = fotos.filter(f => f.is_video).length;
-  const aantalFotos  = fotos.length - aantalVideos;
+  const aantalVideos = photos.filter(f => f.is_video).length;
+  const aantalFotos  = photos.length - aantalVideos;
   const jaarTekst = actieveLocatie.jaar_min === actieveLocatie.jaar_max
     ? actieveLocatie.jaar_min || ''
     : `${actieveLocatie.jaar_min}–${actieveLocatie.jaar_max}`;
@@ -251,37 +251,37 @@ async function laadPanelFotos() {
   } else if (aantalVideos > 0) {
     infoTekst = `🎬 ${aantalVideos} video${aantalVideos !== 1 ? "'s" : ''} · ${jaarTekst}`;
   } else {
-    infoTekst = `📷 ${fotos.length.toLocaleString()} foto${fotos.length !== 1 ? "'s" : ''} · ${jaarTekst}`;
+    infoTekst = `📷 ${photos.length.toLocaleString()} foto${photos.length !== 1 ? "'s" : ''} · ${jaarTekst}`;
   }
   document.getElementById('kaartPanelInfo').textContent = infoTekst;
 
   const grid = document.getElementById('kaartPanelFotos');
-  if (!fotos.length) {
-    grid.innerHTML = '<div class="kp-laden">Geen items op deze locatie</div>';
+  if (!photos.length) {
+    grid.innerHTML = '<div class="kp-laden">No items at this location</div>';
     return;
   }
 
-  grid.innerHTML = fotos.map(f => {
-    const isDup  = f.is_duplicaat;
-    const isOrig = f.is_origineel;
+  grid.innerHTML = photos.map(f => {
+    const isDup  = f.is_duplicate;
+    const isOrig = f.is_original;
     const badge  = isDup && isOrig  ? '<div class="kp-badge kp-badge-orig">Behoud</div>'
                  : isDup && !isOrig ? '<div class="kp-badge kp-badge-dup">Kopie</div>'
                  : '';
     const videoBadge = f.is_video
-      ? `<div class="video-badge" style="top:auto;bottom:22px;">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>`
+      ? `<div class="video-badge" style="top:auto;bottom:22px;">▶${f.duration ? ' ' + formatDuur(f.duration) : ''}</div>`
       : '';
     const geenThumb = f.is_video ? '🎬' : '🖼️';
     const onclick = f.is_video ? `toonVideoDetail(${f.id})` : `toonDetail(${f.id})`;
     return `
-    <div class="kp-foto" onclick="${onclick}" title="${f.bestandsnaam}">
-      <img src="/api/fotos/${f.id}/thumbnail" loading="lazy"
+    <div class="kp-foto" onclick="${onclick}" title="${f.filename}">
+      <img src="/api/photos/${f.id}/thumbnail" loading="lazy"
            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
-           alt="${f.bestandsnaam}">
+           alt="${f.filename}">
       <div class="kp-foto-geen-thumb" style="display:none">${geenThumb}</div>
       ${badge}${videoBadge}
       <div class="kp-foto-info">
-        <div class="kp-foto-datum">${formatDatum(f.datum_foto)}</div>
-        <div class="kp-foto-bron">${f.bron_icoon || '💻'}</div>
+        <div class="kp-foto-date">${formatDatum(f.photo_date)}</div>
+        <div class="kp-foto-bron">${f.source_icon || '💻'}</div>
       </div>
     </div>`;
   }).join('');
@@ -301,13 +301,13 @@ function sluitKaartPanelDirect() {
 function bekijkLocatieInFotos() {
   if (!actieveLocatie) return;
   const loc = actieveLocatie;
-  const label = [loc.gps_stad, loc.gps_land].filter(Boolean).join(', ');
-  const vlagLabel = (loc.gps_land_code ? landVlag(loc.gps_land_code) + ' ' : '') + label;
+  const label = [loc.gps_city, loc.gps_country].filter(Boolean).join(', ');
+  const vlagLabel = (loc.gps_country_code ? landVlag(loc.gps_country_code) + ' ' : '') + label;
 
-  // Navigeer naar de juiste pagina op basis van het actieve type filter
+  // Navigeer naar de juiste page op basis van het actieve type filter
   if (kaartTypeFilter === '1') {
-    toonPagina('videos', { land: loc.gps_land, _label: vlagLabel });
+    toonPagina('videos', { country: loc.gps_country, _label: vlagLabel });
   } else {
-    toonPagina('fotos', { land: loc.gps_land, _label: vlagLabel });
+    toonPagina('photos', { country: loc.gps_country, _label: vlagLabel });
   }
 }

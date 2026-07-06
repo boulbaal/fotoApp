@@ -116,29 +116,29 @@ let queue = [];
 // Property names of the status objects below are the /api/scan/status
 // response contract (read by the frontend) — keep them as-is until phase B.
 let scanStatus = {
-  bezig: false,
-  bron_id: null,
-  totaal: 0,
-  verwerkt: 0,
-  nieuw: 0,
-  overgeslagen: 0,
-  fouten: 0,
-  huidig_bestand: '',
-  gestart: null,
+  running: false,
+  source_id: null,
+  total: 0,
+  processed: 0,
+  new_files: 0,
+  skipped: 0,
+  errors: 0,
+  current_file: '',
+  started: null,
   log_id: null,
-  wachtrij: []
+  queue: []
 };
 
 // Geocoding pass — runs in the background after every scan
 let geocodeStatus = {
-  bezig: false,
-  totaal: 0,
-  gedaan: 0,
-  huidig_land: ''
+  running: false,
+  total: 0,
+  done: 0,
+  current_country: ''
 };
 
 function getScanStatus() {
-  return { ...scanStatus, wachtrij: [...queue], geocode: { ...geocodeStatus } };
+  return { ...scanStatus, queue: [...queue], geocode: { ...geocodeStatus } };
 }
 
 function getGeocodeStatus() {
@@ -150,26 +150,26 @@ function propagateGpsInGroups() {
   const db = getDb();
   try {
   const groups = db.prepare(`
-    SELECT duplicaat_groep,
+    SELECT duplicate_group,
            MAX(gps_lat) as lat, MAX(gps_lon) as lon,
-           MAX(gps_stad) as stad, MAX(gps_land) as land,
-           MAX(gps_land_code) as land_code, MAX(gps_adres) as adres
-    FROM fotos
-    WHERE duplicaat_groep IS NOT NULL
+           MAX(gps_city) as city, MAX(gps_country) as country,
+           MAX(gps_country_code) as land_code, MAX(gps_address) as adres
+    FROM photos
+    WHERE duplicate_group IS NOT NULL
       AND gps_lat IS NOT NULL
-      AND gps_land IS NOT NULL AND gps_land != ''
-    GROUP BY duplicaat_groep
+      AND gps_country IS NOT NULL AND gps_country != ''
+    GROUP BY duplicate_group
   `).all();
 
   const propagateStmt = db.prepare(`
-    UPDATE fotos SET gps_lat = ?, gps_lon = ?, gps_stad = ?, gps_land = ?,
-                     gps_land_code = ?, gps_adres = ?
-    WHERE duplicaat_groep = ?
-      AND (gps_land IS NULL OR gps_land = '')
+    UPDATE photos SET gps_lat = ?, gps_lon = ?, gps_city = ?, gps_country = ?,
+                     gps_country_code = ?, gps_address = ?
+    WHERE duplicate_group = ?
+      AND (gps_country IS NULL OR gps_country = '')
   `);
   let updated = 0;
   for (const g of groups) {
-    const info = propagateStmt.run(g.lat, g.lon, g.stad, g.land, g.land_code, g.adres, g.duplicaat_groep);
+    const info = propagateStmt.run(g.lat, g.lon, g.city, g.country, g.land_code, g.adres, g.duplicate_group);
     updated += info.changes;
   }
   if (updated > 0) console.log(`🔗 GPS shared in ${groups.length} duplicate groups: ${updated} photos updated`);
@@ -179,47 +179,47 @@ function propagateGpsInGroups() {
   }
 }
 
-// Start geocoding pass in the background — fills in gps_land/city for all photos missing it
+// Start geocoding pass in the background — fills in gps_country/city for all photos missing it
 async function startGeocodePass() {
-  if (geocodeStatus.bezig) return; // already running
+  if (geocodeStatus.running) return; // already running
   geocodeStopRequested = false; // fresh start — own flag, separate from scanStopRequested
-  geocodeStatus.bezig = true;
-  geocodeStatus.gedaan = 0;
-  geocodeStatus.huidig_land = '';
+  geocodeStatus.running = true;
+  geocodeStatus.done = 0;
+  geocodeStatus.current_country = '';
 
   const db = getDb();
 
-  // All unique locations without gps_land (rounded to 3 decimals)
+  // All unique locations without gps_country (rounded to 3 decimals)
   const locations = db.prepare(`
     SELECT ROUND(gps_lat, 3) as lat, ROUND(gps_lon, 3) as lon, COUNT(*) as n
-    FROM fotos
+    FROM photos
     WHERE gps_lat IS NOT NULL AND gps_lon IS NOT NULL
-      AND (gps_land IS NULL OR gps_land = '')
+      AND (gps_country IS NULL OR gps_country = '')
     GROUP BY ROUND(gps_lat, 3), ROUND(gps_lon, 3)
     ORDER BY n DESC
   `).all();
 
-  geocodeStatus.totaal = locations.length;
+  geocodeStatus.total = locations.length;
   db.close();
 
   if (locations.length === 0) {
     // No new locations to geocode, but do share GPS within duplicate groups
     propagateGpsInGroups();
-    geocodeStatus.bezig = false;
+    geocodeStatus.running = false;
     return;
   }
 
   console.log(`🌍 Geocode pass started: ${locations.length} unique locations to process`);
 
   const updateLocation = (address, lat, lon) => {
-    if (!address || !address.gps_land) return;
+    if (!address || !address.gps_country) return;
     const db2 = getDb();
     try {
       db2.prepare(`
-        UPDATE fotos SET gps_stad = ?, gps_land = ?, gps_land_code = ?, gps_adres = ?
+        UPDATE photos SET gps_city = ?, gps_country = ?, gps_country_code = ?, gps_address = ?
         WHERE ROUND(gps_lat, 3) = ? AND ROUND(gps_lon, 3) = ?
-          AND (gps_land IS NULL OR gps_land = '')
-      `).run(address.gps_stad || null, address.gps_land, address.gps_land_code || null, address.gps_adres || null, lat, lon);
+          AND (gps_country IS NULL OR gps_country = '')
+      `).run(address.gps_city || null, address.gps_country, address.gps_country_code || null, address.gps_address || null, lat, lon);
     } finally {
       db2.close();
     }
@@ -228,59 +228,59 @@ async function startGeocodePass() {
   for (const loc of locations) {
     if (geocodeStopRequested) break; // Own geocode stop flag (not the scan flag)
     const address = await fetchGpsAddress(loc.lat, loc.lon);
-    geocodeStatus.gedaan++;
-    geocodeStatus.huidig_land = address?.gps_land || '';
+    geocodeStatus.done++;
+    geocodeStatus.current_country = address?.gps_country || '';
     updateLocation(address, loc.lat, loc.lon);
-    console.log(`🌍 Geocode ${geocodeStatus.gedaan}/${geocodeStatus.totaal}: ${address?.gps_land || 'no result'}`);
+    console.log(`🌍 Geocode ${geocodeStatus.done}/${geocodeStatus.total}: ${address?.gps_country || 'no result'}`);
   }
 
   // Share GPS data within duplicate groups (originals without a country now also get the copy's country)
   propagateGpsInGroups();
 
-  geocodeStatus.bezig = false;
-  geocodeStatus.huidig_land = '';
-  console.log(`✅ Geocode pass done: ${geocodeStatus.gedaan} locations processed`);
+  geocodeStatus.running = false;
+  geocodeStatus.current_country = '';
+  console.log(`✅ Geocode pass done: ${geocodeStatus.done} locations processed`);
 }
 
-async function addToQueue(bronId, options = {}) {
+async function addToQueue(sourceId, options = {}) {
   const db = getDb();
-  const source = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(bronId);
+  const source = db.prepare('SELECT * FROM sources WHERE id = ?').get(sourceId);
   db.close();
-  if (!source) throw new Error('Bron niet gevonden');
+  if (!source) throw new Error('Source not found');
 
   // Not twice in the queue
-  if (queue.find(w => w.id === bronId)) {
-    throw new Error('Bron staat al in de wachtrij');
+  if (queue.find(w => w.id === sourceId)) {
+    throw new Error('Bron staat al in de queue');
   }
   // Not if already running
-  if (scanStatus.bezig && scanStatus.bron_id === bronId) {
+  if (scanStatus.running && scanStatus.source_id === sourceId) {
     throw new Error('Bron is al aan het scannen');
   }
 
   // Hidden folders: explicit option wins, otherwise the per-source setting.
   const includeHidden = options.includeHidden !== undefined
     ? !!options.includeHidden
-    : !!source.verborgen_meenemen;
+    : !!source.include_hidden;
 
-  queue.push({ id: bronId, naam: source.naam, pad: source.pad, options: { includeHidden } });
-  console.log(`📋 Queue: ${queue.map(w => w.naam).join(' → ')}`);
+  queue.push({ id: sourceId, name: source.name, path: source.path, options: { includeHidden } });
+  console.log(`📋 Queue: ${queue.map(w => w.name).join(' → ')}`);
 
   // Start processing if nothing is running
-  if (!scanStatus.bezig) processQueue();
+  if (!scanStatus.running) processQueue();
 
   return getScanStatus();
 }
 
 async function processQueue() {
-  if (scanStatus.bezig || queue.length === 0) return;
+  if (scanStatus.running || queue.length === 0) return;
 
   const next = queue.shift();
-  console.log(`▶ Next in queue: ${next.naam}`);
+  console.log(`▶ Next in queue: ${next.name}`);
   await _startScan(next.id, next.options || {});
 }
 
-function removeFromQueue(bronId) {
-  queue = queue.filter(w => w.id !== bronId);
+function removeFromQueue(sourceId) {
+  queue = queue.filter(w => w.id !== sourceId);
 }
 
 function shouldSkip(folderPath) {
@@ -293,7 +293,7 @@ async function findAllPhotos(startPath, options = {}) {
   // contain app/system files (icons, caches, .git), not photos.
   // With includeHidden=true they are scanned anyway.
   const includeHidden = !!options.includeHidden;
-  const fotos = [];
+  const photos = [];
 
   // The inventory used to run fully synchronously (readdirSync) and thereby
   // blocked the Electron main process for its entire duration — with large
@@ -326,14 +326,14 @@ async function findAllPhotos(startPath, options = {}) {
       } else if (item.isFile()) {
         const ext = path.extname(item.name).toLowerCase();
         if (PHOTO_EXTENSIONS.has(ext) || VIDEO_EXTENSIONS.has(ext)) {
-          fotos.push(fullPath);
+          photos.push(fullPath);
         }
       }
     }
   }
 
   await search(startPath);
-  return fotos;
+  return photos;
 }
 
 // Extract date from filename — e.g. IMG-20250728-WA0010.jpg → 2025-07-28
@@ -532,7 +532,7 @@ function readGoogleJson(filePath) {
     }
 
     return {
-      datum: date,
+      date: date,
       gps_lat: gps_lat,
       gps_lon: gps_lon,
       google_description: data.description || null,
@@ -593,27 +593,27 @@ async function readMetadata(filePath) {
       }
     }
 
-    // Property names mirror the DB columns of the `fotos` table — keep as-is.
+    // Property names mirror the DB columns of the `photos` table — keep as-is.
     return {
-      datum_foto: photoDate,
-      jaar: photoDate ? new Date(photoDate).getFullYear() : null,
-      maand: photoDate ? new Date(photoDate).getMonth() + 1 : null,
-      dag: photoDate ? new Date(photoDate).getDate() : null,
+      photo_date: photoDate,
+      year: photoDate ? new Date(photoDate).getFullYear() : null,
+      month: photoDate ? new Date(photoDate).getMonth() + 1 : null,
+      day: photoDate ? new Date(photoDate).getDate() : null,
       gps_lat: exif.latitude || null,
       gps_lon: exif.longitude || null,
-      camera_merk: exif.Make || null,
+      camera_make: exif.Make || null,
       camera_model: exif.Model || null,
       lens: exif.LensModel || exif.Lens || null,
       software: exif.Software || null,
-      breedte: exif.ImageWidth || exif.ExifImageWidth || null,
-      hoogte: exif.ImageHeight || exif.ExifImageHeight || null,
-      orientatie: exif.Orientation || null,
+      width: exif.ImageWidth || exif.ExifImageWidth || null,
+      height: exif.ImageHeight || exif.ExifImageHeight || null,
+      orientation: exif.Orientation || null,
       iso: exif.ISO || null,
-      sluitertijd: exif.ExposureTime ? String(exif.ExposureTime) : null,
-      diafragma: exif.FNumber ? String(exif.FNumber) : null,
-      brandpuntsafstand: exif.FocalLength ? String(exif.FocalLength) : null,
-      flits: exif.Flash ? String(exif.Flash) : null,
-      kleurruimte: exif.ColorSpace ? String(exif.ColorSpace) : null
+      shutter_speed: exif.ExposureTime ? String(exif.ExposureTime) : null,
+      aperture: exif.FNumber ? String(exif.FNumber) : null,
+      focal_length: exif.FocalLength ? String(exif.FocalLength) : null,
+      flash: exif.Flash ? String(exif.Flash) : null,
+      color_space: exif.ColorSpace ? String(exif.ColorSpace) : null
     };
   } catch (e) {
     return {};
@@ -656,10 +656,10 @@ async function fetchGpsAddress(lat, lon) {
             };
             resolve({
               result: {
-                gps_adres: json.display_name || null,
-                gps_stad: cleanName(addr.city || addr.town || addr.village || addr.hamlet || addr.municipality || null),
-                gps_land: cleanName(addr.country || null),
-                gps_land_code: (addr.country_code || '').toUpperCase() || null
+                gps_address: json.display_name || null,
+                gps_city: cleanName(addr.city || addr.town || addr.village || addr.hamlet || addr.municipality || null),
+                gps_country: cleanName(addr.country || null),
+                gps_country_code: (addr.country_code || '').toUpperCase() || null
               },
               status: res.statusCode
             });
@@ -672,7 +672,7 @@ async function fetchGpsAddress(lat, lon) {
 
     // Only cache successful results (with a country). Empty answers caused by
     // 429/timeout/network error are NOT cached, so a later geocode pass retries them.
-    if (result && result.gps_land) {
+    if (result && result.gps_country) {
       gpsCache.set(cacheKey, result);
     }
     // Nominatim policy: max 1 request per second. Cool down extra long on 429.
@@ -683,80 +683,80 @@ async function fetchGpsAddress(lat, lon) {
   }
 }
 
-async function _startScan(bronId, options = {}) {
+async function _startScan(sourceId, options = {}) {
   gpsCache.clear(); // Empty the cache at every new scan
   const db = getDb();
-  const source = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(bronId);
+  const source = db.prepare('SELECT * FROM sources WHERE id = ?').get(sourceId);
   if (!source) { db.close(); return; }
 
   const logResult = db.prepare(`
-    INSERT INTO scan_log (bron_id, gestart, status) VALUES (?, datetime('now'), 'bezig')
-  `).run(bronId);
+    INSERT INTO scan_log (source_id, started, status) VALUES (?, datetime('now'), 'running')
+  `).run(sourceId);
 
   scanStatus = {
-    bezig: true,
-    bron_id: bronId,
-    bron_naam: source.naam,
-    totaal: 0,
-    verwerkt: 0,
-    nieuw: 0,
-    overgeslagen: 0,
-    fouten: 0,
-    huidig_bestand: 'Searching files...',
-    gestart: new Date().toISOString(),
+    running: true,
+    source_id: sourceId,
+    source_name: source.name,
+    total: 0,
+    processed: 0,
+    new_files: 0,
+    skipped: 0,
+    errors: 0,
+    current_file: 'Searching files...',
+    started: new Date().toISOString(),
     log_id: logResult.lastInsertRowid,
-    wachtrij: [...queue]
+    queue: [...queue]
   };
 
   db.close();
   scanStopRequested = false;
-  scanAsync(bronId, source.pad, logResult.lastInsertRowid, options).catch(console.error);
+  scanAsync(sourceId, source.path, logResult.lastInsertRowid, options).catch(console.error);
   return scanStatus;
 }
 
-async function startScan(bronId, options = {}) {
-  return addToQueue(bronId, options);
+async function startScan(sourceId, options = {}) {
+  return addToQueue(sourceId, options);
 }
 
-async function scanAsync(bronId, startPath, logId, options = {}) {
+async function scanAsync(sourceId, startPath, logId, options = {}) {
   console.log(`🔍 Scan started: ${startPath}${options.includeHidden ? ' (incl. hidden folders)' : ''}`);
 
   try {
     // Find all photos
-    scanStatus.huidig_bestand = 'Inventorying files...';
+    scanStatus.current_file = 'Inventorying files...';
     const allPhotos = await findAllPhotos(startPath, options);
-    scanStatus.totaal = allPhotos.length;
+    scanStatus.total = allPhotos.length;
     console.log(`📷 ${allPhotos.length} photos found`);
 
     const db = getDb();
     const insertPhoto = db.prepare(`
-      INSERT OR IGNORE INTO fotos (
-        bron_id, bestandsnaam, volledig_pad, hash, bestandsgrootte, bestandstype,
-        datum_foto, datum_bestand, datum_bron, jaar, maand, dag,
-        gps_lat, gps_lon, gps_adres, gps_stad, gps_land, gps_land_code,
-        camera_merk, camera_model, lens, software,
-        breedte, hoogte, orientatie, iso, sluitertijd, diafragma,
-        brandpuntsafstand, flits, kleurruimte, thumbnail,
+      INSERT OR IGNORE INTO photos (
+        source_id, filename, full_path, hash, file_size, file_type,
+        photo_date, file_date, date_source, year, month, day,
+        gps_lat, gps_lon, gps_address, gps_city, gps_country, gps_country_code,
+        camera_make, camera_model, lens, software,
+        width, height, orientation, iso, shutter_speed, aperture,
+        focal_length, flash, color_space, thumbnail,
         google_description, google_device_type,
-        is_video, duur
+        is_video, duration
       ) VALUES (
-        @bron_id, @bestandsnaam, @volledig_pad, @hash, @bestandsgrootte, @bestandstype,
-        @datum_foto, @datum_bestand, @datum_bron, @jaar, @maand, @dag,
-        @gps_lat, @gps_lon, @gps_adres, @gps_stad, @gps_land, @gps_land_code,
-        @camera_merk, @camera_model, @lens, @software,
-        @breedte, @hoogte, @orientatie, @iso, @sluitertijd, @diafragma,
-        @brandpuntsafstand, @flits, @kleurruimte, @thumbnail,
+        @source_id, @filename, @full_path, @hash, @file_size, @file_type,
+        @photo_date, @file_date, @date_source, @year, @month, @day,
+        @gps_lat, @gps_lon, @gps_address, @gps_city, @gps_country, @gps_country_code,
+        @camera_make, @camera_model, @lens, @software,
+        @width, @height, @orientation, @iso, @shutter_speed, @aperture,
+        @focal_length, @flash, @color_space, @thumbnail,
         @google_description, @google_device_type,
-        @is_video, @duur
+        @is_video, @duration
       )
     `);
 
-    const alreadyExists = db.prepare('SELECT id FROM fotos WHERE volledig_pad = ?');
+    const alreadyExists = db.prepare('SELECT id FROM photos WHERE full_path = ?');
 
     for (let i = 0; i < allPhotos.length; i++) {
       const photoPath = allPhotos[i];
-      scanStatus.verwerkt = i + 1;
-      scanStatus.huidig_bestand = path.basename(photoPath);
+      scanStatus.processed = i + 1;
+      scanStatus.current_file = path.basename(photoPath);
 
       // Stopped?
       if (scanStopRequested) {
@@ -767,7 +767,7 @@ async function scanAsync(bronId, startPath, logId, options = {}) {
       try {
         // Already in db?
         if (alreadyExists.get(photoPath)) {
-          scanStatus.overgeslagen++;
+          scanStatus.skipped++;
           continue;
         }
 
@@ -778,10 +778,10 @@ async function scanAsync(bronId, startPath, logId, options = {}) {
         const thumbnail = await createThumbnail(photoPath);
 
         // EXIF takes precedence; Google JSON is fallback; filename and creation date as last resort
-        // (The dateSource values are stored in the datum_bron DB column — keep them.)
+        // (The dateSource values are stored in the date_source DB column — keep them.)
         let photoDate, dateSource;
-        if (meta.datum_foto)                                    { photoDate = meta.datum_foto;                                             dateSource = 'EXIF'; }
-        else if (googleJson.datum)                              { photoDate = googleJson.datum;                                            dateSource = 'Google Takeout'; }
+        if (meta.photo_date)                                    { photoDate = meta.photo_date;                                             dateSource = 'EXIF'; }
+        else if (googleJson.date)                              { photoDate = googleJson.date;                                            dateSource = 'Google Takeout'; }
         else if (parseDateFromFilename(path.basename(photoPath))) { photoDate = parseDateFromFilename(path.basename(photoPath));          dateSource = 'Bestandsnaam'; }
         else if (stat.birthtime && stat.birthtime.getTime() !== stat.mtime.getTime()) { photoDate = stat.birthtime.toISOString();          dateSource = 'Aanmaakdatum'; }
         else                                                    { photoDate = stat.mtime.toISOString();                                   dateSource = 'Wijzigingsdatum'; }
@@ -806,48 +806,48 @@ async function scanAsync(bronId, startPath, logId, options = {}) {
         }
 
         insertPhoto.run({
-          bron_id: bronId,
-          bestandsnaam: path.basename(photoPath),
-          volledig_pad: photoPath,
+          source_id: sourceId,
+          filename: path.basename(photoPath),
+          full_path: photoPath,
           hash: hash,
-          bestandsgrootte: stat.size,
-          bestandstype: path.extname(photoPath).toLowerCase().slice(1),
-          datum_foto: photoDate,
-          datum_bestand: stat.mtime.toISOString(),
-          datum_bron: dateSource,
-          jaar: dateObj ? dateObj.getFullYear() : null,
-          maand: dateObj ? dateObj.getMonth() + 1 : null,
-          dag: dateObj ? dateObj.getDate() : null,
+          file_size: stat.size,
+          file_type: path.extname(photoPath).toLowerCase().slice(1),
+          photo_date: photoDate,
+          file_date: stat.mtime.toISOString(),
+          date_source: dateSource,
+          year: dateObj ? dateObj.getFullYear() : null,
+          month: dateObj ? dateObj.getMonth() + 1 : null,
+          day: dateObj ? dateObj.getDate() : null,
           gps_lat: gpsLat,
           gps_lon: gpsLon,
-          gps_adres: gpsAddress.gps_adres || null,
-          gps_stad: gpsAddress.gps_stad || null,
-          gps_land: gpsAddress.gps_land || null,
-          gps_land_code: gpsAddress.gps_land_code || null,
-          camera_merk: meta.camera_merk || null,
+          gps_address: gpsAddress.gps_address || null,
+          gps_city: gpsAddress.gps_city || null,
+          gps_country: gpsAddress.gps_country || null,
+          gps_country_code: gpsAddress.gps_country_code || null,
+          camera_make: meta.camera_make || null,
           camera_model: meta.camera_model || null,
           lens: meta.lens || null,
           software: meta.software || null,
-          breedte: meta.breedte || null,
-          hoogte: meta.hoogte || null,
-          orientatie: meta.orientatie || null,
+          width: meta.width || null,
+          height: meta.height || null,
+          orientation: meta.orientation || null,
           iso: meta.iso || null,
-          sluitertijd: meta.sluitertijd || null,
-          diafragma: meta.diafragma || null,
-          brandpuntsafstand: meta.brandpuntsafstand || null,
-          flits: meta.flits || null,
-          kleurruimte: meta.kleurruimte || null,
+          shutter_speed: meta.shutter_speed || null,
+          aperture: meta.aperture || null,
+          focal_length: meta.focal_length || null,
+          flash: meta.flash || null,
+          color_space: meta.color_space || null,
           thumbnail: thumbnail,
           google_description: googleJson.google_description || null,
           google_device_type: googleJson.google_device_type || null,
           is_video: isVideo ? 1 : 0,
-          duur: videoDuration
+          duration: videoDuration
         });
 
-        scanStatus.nieuw++;
+        scanStatus.new_files++;
 
       } catch (e) {
-        scanStatus.fouten++;
+        scanStatus.errors++;
         console.error(`Error at ${photoPath}:`, e.message);
       }
 
@@ -862,32 +862,32 @@ async function scanAsync(bronId, startPath, logId, options = {}) {
     }
 
     // Detect duplicates
-    scanStatus.huidig_bestand = 'Detecting duplicates...';
-    await detectDuplicates(db, bronId);
+    scanStatus.current_file = 'Detecting duplicates...';
+    await detectDuplicates(db, sourceId);
 
     // Update the source
     db.prepare(`
-      UPDATE bronnen SET laatste_scan = datetime('now'), totaal_fotos = (
-        SELECT COUNT(*) FROM fotos WHERE bron_id = ?
+      UPDATE sources SET last_scan = datetime('now'), total_photos = (
+        SELECT COUNT(*) FROM photos WHERE source_id = ?
       ) WHERE id = ?
-    `).run(bronId, bronId);
+    `).run(sourceId, sourceId);
 
     // Close the log
     db.prepare(`
-      UPDATE scan_log SET voltooid = datetime('now'), totaal = ?, nieuw = ?,
-      overgeslagen = ?, fouten = ?, status = 'voltooid'
+      UPDATE scan_log SET completed = datetime('now'), total = ?, new_files = ?,
+      skipped = ?, errors = ?, status = 'completed'
       WHERE id = ?
-    `).run(scanStatus.totaal, scanStatus.nieuw, scanStatus.overgeslagen, scanStatus.fouten, logId);
+    `).run(scanStatus.total, scanStatus.new_files, scanStatus.skipped, scanStatus.errors, logId);
 
     db.close();
 
-    console.log(`✅ Scan completed: ${scanStatus.nieuw} new, ${scanStatus.overgeslagen} skipped, ${scanStatus.fouten} errors`);
+    console.log(`✅ Scan completed: ${scanStatus.new_files} new, ${scanStatus.skipped} skipped, ${scanStatus.errors} errors`);
 
   } catch (e) {
     console.error('Scan error:', e);
   } finally {
-    scanStatus.bezig = false;
-    scanStatus.huidig_bestand = scanStopRequested ? 'Gestopt' : 'Scan voltooid';
+    scanStatus.running = false;
+    scanStatus.current_file = scanStopRequested ? 'Gestopt' : 'Scan completed';
     scanStopRequested = false;
     // Start the next one in the queue
     setTimeout(() => processQueue(), 500);
@@ -904,22 +904,22 @@ async function scanAsync(bronId, startPath, logId, options = {}) {
 async function runBackgroundPasses() {
   try {
     await startGeocodePass();
-    if (scanStatus.bezig) return;
+    if (scanStatus.running) return;
     await startVideoThumbnailPass();
-    if (scanStatus.bezig) return;
+    if (scanStatus.running) return;
     await startVideoGpsPass();
   } catch (e) {
     console.error('Background pass error:', e.message);
   }
 }
 
-async function detectDuplicates(db, bronId) {
+async function detectDuplicates(db, sourceId) {
   // Reset duplicates for this source
-  db.prepare('UPDATE fotos SET is_duplicaat = 0, duplicaat_groep = NULL WHERE bron_id = ?').run(bronId);
+  db.prepare('UPDATE photos SET is_duplicate = 0, duplicate_group = NULL WHERE source_id = ?').run(sourceId);
 
   // Find all hashes occurring more than once (across all sources)
   const duplicateHashes = db.prepare(`
-    SELECT hash, COUNT(*) as aantal FROM fotos
+    SELECT hash, COUNT(*) as count FROM photos
     WHERE hash IS NOT NULL
     GROUP BY hash HAVING COUNT(*) > 1
   `).all();
@@ -927,7 +927,7 @@ async function detectDuplicates(db, bronId) {
   // With thousands of duplicate groups this loop used to run through in one
   // synchronous go and blocked the main process. Now we give the event loop
   // some air every 200 groups so the window stays responsive.
-  const updateStmt = db.prepare('UPDATE fotos SET is_duplicaat = 1, duplicaat_groep = ? WHERE hash = ?');
+  const updateStmt = db.prepare('UPDATE photos SET is_duplicate = 1, duplicate_group = ? WHERE hash = ?');
   for (let i = 0; i < duplicateHashes.length; i++) {
     updateStmt.run(duplicateHashes[i].hash, duplicateHashes[i].hash);
     if ((i + 1) % 200 === 0) {
@@ -940,7 +940,7 @@ async function detectDuplicates(db, bronId) {
 
 function stopScan(clearQueue = false) {
   scanStopRequested = true;
-  scanStatus.huidig_bestand = 'Gestopt door gebruiker...';
+  scanStatus.current_file = 'Gestopt door gebruiker...';
   if (clearQueue) queue = [];
   console.log('⏹ Stop requested');
 }
@@ -953,24 +953,24 @@ function stopGeocode() {
 
 // === VIDEO THUMBNAIL PASS ===
 
-let videoThumbPassStatus = { bezig: false, gedaan: 0, totaal: 0, fout: 0 };
+let videoThumbPassStatus = { running: false, done: 0, total: 0, error: 0 };
 
 function getVideoThumbStatus() {
   return videoThumbPassStatus;
 }
 
 async function startVideoThumbnailPass() {
-  if (videoThumbPassStatus.bezig) return;
+  if (videoThumbPassStatus.running) return;
 
   const db = getDb();
   const videos = db.prepare(
-    "SELECT id, volledig_pad FROM fotos WHERE is_video = 1 AND thumbnail IS NULL"
+    "SELECT id, full_path FROM photos WHERE is_video = 1 AND thumbnail IS NULL"
   ).all();
   db.close();
 
   if (videos.length === 0) return; // nothing to do
 
-  videoThumbPassStatus = { bezig: true, gedaan: 0, totaal: videos.length, fout: 0 };
+  videoThumbPassStatus = { running: true, done: 0, total: videos.length, error: 0 };
   console.log(`🎬 Video thumbnail pass started — ${videos.length} videos to process`);
   console.log('   ℹ️  This runs quietly in the background. The app keeps working normally.');
   console.log('   ⏳ Be patient — thumbnails appear automatically in the gallery.');
@@ -980,104 +980,104 @@ async function startVideoThumbnailPass() {
   return (async () => {
     for (const v of videos) {
       // Stop if a new scan has started
-      if (scanStatus.bezig) {
+      if (scanStatus.running) {
         console.log('🎬 Video thumbnail pass paused — scan active');
-        videoThumbPassStatus.bezig = false;
+        videoThumbPassStatus.running = false;
         return;
       }
 
       try {
-        const thumb = await createVideoThumbnail(v.volledig_pad);
+        const thumb = await createVideoThumbnail(v.full_path);
         if (thumb) {
           const db2 = getDb();
-          db2.prepare('UPDATE fotos SET thumbnail = ? WHERE id = ?').run(thumb, v.id);
+          db2.prepare('UPDATE photos SET thumbnail = ? WHERE id = ?').run(thumb, v.id);
           db2.close();
         } else {
-          videoThumbPassStatus.fout++;
+          videoThumbPassStatus.error++;
         }
       } catch (_) {
-        videoThumbPassStatus.fout++;
+        videoThumbPassStatus.error++;
       }
 
-      videoThumbPassStatus.gedaan++;
+      videoThumbPassStatus.done++;
 
       // Progress in the server log every 25 videos
-      if (videoThumbPassStatus.gedaan % 25 === 0) {
-        const remaining = videoThumbPassStatus.totaal - videoThumbPassStatus.gedaan;
-        console.log(`🎬 Thumbnails: ${videoThumbPassStatus.gedaan}/${videoThumbPassStatus.totaal} done — ${remaining} to go`);
+      if (videoThumbPassStatus.done % 25 === 0) {
+        const remaining = videoThumbPassStatus.total - videoThumbPassStatus.done;
+        console.log(`🎬 Thumbnails: ${videoThumbPassStatus.done}/${videoThumbPassStatus.total} done — ${remaining} to go`);
       }
 
       // Small pause so the server does not get overloaded
       await new Promise(r => setTimeout(r, 50));
     }
 
-    const { gedaan, totaal, fout } = videoThumbPassStatus;
-    videoThumbPassStatus.bezig = false;
-    console.log(`✅ Video thumbnail pass completed: ${gedaan - fout}/${totaal} created${fout > 0 ? `, ${fout} failed (no problem)` : ''}`);
+    const { done, total, error } = videoThumbPassStatus;
+    videoThumbPassStatus.running = false;
+    console.log(`✅ Video thumbnail pass completed: ${done - error}/${total} created${error > 0 ? `, ${error} failed (no problem)` : ''}`);
   })();
 }
 
 // ─── VIDEO GPS PASS ──────────────────────────────────────────────────────────
 // Reads GPS from existing videos via exiftool (fallback for containers exifr misses)
 
-let videoGpsPassStatus = { bezig: false, gedaan: 0, totaal: 0, gevonden: 0 };
+let videoGpsPassStatus = { running: false, done: 0, total: 0, gevonden: 0 };
 
 function getVideoGpsStatus() {
   return { ...videoGpsPassStatus };
 }
 
 async function startVideoGpsPass() {
-  if (videoGpsPassStatus.bezig) return;
+  if (videoGpsPassStatus.running) return;
 
   const db = getDb();
   const videos = db.prepare(
-    "SELECT id, volledig_pad FROM fotos WHERE is_video = 1 AND (gps_lat IS NULL OR gps_lat = 0)"
+    "SELECT id, full_path FROM photos WHERE is_video = 1 AND (gps_lat IS NULL OR gps_lat = 0)"
   ).all();
   db.close();
 
   if (videos.length === 0) return;
 
-  videoGpsPassStatus = { bezig: true, gedaan: 0, totaal: videos.length, gevonden: 0 };
+  videoGpsPassStatus = { running: true, done: 0, total: videos.length, gevonden: 0 };
   console.log(`📍 Video GPS pass started — checking ${videos.length} videos for GPS`);
   console.log('   ℹ️  This runs quietly in the background. Be patient.');
 
   // Return a promise so runBackgroundPasses() can really wait for it.
   return (async () => {
     for (const v of videos) {
-      if (scanStatus.bezig) {
+      if (scanStatus.running) {
         console.log('📍 Video GPS pass paused — scan active');
-        videoGpsPassStatus.bezig = false;
+        videoGpsPassStatus.running = false;
         return;
       }
 
       try {
-        const gps = await readGpsFromVideo(v.volledig_pad);
+        const gps = await readGpsFromVideo(v.full_path);
         if (gps.gps_lat && gps.gps_lon) {
           // GPS found — fetch city/country and store
           const address = await fetchGpsAddress(gps.gps_lat, gps.gps_lon);
           const db2 = getDb();
           db2.prepare(`
-            UPDATE fotos SET gps_lat=?, gps_lon=?, gps_stad=?, gps_land=?, gps_land_code=?, gps_adres=?
+            UPDATE photos SET gps_lat=?, gps_lon=?, gps_city=?, gps_country=?, gps_country_code=?, gps_address=?
             WHERE id=?
-          `).run(gps.gps_lat, gps.gps_lon, address.gps_stad||null, address.gps_land||null, address.gps_land_code||null, address.gps_adres||null, v.id);
+          `).run(gps.gps_lat, gps.gps_lon, address.gps_city||null, address.gps_country||null, address.gps_country_code||null, address.gps_address||null, v.id);
           db2.close();
           videoGpsPassStatus.gevonden++;
           if (videoGpsPassStatus.gevonden % 10 === 0) {
-            console.log(`📍 Video GPS: ${videoGpsPassStatus.gevonden} locations found (${videoGpsPassStatus.gedaan}/${videoGpsPassStatus.totaal} processed)`);
+            console.log(`📍 Video GPS: ${videoGpsPassStatus.gevonden} locations found (${videoGpsPassStatus.done}/${videoGpsPassStatus.total} processed)`);
           }
         }
       } catch (_) {}
 
-      videoGpsPassStatus.gedaan++;
+      videoGpsPassStatus.done++;
       await new Promise(r => setTimeout(r, 20)); // light pause
     }
 
-    videoGpsPassStatus.bezig = false;
-    const { gevonden, totaal } = videoGpsPassStatus;
+    videoGpsPassStatus.running = false;
+    const { gevonden, total } = videoGpsPassStatus;
     if (gevonden > 0) {
-      console.log(`✅ Video GPS pass done: ${gevonden} new locations found in ${totaal} videos`);
+      console.log(`✅ Video GPS pass done: ${gevonden} new locations found in ${total} videos`);
     } else {
-      console.log(`📍 Video GPS pass done: no new GPS data found in ${totaal} videos (location not stored in container)`);
+      console.log(`📍 Video GPS pass done: no new GPS data found in ${total} videos (location not stored in container)`);
     }
   })();
 }

@@ -2,9 +2,9 @@ const http = require('http');
 
 const BASE = 'http://localhost:3000';
 
-function get(pad) {
+function get(path) {
   return new Promise((resolve, reject) => {
-    http.get(BASE + pad, (res) => {
+    http.get(BASE + path, (res) => {
       let data = '';
       res.on('data', c => data += c);
       res.on('end', () => {
@@ -15,12 +15,12 @@ function get(pad) {
   });
 }
 
-function post(pad, body) {
+function post(path, body) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify(body);
     const opts = {
       hostname: 'localhost', port: 3000,
-      path: pad, method: 'POST',
+      path: path, method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
     };
     const req = http.request(opts, (res) => {
@@ -40,48 +40,48 @@ function post(pad, body) {
 module.exports = async function testApi() {
   const resultaten = [];
 
-  async function test(naam, fn) {
+  async function test(name, fn) {
     try {
       await fn();
-      resultaten.push({ naam, ok: true });
+      resultaten.push({ name, ok: true });
     } catch (e) {
-      resultaten.push({ naam, ok: false, fout: e.message });
+      resultaten.push({ name, ok: false, error: e.message });
     }
   }
 
-  await test('GET /api/bronnen geeft array terug', async () => {
-    const r = await get('/api/bronnen');
+  await test('GET /api/sources geeft array terug', async () => {
+    const r = await get('/api/sources');
     if (r.status !== 200) throw new Error(`Status ${r.status}`);
     if (!Array.isArray(r.body)) throw new Error('Geen array ontvangen');
   });
 
-  await test('GET /api/stats geeft totaal terug', async () => {
+  await test('GET /api/stats geeft total terug', async () => {
     const r = await get('/api/stats');
     if (r.status !== 200) throw new Error(`Status ${r.status}`);
-    if (typeof r.body.totaal !== 'number') throw new Error('Geen totaal in response');
+    if (typeof r.body.total !== 'number') throw new Error('Geen total in response');
   });
 
-  await test('GET /api/fotos geeft paginering terug', async () => {
-    const r = await get('/api/fotos?pagina=1&per_pagina=10');
+  await test('GET /api/photos geeft paginering terug', async () => {
+    const r = await get('/api/photos?page=1&per_page=10');
     if (r.status !== 200) throw new Error(`Status ${r.status}`);
-    if (!Array.isArray(r.body.fotos)) throw new Error('Geen fotos array');
-    if (typeof r.body.totaal !== 'number') throw new Error('Geen totaal');
+    if (!Array.isArray(r.body.photos)) throw new Error('Geen photos array');
+    if (typeof r.body.total !== 'number') throw new Error('Geen total');
   });
 
   await test('GET /api/scan/status geeft status terug', async () => {
     const r = await get('/api/scan/status');
     if (r.status !== 200) throw new Error(`Status ${r.status}`);
-    if (typeof r.body.bezig !== 'boolean') throw new Error('Geen bezig veld');
+    if (typeof r.body.running !== 'boolean') throw new Error('Geen running veld');
   });
 
-  await test('GET /api/duplicaten geeft groepen terug', async () => {
-    const r = await get('/api/duplicaten');
+  await test('GET /api/duplicates geeft groups terug', async () => {
+    const r = await get('/api/duplicates');
     if (r.status !== 200) throw new Error(`Status ${r.status}`);
-    if (!Array.isArray(r.body.groepen)) throw new Error('Geen groepen array');
+    if (!Array.isArray(r.body.groups)) throw new Error('Geen groups array');
   });
 
-  await test('POST /api/bronnen zonder naam geeft 400', async () => {
-    const r = await post('/api/bronnen', { pad: '/tmp' });
+  await test('POST /api/sources zonder name geeft 400', async () => {
+    const r = await post('/api/sources', { path: '/tmp' });
     if (r.status !== 400) throw new Error(`Verwacht 400, kreeg ${r.status}`);
   });
 
@@ -90,10 +90,10 @@ module.exports = async function testApi() {
     if (r.status !== 400) throw new Error(`Verwacht 400, kreeg ${r.status}`);
   });
 
-  await test('GET /api/mappen geeft mappen terug', async () => {
-    const r = await get('/api/mappen?pad=/tmp');
+  await test('GET /api/folders geeft folders terug', async () => {
+    const r = await get('/api/folders?path=/tmp');
     if (r.status !== 200) throw new Error(`Status ${r.status}`);
-    if (!Array.isArray(r.body.mappen)) throw new Error('Geen mappen array');
+    if (!Array.isArray(r.body.folders)) throw new Error('Geen folders array');
   });
 
   return resultaten;

@@ -6,15 +6,15 @@ let videoThumbAutoRefresh = null;
 
 // Poll de thumbnail pass status en ververs de galerij automatisch
 async function startVideoThumbPolling() {
-  if (videoThumbAutoRefresh) return; // al bezig met pollen
+  if (videoThumbAutoRefresh) return; // al running met pollen
 
   videoThumbAutoRefresh = setInterval(async () => {
     try {
       const s = await fetch('/api/scan/video-thumbnails/status').then(r => r.json());
       updateVideoThumbBanner(s);
 
-      if (s.bezig) {
-        // Herlaad huidige pagina zodat nieuwe thumbnails verschijnen
+      if (s.running) {
+        // Herlaad huidige page zodat nieuwe thumbnails verschijnen
         await laadVideos(huidigePaginaVideo);
       } else {
         // Klaar — stop polling en herlaad één laatste keer
@@ -34,15 +34,15 @@ function updateVideoThumbBanner(s) {
   const voortg = document.getElementById('videoThumbVoortgang');
   if (!banner) return;
 
-  if (s.bezig) {
+  if (s.running) {
     banner.style.display = 'flex';
-    if (teller) teller.textContent = `${s.gedaan} / ${s.totaal} thumbnails aangemaakt`;
+    if (teller) teller.textContent = `${s.done} / ${s.total} thumbnails aangemaakt`;
     if (knop)   knop.style.display = 'none';
-    if (voortg) { voortg.style.display = 'block'; voortg.textContent = `⏳ Bezig op de achtergrond...`; }
-  } else if (s.totaal > 0 && s.gedaan === s.totaal) {
-    // Zojuist klaar
+    if (voortg) { voortg.style.display = 'block'; voortg.textContent = `⏳ Running in the background...`; }
+  } else if (s.total > 0 && s.done === s.total) {
+    // Zojuist ready
     banner.style.display = 'flex';
-    if (teller) teller.textContent = `✅ ${s.totaal} thumbnails aangemaakt`;
+    if (teller) teller.textContent = `✅ ${s.total} thumbnails aangemaakt`;
     if (knop)   knop.style.display = 'none';
     if (voortg) { voortg.style.display = 'block'; voortg.textContent = ''; }
     setTimeout(() => { if (banner) banner.style.display = 'none'; }, 4000);
@@ -55,7 +55,7 @@ async function controleerVideoThumbBanner() {
   try {
     const s = await fetch('/api/scan/video-thumbnails/status').then(r => r.json());
     updateVideoThumbBanner(s);
-    if (s.bezig) startVideoThumbPolling();
+    if (s.running) startVideoThumbPolling();
   } catch (_) {}
 }
 
@@ -67,119 +67,119 @@ async function startVideoThumbnails() {
 }
 
 async function laadBronnenFilterVideo() {
-  const [bronnen, stats] = await Promise.all([
-    fetch('/api/bronnen').then(r => r.json()),
+  const [sources, stats] = await Promise.all([
+    fetch('/api/sources').then(r => r.json()),
     fetch('/api/stats').then(r => r.json())
   ]);
   const t = (k, val) => (window.i18n ? window.i18n.t(k) : val);
 
   const sel = document.getElementById('filterBronVideo');
   if (sel) {
-    sel.innerHTML = `<option value="">${t('filter_alle_bronnen', 'Alle bronnen')}</option>` +
-      bronnen.map(b => `<option value="${b.id}">${b.icoon} ${b.naam}</option>`).join('');
+    sel.innerHTML = `<option value="">${t('filter_alle_bronnen', 'All sources')}</option>` +
+      sources.map(b => `<option value="${b.id}">${b.icon} ${b.name}</option>`).join('');
   }
 
   const selJaar = document.getElementById('filterJaarVideo');
   if (selJaar) {
     const huidigJaar = selJaar.value;
-    selJaar.innerHTML = `<option value="">${t('filter_alle_jaren', 'Alle jaren')}</option>` +
-      (stats.perJaarVideo || stats.perJaar || []).sort((a, b) => b.jaar - a.jaar)
-        .map(j => `<option value="${j.jaar}">${j.jaar}</option>`).join('');
+    selJaar.innerHTML = `<option value="">${t('filter_alle_jaren', 'All years')}</option>` +
+      (stats.perYearVideo || stats.perYear || []).sort((a, b) => b.year - a.year)
+        .map(j => `<option value="${j.year}">${j.year}</option>`).join('');
     if (huidigJaar) selJaar.value = huidigJaar;
     selJaar.dataset.gevuld = '1';
   }
 
   const selCamera = document.getElementById('filterCameraVideo');
   if (selCamera) {
-    selCamera.innerHTML = `<option value="">${t('filter_alle_cameras', "Alle camera's")}</option>` +
+    selCamera.innerHTML = `<option value="">${t('filter_alle_cameras', "All cameras")}</option>` +
       (stats.perCameraVideo || []).map(c => {
-        const label = [c.camera_merk, c.camera_model].filter(Boolean).join(' ') || '?';
-        const waarde = `${c.camera_merk || ''}${CAMERA_SEP}${c.camera_model || ''}`;
-        return `<option value="${waarde}">${label} (${(c.aantal || 0).toLocaleString()})</option>`;
+        const label = [c.camera_make, c.camera_model].filter(Boolean).join(' ') || '?';
+        const value = `${c.camera_make || ''}${CAMERA_SEP}${c.camera_model || ''}`;
+        return `<option value="${value}">${label} (${(c.count || 0).toLocaleString()})</option>`;
       }).join('');
   }
 
   const selLand = document.getElementById('filterLandVideo');
   if (selLand) {
-    selLand.innerHTML = `<option value="">${t('filter_alle_landen', 'Alle landen')}</option>` +
-      (stats.perLandVideo || []).map(r => {
-        const vlag = r.gps_land_code ? landVlag(r.gps_land_code) : landVlagVanNaam(r.gps_land);
-        return `<option value="${r.gps_land}">${vlag ? vlag + ' ' : ''}${r.gps_land} (${(r.aantal || 0).toLocaleString()})</option>`;
+    selLand.innerHTML = `<option value="">${t('filter_alle_landen', 'All countries')}</option>` +
+      (stats.perCountryVideo || []).map(r => {
+        const vlag = r.gps_country_code ? landVlag(r.gps_country_code) : landVlagVanNaam(r.gps_country);
+        return `<option value="${r.gps_country}">${vlag ? vlag + ' ' : ''}${r.gps_country} (${(r.count || 0).toLocaleString()})</option>`;
       }).join('');
   }
 }
 
-async function laadVideos(pagina = 1) {
-  huidigePaginaVideo = pagina;
-  const zoek    = document.getElementById('zoekInputVideo')?.value    || '';
+async function laadVideos(page = 1) {
+  huidigePaginaVideo = page;
+  const search    = document.getElementById('zoekInputVideo')?.value    || '';
   const bron    = document.getElementById('filterBronVideo')?.value    || '';
-  const jaar    = document.getElementById('filterJaarVideo')?.value    || '';
+  const year    = document.getElementById('filterJaarVideo')?.value    || '';
   const camera  = document.getElementById('filterCameraVideo')?.value  || '';
-  const land    = document.getElementById('filterLandVideo')?.value    || '';
-  const locatie = document.getElementById('filterLocatieVideo')?.value || '';
+  const country    = document.getElementById('filterLandVideo')?.value    || '';
+  const location = document.getElementById('filterLocatieVideo')?.value || '';
   const dup     = document.getElementById('filterDupVideo')?.value     || '';
 
   let cameraMerk = '', cameraModel = '';
   if (camera) { [cameraMerk, cameraModel] = camera.split(CAMERA_SEP); }
 
-  // videoZonderGpsFilter (vanuit dashboard) telt mee als 'zonder locatie'
-  const zonderGps = locatie === 'zonder' || videoZonderGpsFilter;
+  // videoZonderGpsFilter (vanuit dashboard) telt mee als 'without location'
+  const withoutGps = location === 'without' || videoZonderGpsFilter;
 
   const params = new URLSearchParams({
-    pagina, per_pagina: 50, is_video: 1, zonder_kopien: 1, zonder_thumbnail: 1,
-    ...(zoek && { zoek }),
-    ...(bron && { bron_id: bron }),
-    ...(jaar && { jaar }),
-    ...(cameraMerk  && { camera_merk:  cameraMerk }),
+    page, per_page: 50, is_video: 1, without_copies: 1, without_thumbnail: 1,
+    ...(search && { search }),
+    ...(bron && { source_id: bron }),
+    ...(year && { year }),
+    ...(cameraMerk  && { camera_make:  cameraMerk }),
     ...(cameraModel && { camera_model: cameraModel }),
-    ...(land && { land }),
-    ...(locatie === 'met' && { met_gps: 1 }),
-    ...(zonderGps && { zonder_gps: 1 }),
-    ...(dup === 'uniek'  && { alleen_uniek: 1 }),
-    ...(dup === 'dubbel' && { alleen_dubbel: 1 }),
+    ...(country && { country }),
+    ...(location === 'with' && { with_gps: 1 }),
+    ...(withoutGps && { without_gps: 1 }),
+    ...(dup === 'unique'  && { unique_only: 1 }),
+    ...(dup === 'duplicate' && { duplicates_only: 1 }),
   });
 
   if (typeof updateFilterBadge === 'function') updateFilterBadge('video');
 
-  const data = await fetch('/api/fotos?' + params).then(r => r.json());
+  const data = await fetch('/api/photos?' + params).then(r => r.json());
 
   const teller = document.getElementById('videosTeller');
-  if (teller) teller.textContent = `${data.totaal.toLocaleString()} video${data.totaal === 1 ? '' : "'s"}`;
+  if (teller) teller.textContent = `${data.total.toLocaleString()} video${data.total === 1 ? '' : "'s"}`;
 
   const grid = document.getElementById('videoGrid');
   if (!grid) return;
 
-  if (data.fotos.length === 0) {
-    // Lege pagina maar er zijn wél video's → ga automatisch een pagina terug.
-    if (pagina > 1 && data.totaal > 0) { return laadVideos(pagina - 1); }
-    grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">Geen video\'s gevonden</div>';
+  if (data.photos.length === 0) {
+    // Lege page maar er zijn wél video's → ga automatisch een page terug.
+    if (page > 1 && data.total > 0) { return laadVideos(page - 1); }
+    grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">No videos found</div>';
     document.getElementById('videosPaginering').innerHTML = '';
     return;
   }
 
-  grid.innerHTML = data.fotos.map(f => `
+  grid.innerHTML = data.photos.map(f => `
     <div class="foto-item" onclick="toonVideoDetail(${f.id})">
-      ${f.is_duplicaat ? '<div class="dup-badge">DUP</div>' : ''}
-      ${f.geexporteerd ? '<div class="export-badge">✓</div>' : ''}
-      <div class="video-badge">▶${f.duur ? ' ' + formatDuur(f.duur) : ''}</div>
-      <div class="bron-badge">${f.bron_icoon || '💻'}</div>
-      ${f.heeft_thumbnail
-        ? `<img src="/api/fotos/${f.id}/thumbnail" loading="lazy" alt="${f.bestandsnaam}">`
+      ${f.is_duplicate ? '<div class="dup-badge">DUP</div>' : ''}
+      ${f.exported ? '<div class="export-badge">✓</div>' : ''}
+      <div class="video-badge">▶${f.duration ? ' ' + formatDuur(f.duration) : ''}</div>
+      <div class="bron-badge">${f.source_icon || '💻'}</div>
+      ${f.has_thumbnail
+        ? `<img src="/api/photos/${f.id}/thumbnail" loading="lazy" alt="${f.filename}">`
         : `<div class="no-img">🎬</div>`}
       <div class="info">
-        <div class="naam">${f.bestandsnaam}</div>
-        <div class="datum">${formatDatum(f.datum_foto)}${f.gps_stad ? ' · ' + f.gps_stad : ''}</div>
+        <div class="name">${f.filename}</div>
+        <div class="date">${formatDatum(f.photo_date)}${f.gps_city ? ' · ' + f.gps_city : ''}</div>
       </div>
     </div>
   `).join('');
 
   // Paginering — gedeelde helper (volledige nummerreeks + snel-spring-knoppen)
-  const totaalPaginas = Math.ceil(data.totaal / 50);
-  bouwPaginering(document.getElementById('videosPaginering'), pagina, totaalPaginas, laadVideos);
+  const totaalPaginas = Math.ceil(data.total / 50);
+  bouwPaginering(document.getElementById('videosPaginering'), page, totaalPaginas, laadVideos);
 }
 
 async function toonVideoDetail(id) {
-  const f = await fetch('/api/fotos/' + id).then(r => r.json());
+  const f = await fetch('/api/photos/' + id).then(r => r.json());
   huidigeFotoId = f.id;         // nodig voor GPS opslaan
   huidigeItemIsVideo = true;    // zodat gpskaart.js de juiste render-functie aanroept
   renderVideoModal(f);
@@ -187,13 +187,13 @@ async function toonVideoDetail(id) {
 }
 
 function renderVideoModal(f) {
-  document.getElementById('modalTitel').textContent = f.bestandsnaam;
+  document.getElementById('modalTitel').textContent = f.filename;
 
   // Inline videospeler met fallback voor niet-ondersteunde codecs (H.265/HEVC)
   document.getElementById('modalImg').innerHTML = `
     <video id="videoSpeler_${f.id}" controls preload="metadata"
       style="width:100%;max-height:340px;background:#000;border-radius:6px;"
-      src="/api/fotos/${f.id}/bestand"
+      src="/api/photos/${f.id}/file"
       onerror="toonVideoFallback(${f.id})"
       onloadedmetadata="controleerVideoTrack(this, ${f.id})">
     </video>
@@ -202,26 +202,26 @@ function renderVideoModal(f) {
         ⚠️ Deze video gebruikt H.265/HEVC — Chrome kan dit niet afspelen zonder extra codecs.
       </div>
       <button class="btn btn-primair" onclick="openInSysteemSpeler(${f.id}, event)" style="font-size:13px;">
-        ▶ Openen in VLC / systeemspeler
+        ▶ Open in VLC / system player
       </button>
     </div>
   `;
 
-  const padEscaped = f.volledig_pad.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const padEscaped = f.full_path.replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const velden = [
-    ['Bron',      f.bron_icoon + ' ' + f.bron_naam],
-    ['Pad',       `<a href="#" class="pad-link" title="Toon in bestandsbeheerder" onclick="toonInMap(event, ${f.id})">📂 ${padEscaped}</a>`],
-    ['Datum',     formatDatum(f.datum_foto) + (f.datum_bron ? ` <span style="color:#6b7280;font-size:11px">(${f.datum_bron})</span>` : '')],
-    ['Duur',      f.duur ? formatDuur(f.duur) : '—'],
-    ['Grootte',   formatGrootte(f.bestandsgrootte)],
-    ['Resolutie', f.breedte && f.hoogte ? `${f.breedte} × ${f.hoogte}` : '—'],
-    ['Locatie',   (() => {
-      if (!f.gps_stad && !f.gps_land) return '—';
-      const vlag = f.gps_land_code ? landVlag(f.gps_land_code) : landVlagVanNaam(f.gps_land);
-      return `${vlag} ${[f.gps_stad, f.gps_land].filter(Boolean).join(', ')}`.trim();
+    ['Source',      f.source_icon + ' ' + f.source_name],
+    ['Path',       `<a href="#" class="path-link" title="Show in file manager" onclick="toonInMap(event, ${f.id})">📂 ${padEscaped}</a>`],
+    ['Date',     formatDatum(f.photo_date) + (f.date_source ? ` <span style="color:#6b7280;font-size:11px">(${f.date_source})</span>` : '')],
+    ['Duration',      f.duration ? formatDuur(f.duration) : '—'],
+    ['Size',   formatGrootte(f.file_size)],
+    ['Resolution', f.width && f.height ? `${f.width} × ${f.height}` : '—'],
+    ['Location',   (() => {
+      if (!f.gps_city && !f.gps_country) return '—';
+      const vlag = f.gps_country_code ? landVlag(f.gps_country_code) : landVlagVanNaam(f.gps_country);
+      return `${vlag} ${[f.gps_city, f.gps_country].filter(Boolean).join(', ')}`.trim();
     })()],
     ['GPS',       f.gps_lat ? `${f.gps_lat.toFixed(4)}, ${f.gps_lon.toFixed(4)}` : '—'],
-    ['Formaat',   f.bestandstype || '—'],
+    ['Format',   f.file_type || '—'],
     ['Software',  f.software || '—'],
   ];
 
@@ -231,7 +231,7 @@ function renderVideoModal(f) {
     .join('');
 
 
-  // Verberg duplicate locaties sectie
+  // Verberg duplicate locations sectie
   const dupEl = document.getElementById('modalDuplicaten');
   if (dupEl) dupEl.innerHTML = '';
 
@@ -239,22 +239,22 @@ function renderVideoModal(f) {
   document.getElementById('modalBewerkFormulier').innerHTML = `
     <table class="meta-tabel bewerk-tabel">
       <tr class="bewerk-tr">
-        <td>Stad</td>
-        <td><input id="bewerkStad" value="${f.gps_stad || ''}" placeholder="bv. Brussel" class="meta-input"></td>
+        <td>City</td>
+        <td><input id="bewerkStad" value="${f.gps_city || ''}" placeholder="e.g. Brussels" class="meta-input"></td>
       </tr>
       <tr class="bewerk-tr">
-        <td>Land</td>
-        <td><input id="bewerkLand" value="${f.gps_land || ''}" placeholder="bv. Belgium" class="meta-input"></td>
+        <td>Country</td>
+        <td><input id="bewerkLand" value="${f.gps_country || ''}" placeholder="e.g. Belgium" class="meta-input"></td>
       </tr>
     </table>
     <div style="display:flex;gap:8px;margin-top:12px">
-      <button id="opslaanKnop" class="btn btn-primair" style="flex:1;font-size:13px" onclick="slaaBewerkingOpFoto()">💾 Opslaan</button>
-      <button class="btn btn-secundair" style="font-size:13px" onclick="openGpsKaart(${f.gps_lat || 'null'}, ${f.gps_lon || 'null'})">📍 GPS kiezen</button>
+      <button id="opslaanKnop" class="btn btn-primair" style="flex:1;font-size:13px" onclick="slaaBewerkingOpFoto()">💾 Save</button>
+      <button class="btn btn-secundair" style="font-size:13px" onclick="openGpsKaart(${f.gps_lat || 'null'}, ${f.gps_lon || 'null'})">📍 Pick GPS</button>
     </div>
     <div id="bewerkStatus" style="font-size:12px;color:#888;margin-top:6px"></div>
-    <button id="verwijderFotoKnop" class="verwijder-definitief-knop" style="width:100%;margin-top:10px"
+    <button id="verwijderFotoKnop" class="delete-definitief-knop" style="width:100%;margin-top:10px"
       onclick="verwijderFotoDefinitief(${f.id})" data-i18n="foto_verwijder">
-      🗑️ Definitief verwijderen
+      🗑️ Permanently delete
     </button>
   `;
 }
@@ -281,12 +281,12 @@ async function openInSysteemSpeler(id, event) {
   const mouseX = event?.screenX ?? null;
   const mouseY = event?.screenY ?? null;
   try {
-    await fetch('/api/fotos/' + id + '/open-extern', {
+    await fetch('/api/photos/' + id + '/open-external', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mouseX, mouseY }),
     });
   } catch (e) {
-    alert('Kon de systeemspeler niet openen.');
+    alert('Could not open the system player.');
   }
 }
