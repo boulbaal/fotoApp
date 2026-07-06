@@ -21,8 +21,8 @@ const origError = console.error.bind(console);
 const origWarn  = console.warn.bind(console);
 
 function broadcast(level, args) {
-  const tekst = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
-  const msg = JSON.stringify({ type: 'log', level, tekst, ts: new Date().toISOString() });
+  const text = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+  const msg = JSON.stringify({ type: 'log', level, tekst: text, ts: new Date().toISOString() });
   wss.clients.forEach(c => { if (c.readyState === 1) c.send(msg); });
 }
 
@@ -30,37 +30,37 @@ console.log   = (...a) => { origLog(...a);   broadcast('info',  a); };
 console.error = (...a) => { origError(...a); broadcast('error', a); };
 console.warn  = (...a) => { origWarn(...a);  broadcast('warn',  a); };
 
-// === WEBSOCKET — map picker via zenity ===
+// === WEBSOCKET — folder picker via zenity ===
 wss.on('connection', (ws) => {
-  // Stuur welkomstbericht
-  ws.send(JSON.stringify({ type: 'log', level: 'info', tekst: '🔌 Verbonden met FotoApp server', ts: new Date().toISOString() }));
+  // Send welcome message
+  ws.send(JSON.stringify({ type: 'log', level: 'info', tekst: '🔌 Connected to FotoApp server', ts: new Date().toISOString() }));
 
   ws.on('message', (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
 
     if (msg.type === 'kies_map') {
-      const startPad = msg.startPad || process.env.HOME || process.env.USERPROFILE || '/home';
+      const startPath = msg.startPad || process.env.HOME || process.env.USERPROFILE || '/home';
 
       if (global.electronPickFolder) {
-        // Electron: gebruik native dialog (werkt op Windows, Mac én Linux)
-        global.electronPickFolder(startPad).then(pad => {
-          if (!pad) {
-            ws.send(JSON.stringify({ type: 'map_fout', fout: 'Geen map gekozen' }));
+        // Electron: use the native dialog (works on Windows, Mac AND Linux)
+        global.electronPickFolder(startPath).then(folderPath => {
+          if (!folderPath) {
+            ws.send(JSON.stringify({ type: 'map_fout', fout: 'No folder selected' }));
           } else {
-            ws.send(JSON.stringify({ type: 'map_gekozen', pad }));
+            ws.send(JSON.stringify({ type: 'map_gekozen', pad: folderPath }));
           }
         });
       } else {
-        // Standalone op Linux: gebruik zenity
+        // Standalone on Linux: use zenity
         execFile('zenity', [
           '--file-selection',
           '--directory',
           '--title=Kies een map om te scannen',
-          `--filename=${startPad}/`
+          `--filename=${startPath}/`
         ], (err, stdout) => {
           if (err || !stdout.trim()) {
-            ws.send(JSON.stringify({ type: 'map_fout', fout: 'Geen map gekozen' }));
+            ws.send(JSON.stringify({ type: 'map_fout', fout: 'No folder selected' }));
           } else {
             ws.send(JSON.stringify({ type: 'map_gekozen', pad: stdout.trim() }));
           }
@@ -73,5 +73,5 @@ wss.on('connection', (ws) => {
 // Start
 initDb();
 server.listen(PORT, () => {
-  console.log(`\n🖼️  FotoApp draait op http://localhost:${PORT}\n`);
+  console.log(`\n🖼️  FotoApp running at http://localhost:${PORT}\n`);
 });

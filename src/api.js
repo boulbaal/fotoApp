@@ -2,27 +2,27 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { getDb, getSharedDb } = require('./database');
-const { startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propageerGpsInGroepen, stopScan, stopGeocode, verwijderUitWachtrij, startVideoThumbnailPass, getVideoThumbStatus, startVideoGpsPass, getVideoGpsStatus } = require('./scanner');
-const { berekenPreview, startExport, stopExport, getStatus: getExportStatus, resetExport } = require('./export');
-const { leesPrioriteit, schrijfPrioriteit, bepaalKeeper, keeperIds } = require('./keeper');
+const { startScan, getScanStatus, getGeocodeStatus, startGeocodePass, propagateGpsInGroups, stopScan, stopGeocode, removeFromQueue, startVideoThumbnailPass, getVideoThumbStatus, startVideoGpsPass, getVideoGpsStatus } = require('./scanner');
+const { calculatePreview, startExport, stopExport, getStatus: getExportStatus, resetExport } = require('./export');
+const { readPriority, writePriority, determineKeeper, keeperIds } = require('./keeper');
 
 const router = express.Router();
 
-// === VERSIE ===
-// Eén bron van waarheid: de versie staat in package.json. De frontend haalt 'm
-// hier op om in de titel te tonen én om de favicon-cache te verversen (?v=...).
-// Zo hoeft de versie nergens handmatig bijgewerkt te worden bij een release.
+// === VERSION ===
+// Single source of truth: the version lives in package.json. The frontend
+// fetches it here to show in the title AND to refresh the favicon cache (?v=...).
+// This way the version never needs manual updating on a release.
 router.get('/versie', (req, res) => {
-  let versie = '';
-  try { versie = require('../package.json').version || ''; } catch (_) {}
-  res.json({ versie });
+  let version = '';
+  try { version = require('../package.json').version || ''; } catch (_) {}
+  res.json({ versie: version });
 });
 
-// === BRONNEN ===
+// === SOURCES ===
 
 router.get('/bronnen', (req, res) => {
   const db = getDb();
-  const bronnen = db.prepare(`
+  const sources = db.prepare(`
     SELECT b.*,
       sl.gestart as scan_gestart,
       sl.voltooid as scan_voltooid,
@@ -34,20 +34,20 @@ router.get('/bronnen', (req, res) => {
     ORDER BY b.aangemaakt_op DESC
   `).all();
   db.close();
-  res.json(bronnen);
+  res.json(sources);
 });
 
 router.post('/bronnen', (req, res) => {
   const { naam, type, pad, icoon, verborgen_meenemen } = req.body;
-  if (!naam || !pad) return res.status(400).json({ fout: 'naam en pad zijn verplicht' });
+  if (!naam || !pad) return res.status(400).json({ fout: 'name and path are required' });
 
   const db = getDb();
   const result = db.prepare(`
     INSERT INTO bronnen (naam, type, pad, icoon, verborgen_meenemen) VALUES (?, ?, ?, ?, ?)
   `).run(naam, type || 'pc', pad, icoon || '💻', verborgen_meenemen ? 1 : 0);
-  const bron = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(result.lastInsertRowid);
+  const source = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(result.lastInsertRowid);
   db.close();
-  res.json(bron);
+  res.json(source);
 });
 
 router.put('/bronnen/:id', (req, res) => {
@@ -55,19 +55,19 @@ router.put('/bronnen/:id', (req, res) => {
   const db = getDb();
   db.prepare('UPDATE bronnen SET naam = ?, pad = ?, type = ?, icoon = ?, verborgen_meenemen = ? WHERE id = ?')
     .run(naam, pad, type, icoon, verborgen_meenemen ? 1 : 0, req.params.id);
-  const bron = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(req.params.id);
+  const source = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(req.params.id);
   db.close();
-  res.json(bron);
+  res.json(source);
 });
 
-// Snelle toggle vanuit de bron-kaart: alleen de "verborgen mappen meescannen"-vlag
+// Quick toggle from the source card: only the "scan hidden folders" flag
 router.patch('/bronnen/:id/verborgen', (req, res) => {
   const db = getDb();
   db.prepare('UPDATE bronnen SET verborgen_meenemen = ? WHERE id = ?')
     .run(req.body.verborgen_meenemen ? 1 : 0, req.params.id);
-  const bron = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(req.params.id);
+  const source = db.prepare('SELECT * FROM bronnen WHERE id = ?').get(req.params.id);
   db.close();
-  res.json(bron);
+  res.json(source);
 });
 
 router.delete('/bronnen/:id', (req, res) => {
@@ -82,11 +82,11 @@ router.delete('/bronnen/:id', (req, res) => {
 
 router.post('/scan/:bronId', async (req, res) => {
   try {
-    // Standaard komt de instelling van de bron zelf; een expliciete vlag in de
-    // body kan dat per scan overrulen (de scanner valt anders terug op de bron).
-    const heeftVlag = req.body && req.body.verborgenMeenemen !== undefined;
-    const opties = heeftVlag ? { verborgenMeenemen: !!req.body.verborgenMeenemen } : {};
-    const status = await startScan(parseInt(req.params.bronId), opties);
+    // By default the setting comes from the source itself; an explicit flag in
+    // the body can override it per scan (otherwise the scanner falls back to the source).
+    const hasFlag = req.body && req.body.verborgenMeenemen !== undefined;
+    const options = hasFlag ? { includeHidden: !!req.body.verborgenMeenemen } : {};
+    const status = await startScan(parseInt(req.params.bronId), options);
     res.json(status);
   } catch (e) {
     res.status(400).json({ fout: e.message });
@@ -98,12 +98,12 @@ router.get('/scan/status', (req, res) => {
 });
 
 router.post('/scan/stop', (req, res) => {
-  stopScan(true); // leegt ook wachtrij
+  stopScan(true); // also empties the queue
   res.json({ ok: true });
 });
 
 router.delete('/scan/wachtrij/:bronId', (req, res) => {
-  verwijderUitWachtrij(parseInt(req.params.bronId));
+  removeFromQueue(parseInt(req.params.bronId));
   res.json(getScanStatus());
 });
 
@@ -112,17 +112,17 @@ router.get('/scan/geocode', (req, res) => {
 });
 
 router.post('/scan/geocode', async (req, res) => {
-  startGeocodePass(); // start op achtergrond, return meteen
-  res.json({ ok: true, bericht: 'Geocode pass gestart' });
+  startGeocodePass(); // starts in the background, returns immediately
+  res.json({ ok: true, bericht: 'Geocode pass started' });
 });
 
-// Stopt enkel de geocode-achtergrondpass — een lopende scan blijft draaien.
+// Stops only the geocode background pass — a running scan keeps going.
 router.post('/scan/geocode/stop', (req, res) => {
   stopGeocode();
-  res.json({ ok: true, bericht: 'Geocode pass stoppen aangevraagd' });
+  res.json({ ok: true, bericht: 'Geocode pass stop requested' });
 });
 
-// Video thumbnail pass — start handmatig of wordt automatisch gestart na scan
+// Video thumbnail pass — started manually or automatically after a scan
 router.post('/scan/video-thumbnails', (req, res) => {
   startVideoThumbnailPass();
   res.json({ ok: true, status: getVideoThumbStatus() });
@@ -132,10 +132,10 @@ router.get('/scan/video-thumbnails/status', (req, res) => {
   res.json(getVideoThumbStatus());
 });
 
-// Auto-start bij opstart als er videos zonder thumbnail zijn
+// Auto-start at boot if there are videos without a thumbnail
 setTimeout(() => startVideoThumbnailPass(), 5000);
 
-// Video GPS pass — leest GPS uit video-containers via exiftool (fallback voor exifr)
+// Video GPS pass — reads GPS from video containers via exiftool (fallback for exifr)
 router.post('/scan/video-gps', (req, res) => {
   startVideoGpsPass();
   res.json({ ok: true, status: getVideoGpsStatus() });
@@ -145,10 +145,12 @@ router.get('/scan/video-gps/status', (req, res) => {
   res.json(getVideoGpsStatus());
 });
 
-// Auto-start 15s na opstart (na thumbnail pass)
+// Auto-start 15s after boot (after the thumbnail pass)
 setTimeout(() => startVideoGpsPass(), 15000);
 
-// === STATISTIEKEN ===
+// === STATISTICS ===
+// Note: the local variable names below double as the JSON response field names
+// (frontend contract) — deliberately left as-is until phase B.
 
 router.get('/stats', (req, res) => {
   const db = getDb();
@@ -162,13 +164,13 @@ router.get('/stats', (req, res) => {
   const duplicaatGroepen = db.prepare('SELECT COUNT(DISTINCT duplicaat_groep) as n FROM fotos WHERE duplicaat_groep IS NOT NULL').get().n;
   const totalGrootte = db.prepare('SELECT SUM(bestandsgrootte) as n FROM fotos').get().n || 0;
 
-  // Foto-specifiek
+  // Photo-specific
   const fotosUniek     = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE COALESCE(is_video,0)=0 AND COALESCE(is_duplicaat,0)=0').get().n;
   const fotosDubbel    = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE COALESCE(is_video,0)=0 AND is_duplicaat=1').get().n;
   const fotosMetGps    = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE COALESCE(is_video,0)=0 AND gps_lat IS NOT NULL AND gps_lat!=0').get().n;
   const fotosZonderGps = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE COALESCE(is_video,0)=0 AND (gps_lat IS NULL OR gps_lat=0)').get().n;
 
-  // Video-specifiek
+  // Video-specific
   const videosUniek     = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE is_video=1 AND COALESCE(is_duplicaat,0)=0').get().n;
   const videosDubbel    = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE is_video=1 AND is_duplicaat=1').get().n;
   const videosMetGps    = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE is_video=1 AND gps_lat IS NOT NULL AND gps_lat!=0').get().n;
@@ -222,41 +224,42 @@ router.get('/stats', (req, res) => {
   });
 });
 
-// === OPSCHOON-DASHBOARD ===
-// Overzicht van ruimte die vrijgemaakt kan worden: duplicaat-kopieën (op basis
-// van de opgeslagen keeper-prioriteit) + genegeerde bestanden. Puur lezen.
+// === CLEANUP DASHBOARD ===
+// Overview of space that can be freed: duplicate copies (based on the stored
+// keeper priority) + ignored files. Read-only.
 router.get('/opschoon/overzicht', (req, res) => {
   const db = getDb();
   try {
-    const { bronVolgorde, handmatig } = leesPrioriteit(db);
-    const plan = verzamelDuplicaatPlan(db, bronVolgorde, handmatig);
-    const dupBytes = plan.teWissen.reduce((s, f) => s + (f.bestandsgrootte || 0), 0);
+    const { bronVolgorde, handmatig } = readPriority(db);
+    const plan = collectDuplicatePlan(db, bronVolgorde, handmatig);
+    const dupBytes = plan.toDelete.reduce((s, f) => s + (f.bestandsgrootte || 0), 0);
 
-    const gen = db.prepare(
+    const ignored = db.prepare(
       'SELECT COUNT(*) as n, COALESCE(SUM(bestandsgrootte), 0) as bytes FROM fotos WHERE genegeerd = 1'
     ).get();
 
     res.json({
       duplicaten: {
-        bestanden: plan.teWissen.length,   // kopieën die nu al weg kunnen
+        bestanden: plan.toDelete.length,     // copies that can already be removed
         bytes: dupBytes,
-        groepenKlaar: plan.groepenKlaar,   // groepen met een gekozen keeper
-        keuzeNodig: plan.keuzeNodig        // groepen die nog een keuze vereisen
+        groepenKlaar: plan.groupsReady,      // groups with a chosen keeper
+        keuzeNodig: plan.choiceNeeded        // groups that still require a choice
       },
       genegeerd: {
-        bestanden: gen.n,
-        bytes: gen.bytes
+        bestanden: ignored.n,
+        bytes: ignored.bytes
       },
-      totaalVrijTeMaken: dupBytes + gen.bytes
+      totaalVrijTeMaken: dupBytes + ignored.bytes
     });
   } catch (e) {
-    res.status(500).json({ fout: 'overzicht mislukt', detail: e.message });
+    res.status(500).json({ fout: 'overview failed', detail: e.message });
   } finally {
     db.close();
   }
 });
 
-// === WRAPPED / FOTO-LEVEN (deelbaar samenvattingsscherm) ===
+// === WRAPPED / PHOTO LIFE (shareable summary screen) ===
+// Variable names double as response field names (frontend contract) — keep as-is.
 router.get('/wrapped', (req, res) => {
   const db = getDb();
 
@@ -294,50 +297,50 @@ router.get('/wrapped', (req, res) => {
   });
 });
 
-// === FOTO'S ===
+// === PHOTOS ===
 
 router.get('/fotos', (req, res) => {
   const db = getDb();
   const { pagina = 1, per_pagina = 50, bron_id, jaar, zoek, zonder_thumbnail, land, camera_merk, camera_model, zonder_kopien, zonder_gps, met_gps, alleen_dubbel, alleen_uniek, genegeerd, is_video } = req.query;
   const offset = (parseInt(pagina) - 1) * parseInt(per_pagina);
 
-  let waar = '1=1';
+  let where = '1=1';
   const params = [];
 
-  if (bron_id)      { waar += ' AND f.bron_id = ?';      params.push(bron_id); }
-  if (jaar)         { waar += ' AND f.jaar = ?';          params.push(jaar); }
-  if (land)         { waar += ' AND f.gps_land = ?';      params.push(land); }
-  if (camera_merk)  { waar += ' AND f.camera_merk = ?';   params.push(camera_merk); }
-  if (camera_model) { waar += ' AND f.camera_model = ?';  params.push(camera_model); }
+  if (bron_id)      { where += ' AND f.bron_id = ?';      params.push(bron_id); }
+  if (jaar)         { where += ' AND f.jaar = ?';          params.push(jaar); }
+  if (land)         { where += ' AND f.gps_land = ?';      params.push(land); }
+  if (camera_merk)  { where += ' AND f.camera_merk = ?';   params.push(camera_merk); }
+  if (camera_model) { where += ' AND f.camera_model = ?';  params.push(camera_model); }
   if (zoek) {
-    // Tekstzoeken over naam, locatie (stad + land) en camera (merk + model)
-    waar += ' AND (f.bestandsnaam LIKE ? OR f.gps_stad LIKE ? OR f.gps_land LIKE ? OR f.camera_merk LIKE ? OR f.camera_model LIKE ?)';
+    // Text search across name, location (city + country) and camera (brand + model)
+    where += ' AND (f.bestandsnaam LIKE ? OR f.gps_stad LIKE ? OR f.gps_land LIKE ? OR f.camera_merk LIKE ? OR f.camera_model LIKE ?)';
     const q = `%${zoek}%`;
     params.push(q, q, q, q, q);
   }
-  if (zonder_gps === '1') { waar += ' AND (f.gps_lat IS NULL OR f.gps_lat = 0)'; }
-  if (met_gps === '1')    { waar += ' AND f.gps_lat IS NOT NULL AND f.gps_lat != 0'; }
-  if (alleen_dubbel === '1') { waar += ' AND f.is_duplicaat = 1'; }
-  if (alleen_uniek === '1')  { waar += ' AND COALESCE(f.is_duplicaat,0) = 0'; }
-  if (genegeerd === '1')  { waar += ' AND f.genegeerd = 1'; }
-  if (genegeerd === '0')  { waar += ' AND (f.genegeerd IS NULL OR f.genegeerd = 0)'; }
-  if (is_video === '1')   { waar += ' AND f.is_video = 1'; }
-  if (is_video === '0')   { waar += ' AND (f.is_video IS NULL OR f.is_video = 0)'; }
+  if (zonder_gps === '1') { where += ' AND (f.gps_lat IS NULL OR f.gps_lat = 0)'; }
+  if (met_gps === '1')    { where += ' AND f.gps_lat IS NOT NULL AND f.gps_lat != 0'; }
+  if (alleen_dubbel === '1') { where += ' AND f.is_duplicaat = 1'; }
+  if (alleen_uniek === '1')  { where += ' AND COALESCE(f.is_duplicaat,0) = 0'; }
+  if (genegeerd === '1')  { where += ' AND f.genegeerd = 1'; }
+  if (genegeerd === '0')  { where += ' AND (f.genegeerd IS NULL OR f.genegeerd = 0)'; }
+  if (is_video === '1')   { where += ' AND f.is_video = 1'; }
+  if (is_video === '0')   { where += ' AND (f.is_video IS NULL OR f.is_video = 0)'; }
 
-  // Verberg kopieën: toon het beste exemplaar per groep dat ook voldoet aan actieve filters
-  // Als land/camera filter actief is: kies de beste kopie MET dat land, zodat originelen zonder
-  // GPS-data de kopie met GPS-data niet blokkeren.
+  // Hide copies: show the best copy per group that also matches active filters.
+  // When a country/camera filter is active: pick the best copy WITH that country,
+  // so originals without GPS data don't block the copy that has GPS data.
   if (zonder_kopien === '1') {
-    const landSubquery   = land         ? ' AND f2.gps_land = ?'        : '';
-    const merkSubquery   = camera_merk  ? ' AND f2.camera_merk = ?'     : '';
-    const modelSubquery  = camera_model ? ' AND f2.camera_model = ?'    : '';
+    const countrySubquery = land         ? ' AND f2.gps_land = ?'        : '';
+    const brandSubquery   = camera_merk  ? ' AND f2.camera_merk = ?'     : '';
+    const modelSubquery   = camera_model ? ' AND f2.camera_model = ?'    : '';
 
-    waar += ` AND (
+    where += ` AND (
       f.is_duplicaat = 0
       OR f.id = (
         SELECT f2.id FROM fotos f2
         JOIN bronnen b2 ON f2.bron_id = b2.id
-        WHERE f2.duplicaat_groep = f.duplicaat_groep${landSubquery}${merkSubquery}${modelSubquery}
+        WHERE f2.duplicaat_groep = f.duplicaat_groep${countrySubquery}${brandSubquery}${modelSubquery}
         ORDER BY CASE b2.type WHEN 'pc' THEN 1 WHEN 'gsm' THEN 2 WHEN 'usb' THEN 3 ELSE 4 END, f2.id ASC
         LIMIT 1
       )
@@ -348,73 +351,73 @@ router.get('/fotos', (req, res) => {
     if (camera_model) params.push(camera_model);
   }
 
-  const kolommen = zonder_thumbnail === '1'
+  const columns = zonder_thumbnail === '1'
     ? 'f.id, f.bestandsnaam, f.volledig_pad, f.bestandsgrootte, f.bestandstype, f.datum_foto, f.jaar, f.maand, f.dag, f.gps_lat, f.gps_lon, f.gps_stad, f.gps_land, f.camera_merk, f.camera_model, f.is_duplicaat, f.duplicaat_groep, f.is_video, f.duur, f.geexporteerd, (f.thumbnail IS NOT NULL) as heeft_thumbnail, b.naam as bron_naam, b.icoon as bron_icoon'
     : 'f.*, (f.thumbnail IS NOT NULL) as heeft_thumbnail, b.naam as bron_naam, b.icoon as bron_icoon';
 
-  const fotos = db.prepare(`
-    SELECT ${kolommen} FROM fotos f
+  const photos = db.prepare(`
+    SELECT ${columns} FROM fotos f
     JOIN bronnen b ON f.bron_id = b.id
-    WHERE ${waar}
+    WHERE ${where}
     ORDER BY f.datum_foto DESC NULLS LAST, f.datum_bestand DESC
     LIMIT ? OFFSET ?
   `).all([...params, parseInt(per_pagina), offset]);
 
-  const totaal = db.prepare(`SELECT COUNT(*) as n FROM fotos f WHERE ${waar}`).get(params).n;
+  const total = db.prepare(`SELECT COUNT(*) as n FROM fotos f WHERE ${where}`).get(params).n;
 
   db.close();
-  res.json({ fotos, totaal, pagina: parseInt(pagina), per_pagina: parseInt(per_pagina) });
+  res.json({ fotos: photos, totaal: total, pagina: parseInt(pagina), per_pagina: parseInt(per_pagina) });
 });
 
 router.get('/fotos/:id', (req, res) => {
   const db = getDb();
-  const foto = db.prepare(`
+  const photo = db.prepare(`
     SELECT f.*, b.naam as bron_naam, b.icoon as bron_icoon
     FROM fotos f JOIN bronnen b ON f.bron_id = b.id
     WHERE f.id = ?
   `).get(req.params.id);
-  if (!foto) { db.close(); return res.status(404).json({ fout: 'Foto niet gevonden' }); }
+  if (!photo) { db.close(); return res.status(404).json({ fout: 'Photo not found' }); }
 
-  // Als duplicaat: alle exemplaren ophalen (inclusief huidige) om origineel te bepalen
-  let duplicaatLocaties = [];
-  let isOrigineel = false;
+  // If duplicate: fetch all copies (including the current one) to determine the original
+  let duplicateLocations = [];
+  let isOriginal = false;
 
-  if (foto.duplicaat_groep) {
-    const alleExemplaren = db.prepare(`
+  if (photo.duplicaat_groep) {
+    const allCopies = db.prepare(`
       SELECT f.id, f.bron_id, f.volledig_pad, f.bestandsgrootte, b.naam as bron_naam, b.icoon as bron_icoon, b.type as bron_type
       FROM fotos f JOIN bronnen b ON f.bron_id = b.id
       WHERE f.duplicaat_groep = ?
-    `).all(foto.duplicaat_groep);
+    `).all(photo.duplicaat_groep);
 
-    // Behouden exemplaar bepalen via de gedeelde keeper-logica (dezelfde keuze
-    // als de duplicaten-pagina én de export). verplicht=true: er is altijd
-    // precies één behouden exemplaar, ook als er nog geen bron gerangschikt is.
-    const { bronVolgorde, handmatig } = leesPrioriteit(db);
-    const origineelId = bepaalKeeper(alleExemplaren, bronVolgorde, handmatig[foto.duplicaat_groep], { verplicht: true });
-    isOrigineel = foto.id === origineelId;
+    // Determine the kept copy via the shared keeper logic (same choice as the
+    // duplicates page AND the export). required=true: there is always exactly
+    // one kept copy, even when no source has been ranked yet.
+    const { bronVolgorde, handmatig } = readPriority(db);
+    const originalId = determineKeeper(allCopies, bronVolgorde, handmatig[photo.duplicaat_groep], { required: true });
+    isOriginal = photo.id === originalId;
 
-    // Andere locaties = alle exemplaren behalve de huidige
-    duplicaatLocaties = alleExemplaren
-      .filter(e => e.id !== foto.id)
-      .map(e => ({ ...e, is_origineel: e.id === origineelId }));
+    // Other locations = all copies except the current one
+    duplicateLocations = allCopies
+      .filter(e => e.id !== photo.id)
+      .map(e => ({ ...e, is_origineel: e.id === originalId }));
   }
 
   db.close();
-  res.json({ ...foto, duplicaat_locaties: duplicaatLocaties, is_origineel: isOrigineel });
+  res.json({ ...photo, duplicaat_locaties: duplicateLocations, is_origineel: isOriginal });
 });
 
-// Originele foto/video serveren met Range-support (voor video streaming)
+// Serve the original photo/video with Range support (for video streaming)
 router.get('/fotos/:id/bestand', (req, res) => {
   const db = getDb();
-  const foto = db.prepare('SELECT volledig_pad, bestandstype, is_video FROM fotos WHERE id = ?').get(req.params.id);
+  const photo = db.prepare('SELECT volledig_pad, bestandstype, is_video FROM fotos WHERE id = ?').get(req.params.id);
   db.close();
-  if (!foto || !fs.existsSync(foto.volledig_pad)) {
-    return res.status(404).json({ fout: 'Bestand niet gevonden' });
+  if (!photo || !fs.existsSync(photo.volledig_pad)) {
+    return res.status(404).json({ fout: 'File not found' });
   }
 
-  // Video's: stuur met Range-support zodat de browser kan zoeken en streamen
-  if (foto.is_video) {
-    const ext = path.extname(foto.volledig_pad).toLowerCase();
+  // Videos: send with Range support so the browser can seek and stream
+  if (photo.is_video) {
+    const ext = path.extname(photo.volledig_pad).toLowerCase();
     const mimeTypes = {
       '.mp4': 'video/mp4', '.m4v': 'video/mp4',
       '.mov': 'video/quicktime', '.qt': 'video/quicktime',
@@ -429,7 +432,7 @@ router.get('/fotos/:id/bestand', (req, res) => {
       '.ogv': 'video/ogg', '.ogg': 'video/ogg',
     };
     const contentType = mimeTypes[ext] || 'video/mp4';
-    const stat = fs.statSync(foto.volledig_pad);
+    const stat = fs.statSync(photo.volledig_pad);
     const fileSize = stat.size;
     const range = req.headers.range;
 
@@ -438,7 +441,7 @@ router.get('/fotos/:id/bestand', (req, res) => {
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
       const chunkSize = end - start + 1;
-      const fileStream = fs.createReadStream(foto.volledig_pad, { start, end });
+      const fileStream = fs.createReadStream(photo.volledig_pad, { start, end });
       res.writeHead(206, {
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
         'Accept-Ranges': 'bytes',
@@ -452,33 +455,33 @@ router.get('/fotos/:id/bestand', (req, res) => {
         'Content-Type': contentType,
         'Accept-Ranges': 'bytes',
       });
-      fs.createReadStream(foto.volledig_pad).pipe(res);
+      fs.createReadStream(photo.volledig_pad).pipe(res);
     }
     return;
   }
 
-  // Foto's: gewoon sendFile
-  res.sendFile(foto.volledig_pad);
+  // Photos: plain sendFile
+  res.sendFile(photo.volledig_pad);
 });
 
-// Bestand openen in systeemspeler — op voorgrond, op het scherm waar de muis is
+// Open a file in the system player — in the foreground, on the screen where the mouse is
 router.post('/fotos/:id/open-extern', (req, res) => {
   const db = getDb();
-  const foto = db.prepare('SELECT volledig_pad FROM fotos WHERE id = ?').get(req.params.id);
+  const photo = db.prepare('SELECT volledig_pad FROM fotos WHERE id = ?').get(req.params.id);
   db.close();
-  if (!foto || !fs.existsSync(foto.volledig_pad)) {
-    return res.status(404).json({ fout: 'Bestand niet gevonden' });
+  if (!photo || !fs.existsSync(photo.volledig_pad)) {
+    return res.status(404).json({ fout: 'File not found' });
   }
 
-  // Electron: gebruik shell.openPath (werkt op Windows, Mac én Linux)
-  if (global.electronOpenExtern) {
-    global.electronOpenExtern(foto.volledig_pad).then(err => {
-      if (err) console.warn('shell.openPath fout:', err);
+  // Electron: use shell.openPath (works on Windows, Mac AND Linux)
+  if (global.electronOpenExternal) {
+    global.electronOpenExternal(photo.volledig_pad).then(err => {
+      if (err) console.warn('shell.openPath error:', err);
     });
     return res.json({ ok: true, methode: 'electron' });
   }
 
-  // Standalone Linux: VLC of xdg-open
+  // Standalone Linux: VLC or xdg-open
   const { spawn, spawnSync, execFileSync } = require('child_process');
 
   const env = {
@@ -488,29 +491,29 @@ router.post('/fotos/:id/open-extern', (req, res) => {
       || `unix:path=/run/user/${process.getuid?.() || 1000}/bus`,
   };
 
-  let vlcBeschikbaar = false;
-  try { execFileSync('which', ['vlc'], { env, stdio: 'pipe' }); vlcBeschikbaar = true; } catch (_) {}
+  let vlcAvailable = false;
+  try { execFileSync('which', ['vlc'], { env, stdio: 'pipe' }); vlcAvailable = true; } catch (_) {}
 
   const mouseX = parseInt(req.body?.mouseX) || null;
   const mouseY = parseInt(req.body?.mouseY) || null;
 
-  if (vlcBeschikbaar) {
-    const child = spawn('vlc', ['--started-from-file', foto.volledig_pad], {
+  if (vlcAvailable) {
+    const child = spawn('vlc', ['--started-from-file', photo.volledig_pad], {
       detached: true, stdio: 'ignore', env,
     });
     child.unref();
 
     setTimeout(() => {
-      const xdotoolBeschikbaar = spawnSync('which', ['xdotool'], { env, stdio: 'pipe' }).status === 0;
-      if (xdotoolBeschikbaar) {
+      const xdotoolAvailable = spawnSync('which', ['xdotool'], { env, stdio: 'pipe' }).status === 0;
+      if (xdotoolAvailable) {
         spawnSync('xdotool', [
           'search', '--name', 'VLC media player',
           'windowactivate', '--sync', 'windowraise',
         ], { env, stdio: 'ignore', timeout: 3000 });
 
         if (mouseX !== null && mouseY !== null) {
-          const wmctrlBeschikbaar = spawnSync('which', ['wmctrl'], { env, stdio: 'pipe' }).status === 0;
-          if (wmctrlBeschikbaar) {
+          const wmctrlAvailable = spawnSync('which', ['wmctrl'], { env, stdio: 'pipe' }).status === 0;
+          if (wmctrlAvailable) {
             const x = Math.max(0, mouseX - 640);
             const y = Math.max(0, mouseY - 360);
             spawnSync('wmctrl', ['-a', 'VLC media player', '-e', `0,${x},${y},-1,-1`],
@@ -520,36 +523,36 @@ router.post('/fotos/:id/open-extern', (req, res) => {
       }
     }, 900);
   } else {
-    const child = spawn('xdg-open', [foto.volledig_pad], {
+    const child = spawn('xdg-open', [photo.volledig_pad], {
       detached: true, stdio: 'ignore', env,
     });
     child.unref();
   }
 
-  res.json({ ok: true, vlc: vlcBeschikbaar });
+  res.json({ ok: true, vlc: vlcAvailable });
 });
 
-// Toon een bestand in de bestandsbeheerder (map openen + bestand geselecteerd).
-// Werkt voor het hoofdpad én elke duplicaat-locatie. Cross-platform.
+// Show a file in the file manager (open folder + select the file).
+// Works for the main path AND every duplicate location. Cross-platform.
 router.post('/fotos/:id/toon-in-map', (req, res) => {
   const db = getDb();
-  const foto = db.prepare('SELECT volledig_pad FROM fotos WHERE id = ?').get(req.params.id);
+  const photo = db.prepare('SELECT volledig_pad FROM fotos WHERE id = ?').get(req.params.id);
   db.close();
-  if (!foto) return res.status(404).json({ fout: 'Foto niet gevonden' });
+  if (!photo) return res.status(404).json({ fout: 'Photo not found' });
 
-  const doelPad = foto.volledig_pad;
-  const bestaat = doelPad && fs.existsSync(doelPad);
-  // Als het bestand zelf weg is, openen we de map eromheen zodat de gebruiker
-  // toch de locatie ziet en kan kijken wat er nog staat.
-  const mapPad = bestaat ? path.dirname(doelPad) : (doelPad ? path.dirname(doelPad) : null);
-  if (!mapPad || !fs.existsSync(mapPad)) {
-    return res.status(404).json({ fout: 'Locatie niet gevonden op deze computer', pad: doelPad });
+  const targetPath = photo.volledig_pad;
+  const exists = targetPath && fs.existsSync(targetPath);
+  // If the file itself is gone, we open the surrounding folder so the user
+  // still sees the location and can check what's left there.
+  const folderPath = exists ? path.dirname(targetPath) : (targetPath ? path.dirname(targetPath) : null);
+  if (!folderPath || !fs.existsSync(folderPath)) {
+    return res.status(404).json({ fout: 'Location not found on this computer', pad: targetPath });
   }
 
-  // Electron: shell.showItemInFolder selecteert het bestand in de verkenner
-  if (global.electronRevealInFolder && bestaat) {
-    try { global.electronRevealInFolder(doelPad); return res.json({ ok: true, methode: 'electron', geselecteerd: true }); }
-    catch (e) { console.warn('reveal fout:', e.message); }
+  // Electron: shell.showItemInFolder selects the file in the file manager
+  if (global.electronRevealInFolder && exists) {
+    try { global.electronRevealInFolder(targetPath); return res.json({ ok: true, methode: 'electron', geselecteerd: true }); }
+    catch (e) { console.warn('reveal error:', e.message); }
   }
 
   const { spawn, spawnSync } = require('child_process');
@@ -563,20 +566,20 @@ router.post('/fotos/:id/toon-in-map', (req, res) => {
   const platform = process.platform;
   try {
     if (platform === 'win32') {
-      // Windows: verkenner openen met het bestand geselecteerd
-      if (bestaat) spawn('explorer', ['/select,', doelPad], { detached: true, stdio: 'ignore' }).unref();
-      else spawn('explorer', [mapPad], { detached: true, stdio: 'ignore' }).unref();
-      return res.json({ ok: true, methode: 'explorer', geselecteerd: bestaat });
+      // Windows: open Explorer with the file selected
+      if (exists) spawn('explorer', ['/select,', targetPath], { detached: true, stdio: 'ignore' }).unref();
+      else spawn('explorer', [folderPath], { detached: true, stdio: 'ignore' }).unref();
+      return res.json({ ok: true, methode: 'explorer', geselecteerd: exists });
     }
     if (platform === 'darwin') {
-      // macOS: Finder openen met het bestand geselecteerd (-R = reveal)
-      if (bestaat) spawn('open', ['-R', doelPad], { detached: true, stdio: 'ignore' }).unref();
-      else spawn('open', [mapPad], { detached: true, stdio: 'ignore' }).unref();
-      return res.json({ ok: true, methode: 'open', geselecteerd: bestaat });
+      // macOS: open Finder with the file selected (-R = reveal)
+      if (exists) spawn('open', ['-R', targetPath], { detached: true, stdio: 'ignore' }).unref();
+      else spawn('open', [folderPath], { detached: true, stdio: 'ignore' }).unref();
+      return res.json({ ok: true, methode: 'open', geselecteerd: exists });
     }
-    // Linux: probeer via de freedesktop-standaard het bestand te selecteren
-    if (bestaat) {
-      const uri = 'file://' + encodeURI(doelPad).replace(/#/g, '%23');
+    // Linux: try to select the file via the freedesktop standard
+    if (exists) {
+      const uri = 'file://' + encodeURI(targetPath).replace(/#/g, '%23');
       const dbus = spawnSync('dbus-send', [
         '--session', '--print-reply', '--dest=org.freedesktop.FileManager1',
         '--type=method_call', '/org/freedesktop/FileManager1',
@@ -585,37 +588,37 @@ router.post('/fotos/:id/toon-in-map', (req, res) => {
       ], { env, stdio: 'ignore', timeout: 4000 });
       if (dbus.status === 0) return res.json({ ok: true, methode: 'dbus', geselecteerd: true });
     }
-    // Fallback (Linux of als dbus faalt): map openen zonder selectie
-    spawn('xdg-open', [mapPad], { detached: true, stdio: 'ignore', env }).unref();
+    // Fallback (Linux or when dbus fails): open the folder without selection
+    spawn('xdg-open', [folderPath], { detached: true, stdio: 'ignore', env }).unref();
     return res.json({ ok: true, methode: 'xdg-open', geselecteerd: false });
   } catch (e) {
-    return res.status(500).json({ fout: 'kon bestandsbeheerder niet openen', detail: e.message });
+    return res.status(500).json({ fout: 'could not open file manager', detail: e.message });
   }
 });
 
-// === FOTO BEWERKEN ===
+// === EDIT PHOTO ===
 
 router.put('/fotos/:id', (req, res) => {
   const { gps_lat, gps_lon, gps_stad, gps_land, gps_land_code, gps_adres, datum_foto, google_description } = req.body;
   const db = getDb();
 
-  const foto = db.prepare('SELECT * FROM fotos WHERE id = ?').get(req.params.id);
-  if (!foto) { db.close(); return res.status(404).json({ fout: 'Foto niet gevonden' }); }
+  const photo = db.prepare('SELECT * FROM fotos WHERE id = ?').get(req.params.id);
+  if (!photo) { db.close(); return res.status(404).json({ fout: 'Photo not found' }); }
 
-  // Datum parsing
-  let jaar = null, maand = null, dag = null;
+  // Date parsing
+  let year = null, month = null, day = null;
   if (datum_foto) {
     const d = new Date(datum_foto);
-    if (!isNaN(d)) { jaar = d.getFullYear(); maand = d.getMonth() + 1; dag = d.getDate(); }
+    if (!isNaN(d)) { year = d.getFullYear(); month = d.getMonth() + 1; day = d.getDate(); }
   }
 
-  // Gebruik de gestuurde waarde als die aanwezig is (ook null = wis); anders houd de DB-waarde
-  const eindLat      = gps_lat       !== undefined ? gps_lat       : foto.gps_lat;
-  const eindLon      = gps_lon       !== undefined ? gps_lon       : foto.gps_lon;
-  const eindStad     = gps_stad      !== undefined ? gps_stad      : foto.gps_stad;
-  const eindLand     = gps_land      !== undefined ? gps_land      : foto.gps_land;
-  const eindLandCode = gps_land_code !== undefined ? gps_land_code : foto.gps_land_code;
-  const eindAdres    = gps_adres     !== undefined ? gps_adres     : foto.gps_adres;
+  // Use the value that was sent if present (including null = clear); otherwise keep the DB value
+  const finalLat         = gps_lat       !== undefined ? gps_lat       : photo.gps_lat;
+  const finalLon         = gps_lon       !== undefined ? gps_lon       : photo.gps_lon;
+  const finalCity        = gps_stad      !== undefined ? gps_stad      : photo.gps_stad;
+  const finalCountry     = gps_land      !== undefined ? gps_land      : photo.gps_land;
+  const finalCountryCode = gps_land_code !== undefined ? gps_land_code : photo.gps_land_code;
+  const finalAddress     = gps_adres     !== undefined ? gps_adres     : photo.gps_adres;
 
   db.prepare(`
     UPDATE fotos SET
@@ -624,81 +627,81 @@ router.put('/fotos/:id', (req, res) => {
       google_description = ?
     WHERE id = ?
   `).run(
-    eindLat, eindLon, eindStad, eindLand, eindLandCode, eindAdres,
-    datum_foto ?? foto.datum_foto,
-    jaar ?? foto.jaar,
-    maand ?? foto.maand,
-    dag ?? foto.dag,
-    google_description ?? foto.google_description,
+    finalLat, finalLon, finalCity, finalCountry, finalCountryCode, finalAddress,
+    datum_foto ?? photo.datum_foto,
+    year ?? photo.jaar,
+    month ?? photo.maand,
+    day ?? photo.dag,
+    google_description ?? photo.google_description,
     req.params.id
   );
 
-  // Propageer GPS-wijziging naar alle duplicaten in dezelfde groep
-  const heeftGpsUpdate = [gps_lat, gps_lon, gps_stad, gps_land, gps_land_code, gps_adres].some(v => v !== undefined);
-  if (heeftGpsUpdate && foto.duplicaat_groep) {
+  // Propagate the GPS change to all duplicates in the same group
+  const hasGpsUpdate = [gps_lat, gps_lon, gps_stad, gps_land, gps_land_code, gps_adres].some(v => v !== undefined);
+  if (hasGpsUpdate && photo.duplicaat_groep) {
     const dupUpdate = db.prepare(`
       UPDATE fotos SET gps_lat = ?, gps_lon = ?, gps_stad = ?, gps_land = ?, gps_land_code = ?, gps_adres = ?
       WHERE duplicaat_groep = ? AND id != ?
     `);
-    dupUpdate.run(eindLat, eindLon, eindStad, eindLand, eindLandCode, eindAdres, foto.duplicaat_groep, req.params.id);
+    dupUpdate.run(finalLat, finalLon, finalCity, finalCountry, finalCountryCode, finalAddress, photo.duplicaat_groep, req.params.id);
   }
 
-  const bijgewerkt = db.prepare(`
+  const updated = db.prepare(`
     SELECT f.*, b.naam as bron_naam, b.icoon as bron_icoon
     FROM fotos f JOIN bronnen b ON f.bron_id = b.id WHERE f.id = ?
   `).get(req.params.id);
   db.close();
-  res.json(bijgewerkt);
+  res.json(updated);
 });
 
-// GPS toewijzen aan foto + alle duplicaten in zelfde groep
+// Assign GPS to a photo + all duplicates in the same group
 router.post('/fotos/:id/gps', (req, res) => {
   const { gps_lat, gps_lon, gps_stad, gps_land, gps_land_code, gps_adres } = req.body;
-  if (!gps_lat || !gps_lon) return res.status(400).json({ fout: 'gps_lat en gps_lon zijn verplicht' });
+  if (!gps_lat || !gps_lon) return res.status(400).json({ fout: 'gps_lat and gps_lon are required' });
 
   const db = getDb();
-  const foto = db.prepare('SELECT id, duplicaat_groep FROM fotos WHERE id = ?').get(req.params.id);
-  if (!foto) { db.close(); return res.status(404).json({ fout: 'Foto niet gevonden' }); }
+  const photo = db.prepare('SELECT id, duplicaat_groep FROM fotos WHERE id = ?').get(req.params.id);
+  if (!photo) { db.close(); return res.status(404).json({ fout: 'Photo not found' }); }
 
   const updateGps = db.prepare(`
     UPDATE fotos SET gps_lat = ?, gps_lon = ?, gps_stad = ?, gps_land = ?, gps_land_code = ?, gps_adres = ?
     WHERE id = ?
   `);
 
-  let aantalBijgewerkt = 0;
+  let updatedCount = 0;
 
-  if (foto.duplicaat_groep) {
-    // Wijs GPS toe aan alle duplicaten in dezelfde groep
-    const duplicaten = db.prepare('SELECT id FROM fotos WHERE duplicaat_groep = ?').all(foto.duplicaat_groep);
-    for (const dup of duplicaten) {
+  if (photo.duplicaat_groep) {
+    // Assign GPS to all duplicates in the same group
+    const duplicates = db.prepare('SELECT id FROM fotos WHERE duplicaat_groep = ?').all(photo.duplicaat_groep);
+    for (const dup of duplicates) {
       updateGps.run(gps_lat, gps_lon, gps_stad || null, gps_land || null, gps_land_code || null, gps_adres || null, dup.id);
-      aantalBijgewerkt++;
+      updatedCount++;
     }
   } else {
-    updateGps.run(gps_lat, gps_lon, gps_stad || null, gps_land || null, gps_land_code || null, gps_adres || null, foto.id);
-    aantalBijgewerkt = 1;
+    updateGps.run(gps_lat, gps_lon, gps_stad || null, gps_land || null, gps_land_code || null, gps_adres || null, photo.id);
+    updatedCount = 1;
   }
 
   db.close();
-  res.json({ ok: true, bijgewerkt: aantalBijgewerkt });
+  res.json({ ok: true, bijgewerkt: updatedCount });
 });
 
-// GPS propagatie via scanner functie (deelt ook naar originelen zonder gps_lat)
+// GPS propagation via the scanner function (also shares to originals without gps_lat)
 router.post('/scan/gps-propageren', (req, res) => {
   try {
-    const bijgewerkt = propageerGpsInGroepen();
-    res.json({ ok: true, bijgewerkt });
+    const updated = propagateGpsInGroups();
+    res.json({ ok: true, bijgewerkt: updated });
   } catch (e) {
     res.status(500).json({ ok: false, fout: e.message });
   }
 });
 
-// GPS automatisch delen binnen alle duplicaatgroepen
+// Automatically share GPS within all duplicate groups
 router.post('/duplicaten/gps-delen', (req, res) => {
   const db = getDb();
 
-  // Vind alle groepen waar minstens één foto GPS heeft
-  const groepen = db.prepare(`
+  // Find all groups where at least one photo has GPS
+  const groups = db.prepare(`
     SELECT duplicaat_groep, MAX(gps_lat) as lat, MAX(gps_lon) as lon,
            MAX(gps_stad) as stad, MAX(gps_land) as land,
            MAX(gps_land_code) as land_code, MAX(gps_adres) as adres
@@ -714,65 +717,65 @@ router.post('/duplicaten/gps-delen', (req, res) => {
     WHERE duplicaat_groep = ? AND (gps_land IS NULL OR gps_land = '')
   `);
 
-  let totaalBijgewerkt = 0;
-  for (const g of groepen) {
+  let totalUpdated = 0;
+  for (const g of groups) {
     const info = update.run(g.lat, g.lon, g.stad, g.land, g.land_code, g.adres, g.duplicaat_groep);
-    totaalBijgewerkt += info.changes;
+    totalUpdated += info.changes;
   }
 
   db.close();
-  console.log(`🌍 GPS gedeeld: ${totaalBijgewerkt} foto's bijgewerkt in ${groepen.length} groepen`);
-  res.json({ ok: true, bijgewerkt: totaalBijgewerkt, groepen: groepen.length });
+  console.log(`🌍 GPS shared: ${totalUpdated} photos updated in ${groups.length} groups`);
+  res.json({ ok: true, bijgewerkt: totalUpdated, groepen: groups.length });
 });
 
-// Datum herstellen voor foto's zonder datum — via bestandsnaam of bestandsaanmaakdatum
+// Restore the date for photos without one — via filename or file creation date
 router.post('/fotos/herstel-datum', (req, res) => {
   const db = getDb();
-  const zonderDatum = db.prepare("SELECT id, bestandsnaam, volledig_pad FROM fotos WHERE datum_foto IS NULL").all();
+  const withoutDate = db.prepare("SELECT id, bestandsnaam, volledig_pad FROM fotos WHERE datum_foto IS NULL").all();
 
-  let bijgewerkt = 0;
+  let updated = 0;
   const update = db.prepare("UPDATE fotos SET datum_foto = ?, jaar = ?, maand = ?, dag = ? WHERE id = ?");
 
-  for (const foto of zonderDatum) {
-    // Stap 1: datum uit bestandsnaam
-    let datum = parseDatumUitBestandsnaam(foto.bestandsnaam);
+  for (const photo of withoutDate) {
+    // Step 1: date from the filename
+    let date = parseDateFromFilename(photo.bestandsnaam);
 
-    // Stap 2: bestandsaanmaakdatum (birthtime of mtime)
-    if (!datum) {
+    // Step 2: file creation date (birthtime or mtime)
+    if (!date) {
       try {
-        const stat = require('fs').statSync(foto.volledig_pad);
-        datum = (stat.birthtime || stat.mtime).toISOString();
+        const stat = require('fs').statSync(photo.volledig_pad);
+        date = (stat.birthtime || stat.mtime).toISOString();
       } catch (_) {}
     }
 
-    if (datum) {
-      const d = new Date(datum);
-      update.run(datum, d.getFullYear(), d.getMonth() + 1, d.getDate(), foto.id);
-      bijgewerkt++;
+    if (date) {
+      const d = new Date(date);
+      update.run(date, d.getFullYear(), d.getMonth() + 1, d.getDate(), photo.id);
+      updated++;
     }
   }
 
   db.close();
-  console.log(`📅 Datum hersteld: ${bijgewerkt} / ${zonderDatum.length} foto's bijgewerkt`);
-  res.json({ ok: true, totaal: zonderDatum.length, bijgewerkt });
+  console.log(`📅 Date restored: ${updated} / ${withoutDate.length} photos updated`);
+  res.json({ ok: true, totaal: withoutDate.length, bijgewerkt: updated });
 });
 
-function parseDatumUitBestandsnaam(naam) {
-  const match = naam.match(/(\d{4})[_\-]?(\d{2})[_\-]?(\d{2})/);
+function parseDateFromFilename(name) {
+  const match = name.match(/(\d{4})[_\-]?(\d{2})[_\-]?(\d{2})/);
   if (!match) return null;
-  const [, jaar, maand, dag] = match.map(Number);
-  if (jaar < 1950 || jaar > 2100 || maand < 1 || maand > 12 || dag < 1 || dag > 31) return null;
-  return `${jaar}-${String(maand).padStart(2,'0')}-${String(dag).padStart(2,'0')}T00:00:00.000Z`;
+  const [, year, month, day] = match.map(Number);
+  if (year < 1950 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T00:00:00.000Z`;
 }
 
-// === DUPLICATEN ===
+// === DUPLICATES ===
 
 router.get('/duplicaten', (req, res) => {
   const db = getDb();
   const { pagina = 1, per_pagina = 20 } = req.query;
   const offset = (parseInt(pagina) - 1) * parseInt(per_pagina);
 
-  const groepen = db.prepare(`
+  const groups = db.prepare(`
     SELECT duplicaat_groep, COUNT(*) as aantal,
            MIN(datum_foto) as datum, MIN(bestandsnaam) as voorbeeld_naam
     FROM fotos WHERE duplicaat_groep IS NOT NULL
@@ -782,99 +785,99 @@ router.get('/duplicaten', (req, res) => {
     LIMIT ? OFFSET ?
   `).all(parseInt(per_pagina), offset);
 
-  const totaalGroepen = db.prepare(`
+  const totalGroups = db.prepare(`
     SELECT COUNT(*) as n FROM (
       SELECT duplicaat_groep FROM fotos WHERE duplicaat_groep IS NOT NULL
       GROUP BY duplicaat_groep HAVING COUNT(*) > 1
     )
   `).get().n;
 
-  // Per groep de foto's ophalen
-  const result = groepen.map(groep => {
-    const fotos = db.prepare(`
+  // Fetch the photos per group
+  const result = groups.map(group => {
+    const photos = db.prepare(`
       SELECT f.id, f.bestandsnaam, f.volledig_pad, f.bestandsgrootte,
              f.datum_foto, f.thumbnail, f.bron_id, f.gps_lat, f.gps_stad, f.gps_land,
              b.naam as bron_naam, b.icoon as bron_icoon, b.type as bron_type
       FROM fotos f JOIN bronnen b ON f.bron_id = b.id
       WHERE f.duplicaat_groep = ?
-    `).all(groep.duplicaat_groep);
-    return { ...groep, fotos };
+    `).all(group.duplicaat_groep);
+    return { ...group, fotos: photos };
   });
 
   db.close();
-  res.json({ groepen: result, totaal_groepen: totaalGroepen, pagina: parseInt(pagina) });
+  res.json({ groepen: result, totaal_groepen: totalGroups, pagina: parseInt(pagina) });
 });
 
-// Bepaal welk exemplaar in een duplicaatgroep het origineel (= behouden) is.
-// Delegeert naar de gedeelde keeper-logica (src/keeper.js) zodat backend,
-// export én frontend exact dezelfde keuze maken. verplicht=false: geeft null
-// terug ("keuze nodig") als geen enkele bron in de groep gerangschikt is —
-// het wisflow slaat zulke groepen dan veilig over.
-function bepaalOrigineel(fotos, bronVolgorde, handmatigId) {
-  return bepaalKeeper(fotos, bronVolgorde, handmatigId, { verplicht: false });
+// Determine which copy in a duplicate group is the original (= kept one).
+// Delegates to the shared keeper logic (src/keeper.js) so that backend,
+// export AND frontend make exactly the same choice. required=false: returns
+// null ("choice needed") when no source in the group has been ranked —
+// the deletion flow then safely skips such groups.
+function determineOriginal(fotos, bronVolgorde, handmatigId) {
+  return determineKeeper(fotos, bronVolgorde, handmatigId, { required: false });
 }
 
-// Verzamel per groep de keeper + te-wissen kopieën, op basis van prioriteit/handmatige keuze.
-// groepFilter (optioneel): enkel deze hash verwerken.
-function verzamelDuplicaatPlan(db, bronVolgorde, handmatig, groepFilter) {
-  const waar = groepFilter
+// Collect per group the keeper + copies to delete, based on priority/manual choice.
+// groupFilter (optional): only process this hash.
+function collectDuplicatePlan(db, bronVolgorde, handmatig, groupFilter) {
+  const where = groupFilter
     ? 'WHERE f.duplicaat_groep = ?'
     : 'WHERE f.duplicaat_groep IS NOT NULL';
-  const rijen = groepFilter
-    ? db.prepare(`SELECT f.id, f.bron_id, f.duplicaat_groep, f.volledig_pad, f.bestandsgrootte FROM fotos f ${waar}`).all(groepFilter)
-    : db.prepare(`SELECT f.id, f.bron_id, f.duplicaat_groep, f.volledig_pad, f.bestandsgrootte FROM fotos f ${waar}`).all();
+  const rows = groupFilter
+    ? db.prepare(`SELECT f.id, f.bron_id, f.duplicaat_groep, f.volledig_pad, f.bestandsgrootte FROM fotos f ${where}`).all(groupFilter)
+    : db.prepare(`SELECT f.id, f.bron_id, f.duplicaat_groep, f.volledig_pad, f.bestandsgrootte FROM fotos f ${where}`).all();
 
-  const perGroep = new Map();
-  for (const r of rijen) {
-    if (!perGroep.has(r.duplicaat_groep)) perGroep.set(r.duplicaat_groep, []);
-    perGroep.get(r.duplicaat_groep).push(r);
+  const perGroup = new Map();
+  for (const r of rows) {
+    if (!perGroup.has(r.duplicaat_groep)) perGroup.set(r.duplicaat_groep, []);
+    perGroup.get(r.duplicaat_groep).push(r);
   }
 
-  const teWissen = [];          // foto-objecten die naar de prullenbak gaan
-  let keuzeNodig = 0;           // aantal groepen dat nog een keuze vereist
-  let groepenKlaar = 0;
-  for (const [groep, fotos] of perGroep) {
-    const keeper = bepaalOrigineel(fotos, bronVolgorde, handmatig ? handmatig[groep] : undefined);
-    if (keeper == null) { keuzeNodig++; continue; }
-    groepenKlaar++;
-    for (const f of fotos) if (f.id !== keeper) teWissen.push(f);
+  const toDelete = [];          // photo objects headed for the trash
+  let choiceNeeded = 0;         // number of groups that still require a choice
+  let groupsReady = 0;
+  for (const [group, photos] of perGroup) {
+    const keeper = determineOriginal(photos, bronVolgorde, handmatig ? handmatig[group] : undefined);
+    if (keeper == null) { choiceNeeded++; continue; }
+    groupsReady++;
+    for (const f of photos) if (f.id !== keeper) toDelete.push(f);
   }
-  return { teWissen, keuzeNodig, groepenKlaar };
+  return { toDelete, choiceNeeded, groupsReady };
 }
 
-// Schoon duplicaat-restanten op: als een groep nog maar <= 1 foto telt,
-// is die foto geen duplicaat meer → is_duplicaat=0 en duplicaat_groep=NULL.
-// groepen: array van duplicaat_groep-hashes die mogelijk opgeschoond moeten worden.
-function schoonDuplicaatGroepenOp(db, groepen) {
-  let opgeschoond = 0;
-  const uniek = [...new Set((groepen || []).filter(Boolean))];
-  const telPrep = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE duplicaat_groep = ?');
-  const wisPrep = db.prepare('UPDATE fotos SET is_duplicaat = 0, duplicaat_groep = NULL WHERE duplicaat_groep = ?');
-  for (const g of uniek) {
-    if (telPrep.get(g).n <= 1) opgeschoond += wisPrep.run(g).changes;
+// Clean up duplicate leftovers: if a group has <= 1 photo left, that photo is
+// no longer a duplicate → is_duplicaat=0 and duplicaat_groep=NULL.
+// groups: array of duplicaat_groep hashes that may need cleaning up.
+function cleanupDuplicateGroups(db, groups) {
+  let cleaned = 0;
+  const unique = [...new Set((groups || []).filter(Boolean))];
+  const countPrep = db.prepare('SELECT COUNT(*) as n FROM fotos WHERE duplicaat_groep = ?');
+  const clearPrep = db.prepare('UPDATE fotos SET is_duplicaat = 0, duplicaat_groep = NULL WHERE duplicaat_groep = ?');
+  for (const g of unique) {
+    if (countPrep.get(g).n <= 1) cleaned += clearPrep.run(g).changes;
   }
-  return opgeschoond;
+  return cleaned;
 }
 
-// Bepaal de te gebruiken prioriteit voor een request.
-// - Komt de prioriteit in de body mee? Gebruik die én sla ze op in de DB (sync).
-// - Anders: lees de opgeslagen prioriteit uit de DB.
-// Zo zijn frontend (localStorage) en backend/export altijd consistent.
-function resolvePrioriteit(db, body) {
-  const heeftBron = body && Array.isArray(body.bronVolgorde);
-  const heeftHand = body && body.handmatig && typeof body.handmatig === 'object';
-  if (heeftBron || heeftHand) {
-    schrijfPrioriteit(db, heeftBron ? body.bronVolgorde : undefined, heeftHand ? body.handmatig : undefined);
+// Determine the priority to use for a request.
+// - Does the priority come along in the body? Use it AND store it in the DB (sync).
+// - Otherwise: read the stored priority from the DB.
+// This keeps frontend (localStorage) and backend/export always consistent.
+function resolvePriority(db, body) {
+  const hasSource = body && Array.isArray(body.bronVolgorde);
+  const hasManual = body && body.handmatig && typeof body.handmatig === 'object';
+  if (hasSource || hasManual) {
+    writePriority(db, hasSource ? body.bronVolgorde : undefined, hasManual ? body.handmatig : undefined);
   }
-  return leesPrioriteit(db);
+  return readPriority(db);
 }
 
-// === DUPLICATEN PRIORITEIT (gedeeld tussen frontend en backend) ===
+// === DUPLICATE PRIORITY (shared between frontend and backend) ===
 
 router.get('/duplicaten/prioriteit', (req, res) => {
   const db = getDb();
   try {
-    res.json(leesPrioriteit(db));
+    res.json(readPriority(db));
   } finally {
     db.close();
   }
@@ -884,96 +887,96 @@ router.post('/duplicaten/prioriteit', (req, res) => {
   const db = getDb();
   try {
     const { bronVolgorde, handmatig } = req.body || {};
-    schrijfPrioriteit(db, bronVolgorde, handmatig);
-    res.json({ ok: true, ...leesPrioriteit(db) });
+    writePriority(db, bronVolgorde, handmatig);
+    res.json({ ok: true, ...readPriority(db) });
   } catch (e) {
-    res.status(500).json({ fout: 'opslaan mislukt', detail: e.message });
+    res.status(500).json({ fout: 'save failed', detail: e.message });
   } finally {
     db.close();
   }
 });
 
-// Voorbeeld van wat er gewist zou worden (voor de bevestiging) — wist niets.
+// Preview of what would be deleted (for the confirmation) — deletes nothing.
 router.post('/duplicaten/wis-preview', (req, res) => {
   const db = getDb();
   try {
     const { groep = null } = req.body || {};
-    const { bronVolgorde, handmatig } = resolvePrioriteit(db, req.body);
-    const { teWissen, keuzeNodig, groepenKlaar } = verzamelDuplicaatPlan(db, bronVolgorde, handmatig, groep);
-    const bytes = teWissen.reduce((s, f) => s + (f.bestandsgrootte || 0), 0);
+    const { bronVolgorde, handmatig } = resolvePriority(db, req.body);
+    const { toDelete, choiceNeeded, groupsReady } = collectDuplicatePlan(db, bronVolgorde, handmatig, groep);
+    const bytes = toDelete.reduce((s, f) => s + (f.bestandsgrootte || 0), 0);
     db.close();
-    res.json({ ok: true, bestanden: teWissen.length, bytes, groepenKlaar, keuzeNodig });
+    res.json({ ok: true, bestanden: toDelete.length, bytes, groepenKlaar: groupsReady, keuzeNodig: choiceNeeded });
   } catch (e) {
     try { db.close(); } catch (_) {}
-    res.status(500).json({ fout: 'preview mislukt', detail: e.message });
+    res.status(500).json({ fout: 'preview failed', detail: e.message });
   }
 });
 
-// Wis de duplicaten (alle kopieën behalve het origineel) → prullenbak + uit database.
-// Groepen die nog een keuze vereisen worden overgeslagen.
+// Delete the duplicates (all copies except the original) → trash + out of the database.
+// Groups that still require a choice are skipped.
 router.post('/duplicaten/wis', async (req, res) => {
   const db = getDb();
   try {
     const { groep = null } = req.body || {};
-    const { bronVolgorde, handmatig } = resolvePrioriteit(db, req.body);
-    const { teWissen, keuzeNodig } = verzamelDuplicaatPlan(db, bronVolgorde, handmatig, groep);
+    const { bronVolgorde, handmatig } = resolvePriority(db, req.body);
+    const { toDelete, choiceNeeded } = collectDuplicatePlan(db, bronVolgorde, handmatig, groep);
 
-    if (teWissen.length === 0) {
+    if (toDelete.length === 0) {
       db.close();
-      return res.json({ ok: true, verwijderd: 0, naarPrullenbak: 0, bytesVrij: 0, overgeslagen: keuzeNodig });
+      return res.json({ ok: true, verwijderd: 0, naarPrullenbak: 0, bytesVrij: 0, overgeslagen: choiceNeeded });
     }
 
-    // Splits bestaande vs. al ontbrekende bestanden
-    const bestaande = [], ontbrekendeIds = [];
-    for (const f of teWissen) {
-      if (f.volledig_pad && fs.existsSync(f.volledig_pad)) bestaande.push(f);
-      else ontbrekendeIds.push(f.id);
+    // Split existing vs. already missing files
+    const existing = [], missingIds = [];
+    for (const f of toDelete) {
+      if (f.volledig_pad && fs.existsSync(f.volledig_pad)) existing.push(f);
+      else missingIds.push(f.id);
     }
 
     let trash;
     try { trash = require('trash'); }
-    catch (e) { db.close(); return res.status(500).json({ fout: 'prullenbak-module niet beschikbaar', detail: e.message }); }
+    catch (e) { db.close(); return res.status(500).json({ fout: 'trash module not available', detail: e.message }); }
 
-    const naarPrullenbakIds = [];
-    let bytesVrij = 0;
-    if (bestaande.length) {
+    const trashedIds = [];
+    let freedBytes = 0;
+    if (existing.length) {
       try {
-        await trash(bestaande.map(f => f.volledig_pad));
-        for (const f of bestaande) { naarPrullenbakIds.push(f.id); bytesVrij += f.bestandsgrootte || 0; }
+        await trash(existing.map(f => f.volledig_pad));
+        for (const f of existing) { trashedIds.push(f.id); freedBytes += f.bestandsgrootte || 0; }
       } catch (batchErr) {
-        for (const f of bestaande) {
-          try { await trash(f.volledig_pad); naarPrullenbakIds.push(f.id); bytesVrij += f.bestandsgrootte || 0; }
-          catch (_) { /* dit bestand overslaan */ }
+        for (const f of existing) {
+          try { await trash(f.volledig_pad); trashedIds.push(f.id); freedBytes += f.bestandsgrootte || 0; }
+          catch (_) { /* skip this file */ }
         }
       }
     }
 
-    const teVerwijderen = [...naarPrullenbakIds, ...ontbrekendeIds];
-    if (teVerwijderen.length) {
-      const ph = teVerwijderen.map(() => '?').join(',');
-      db.prepare(`DELETE FROM fotos WHERE id IN (${ph})`).run(...teVerwijderen);
+    const toRemove = [...trashedIds, ...missingIds];
+    if (toRemove.length) {
+      const ph = toRemove.map(() => '?').join(',');
+      db.prepare(`DELETE FROM fotos WHERE id IN (${ph})`).run(...toRemove);
     }
 
-    // Keeper(s) van getroffen groepen opschonen: geen kopie meer = geen duplicaat meer
-    const verwijderdeSet = new Set(teVerwijderen);
-    const getroffenGroepen = teWissen.filter(f => verwijderdeSet.has(f.id)).map(f => f.duplicaat_groep);
-    schoonDuplicaatGroepenOp(db, getroffenGroepen);
+    // Clean up keeper(s) of affected groups: no copy left = no longer a duplicate
+    const removedSet = new Set(toRemove);
+    const affectedGroups = toDelete.filter(f => removedSet.has(f.id)).map(f => f.duplicaat_groep);
+    cleanupDuplicateGroups(db, affectedGroups);
 
     db.close();
     res.json({
       ok: true,
-      verwijderd: teVerwijderen.length,
-      naarPrullenbak: naarPrullenbakIds.length,
-      bytesVrij,
-      overgeslagen: keuzeNodig
+      verwijderd: toRemove.length,
+      naarPrullenbak: trashedIds.length,
+      bytesVrij: freedBytes,
+      overgeslagen: choiceNeeded
     });
   } catch (e) {
     try { db.close(); } catch (_) {}
-    res.status(500).json({ fout: 'wissen mislukt', detail: e.message });
+    res.status(500).json({ fout: 'delete failed', detail: e.message });
   }
 });
 
-// === DATABASE WIS ===
+// === CLEAR DATABASE ===
 
 router.post('/database/wis', (req, res) => {
   const db = getDb();
@@ -984,44 +987,44 @@ router.post('/database/wis', (req, res) => {
     DELETE FROM instellingen WHERE sleutel IN ('dup_bron_volgorde', 'dup_handmatig');
   `);
   db.close();
-  console.log('🗑️  Database gewist door gebruiker (bronnen behouden, duplicaat-prioriteit gereset)');
+  console.log('🗑️  Database cleared by user (sources kept, duplicate priority reset)');
   res.json({ ok: true });
 });
 
-// === MAP BROWSER ===
+// === FOLDER BROWSER ===
 
 router.get('/mappen', (req, res) => {
   const pad = req.query.pad || require('os').homedir();
   try {
     const items = fs.readdirSync(pad, { withFileTypes: true });
-    const mappen = items
+    const folders = items
       .filter(i => i.isDirectory() && !i.name.startsWith('.'))
       .map(i => ({ naam: i.name, pad: path.join(pad, i.name) }))
       .sort((a, b) => a.naam.localeCompare(b.naam));
-    const ouder = path.dirname(pad) !== pad ? path.dirname(pad) : null;
-    res.json({ huidig: pad, ouder, mappen });
+    const parent = path.dirname(pad) !== pad ? path.dirname(pad) : null;
+    res.json({ huidig: pad, ouder: parent, mappen: folders });
   } catch (e) {
     res.status(400).json({ fout: e.message });
   }
 });
 
-// === KAART DATA ===
+// === MAP DATA ===
 
-// Thumbnail als echte afbeelding serveren (browser cached dit)
+// Serve the thumbnail as a real image (the browser caches this)
 router.get('/fotos/:id/thumbnail', (req, res) => {
-  // Gedeelde, langlevende leesverbinding: dit endpoint wordt per pagina ~50x
-  // aangeroepen; telkens een nieuwe verbinding openen liet de app vastlopen.
+  // Shared, long-lived read connection: this endpoint is called ~50x per page;
+  // opening a new connection every time made the app freeze.
   const db = getSharedDb();
-  const foto = db.prepare('SELECT thumbnail FROM fotos WHERE id = ?').get(req.params.id);
-  if (!foto?.thumbnail) return res.status(404).send('Geen thumbnail');
-  const [header, b64] = foto.thumbnail.split(',');
+  const photo = db.prepare('SELECT thumbnail FROM fotos WHERE id = ?').get(req.params.id);
+  if (!photo?.thumbnail) return res.status(404).send('Geen thumbnail');
+  const [header, b64] = photo.thumbnail.split(',');
   const mime = header.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
   res.set('Content-Type', mime);
   res.set('Cache-Control', 'public, max-age=86400');
   res.send(Buffer.from(b64, 'base64'));
 });
 
-// Locatie-clusters voor de kaart (gegroepeerd op ~1km raster)
+// Location clusters for the map (grouped on a ~1km grid)
 router.get('/kaart/locaties', (req, res) => {
   const { is_video } = req.query;
   const db = getDb();
@@ -1029,7 +1032,7 @@ router.get('/kaart/locaties', (req, res) => {
   if (is_video === '1') typeFilter = 'AND is_video = 1';
   else if (is_video === '0') typeFilter = 'AND (is_video IS NULL OR is_video = 0)';
 
-  const locaties = db.prepare(`
+  const locations = db.prepare(`
     SELECT
       ROUND(gps_lat, 2) as lat,
       ROUND(gps_lon, 2) as lon,
@@ -1050,24 +1053,24 @@ router.get('/kaart/locaties', (req, res) => {
     ORDER BY aantal DESC
   `).all();
   db.close();
-  res.json(locaties);
+  res.json(locations);
 });
 
-// Foto's op een specifieke locatie (voor het slide-up panel)
+// Photos at a specific location (for the slide-up panel)
 router.get('/kaart/fotos', (req, res) => {
   const { lat, lon, limit = 40, zonder_kopien = '1', is_video } = req.query;
-  if (!lat || !lon) return res.status(400).json({ fout: 'lat en lon vereist' });
+  if (!lat || !lon) return res.status(400).json({ fout: 'lat and lon required' });
   const db = getDb();
 
   let typeFilter = '';
   if (is_video === '1') typeFilter = 'AND f.is_video = 1';
   else if (is_video === '0') typeFilter = 'AND (f.is_video IS NULL OR f.is_video = 0)';
 
-  // Keeper-set via de gedeelde logica → het behouden exemplaar op de kaart
-  // komt overeen met het detailvenster, de duplicaten-pagina én de export.
+  // Keeper set via the shared logic → the kept copy on the map matches the
+  // detail view, the duplicates page AND the export.
   const keepers = keeperIds(db);
 
-  const rijen = db.prepare(`
+  const rows = db.prepare(`
     SELECT f.id, f.bestandsnaam, f.datum_foto, f.gps_stad, f.gps_land, f.gps_land_code,
            f.is_duplicaat, f.is_video, f.duur, f.duplicaat_groep,
            f.camera_model, b.naam as bron_naam, b.icoon as bron_icoon, b.type as bron_type
@@ -1079,426 +1082,426 @@ router.get('/kaart/fotos', (req, res) => {
   `).all(parseFloat(lat), parseFloat(lon));
   db.close();
 
-  let fotos = rijen.map(f => ({
+  let photos = rows.map(f => ({
     ...f,
     is_origineel: f.duplicaat_groep && keepers.has(f.id) ? 1 : 0
   }));
-  // Kopieën verbergen: toon niet-duplicaten + het behouden exemplaar per groep
+  // Hide copies: show non-duplicates + the kept copy per group
   if (zonder_kopien === '1') {
-    fotos = fotos.filter(f => !f.is_duplicaat || f.is_origineel);
+    photos = photos.filter(f => !f.is_duplicaat || f.is_origineel);
   }
-  fotos = fotos.slice(0, parseInt(limit));
-  res.json(fotos);
+  photos = photos.slice(0, parseInt(limit));
+  res.json(photos);
 });
 
-// === GPS BULK TOEWIJZEN ===
+// === GPS BULK ASSIGN ===
 
-// GET /api/gps/groepen — groepeer foto's zonder GPS op tijdblok (2u gap = nieuwe groep)
+// GET /api/gps/groepen — group photos without GPS by time block (2h gap = new group)
 router.get('/gps/groepen', (req, res) => {
   const db = getDb();
 
-  // Type-filter: '' = alles, '0' = alleen foto's, '1' = alleen video's
+  // Type filter: '' = everything, '0' = photos only, '1' = videos only
   const { is_video } = req.query;
   let typeFilter = '';
   if (is_video === '1') typeFilter = 'AND f.is_video = 1';
   else if (is_video === '0') typeFilter = 'AND (f.is_video IS NULL OR f.is_video = 0)';
 
-  // Alleen originelen tonen — kopieën worden via GPS propagatie meegewijzigd
-  const origineelFilter = `
+  // Only show originals — copies are updated along via GPS propagation
+  const originalFilter = `
     AND (f.duplicaat_groep IS NULL
       OR f.id = (SELECT MIN(id) FROM fotos WHERE duplicaat_groep = f.duplicaat_groep))
   `;
 
-  const metDatum = db.prepare(`
+  const withDate = db.prepare(`
     SELECT f.id, f.datum_foto, f.thumbnail IS NOT NULL as heeft_thumb
     FROM fotos f
     WHERE (f.gps_lat IS NULL OR f.gps_lat = 0)
       AND f.datum_foto IS NOT NULL AND f.datum_foto != ''
       ${typeFilter}
-      ${origineelFilter}
+      ${originalFilter}
     ORDER BY f.datum_foto ASC
   `).all();
 
-  const zonderDatum = db.prepare(`
+  const withoutDate = db.prepare(`
     SELECT f.id, f.thumbnail IS NOT NULL as heeft_thumb
     FROM fotos f
     WHERE (f.gps_lat IS NULL OR f.gps_lat = 0)
       AND (f.datum_foto IS NULL OR f.datum_foto = '')
       ${typeFilter}
-      ${origineelFilter}
+      ${originalFilter}
     ORDER BY f.id ASC
   `).all();
 
   db.close();
 
-  const GAP_MS = 2 * 60 * 60 * 1000; // 2 uur
-  const groepen = [];
-  let huidigeGroep = null;
+  const GAP_MS = 2 * 60 * 60 * 1000; // 2 hours
+  const groups = [];
+  let currentGroup = null;
 
-  for (const foto of metDatum) {
-    const ts = new Date(foto.datum_foto).getTime();
+  for (const photo of withDate) {
+    const ts = new Date(photo.datum_foto).getTime();
     if (isNaN(ts)) continue;
-    if (!huidigeGroep || ts - huidigeGroep.lastTs > GAP_MS) {
-      huidigeGroep = { datumStart: foto.datum_foto, datumEind: foto.datum_foto, lastTs: ts, ids: [], voorbeelden: [] };
-      groepen.push(huidigeGroep);
+    if (!currentGroup || ts - currentGroup.lastTs > GAP_MS) {
+      currentGroup = { dateStart: photo.datum_foto, dateEnd: photo.datum_foto, lastTs: ts, ids: [], samples: [] };
+      groups.push(currentGroup);
     }
-    huidigeGroep.datumEind = foto.datum_foto;
-    huidigeGroep.lastTs = ts;
-    huidigeGroep.ids.push(foto.id);
-    if (huidigeGroep.voorbeelden.length < 6 && foto.heeft_thumb) huidigeGroep.voorbeelden.push(foto.id);
+    currentGroup.dateEnd = photo.datum_foto;
+    currentGroup.lastTs = ts;
+    currentGroup.ids.push(photo.id);
+    if (currentGroup.samples.length < 6 && photo.heeft_thumb) currentGroup.samples.push(photo.id);
   }
 
-  const result = groepen.map((g, i) => ({
+  const result = groups.map((g, i) => ({
     groep_id: i,
-    datum_start: g.datumStart,
-    datum_eind: g.datumEind,
+    datum_start: g.dateStart,
+    datum_eind: g.dateEnd,
     aantal: g.ids.length,
     ids: g.ids,
-    voorbeelden: g.voorbeelden
+    voorbeelden: g.samples
   }));
 
-  if (zonderDatum.length > 0) {
+  if (withoutDate.length > 0) {
     result.push({
       groep_id: result.length,
       datum_start: null,
       datum_eind: null,
-      aantal: zonderDatum.length,
-      ids: zonderDatum.map(f => f.id),
-      voorbeelden: zonderDatum.filter(f => f.heeft_thumb).slice(0, 6).map(f => f.id)
+      aantal: withoutDate.length,
+      ids: withoutDate.map(f => f.id),
+      voorbeelden: withoutDate.filter(f => f.heeft_thumb).slice(0, 6).map(f => f.id)
     });
   }
 
   res.json(result);
 });
 
-// POST /api/gps/bulk-toewijzen — wijs locatie toe aan meerdere foto's + hun duplicaten
+// POST /api/gps/bulk-toewijzen — assign a location to multiple photos + their duplicates
 router.post('/gps/bulk-toewijzen', (req, res) => {
   const { ids, gps_stad, gps_land, gps_lat, gps_lon, gps_land_code, gps_adres } = req.body;
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
-    return res.status(400).json({ fout: 'ids verplicht' });
+    return res.status(400).json({ fout: 'ids required' });
   }
   const db = getDb();
 
-  // Verzamel alle duplicaat_groep waarden van de opgegeven foto's
+  // Collect all duplicaat_groep values of the given photos
   const placeholders = ids.map(() => '?').join(',');
-  const groepen = db.prepare(
+  const groups = db.prepare(
     `SELECT DISTINCT duplicaat_groep FROM fotos WHERE id IN (${placeholders}) AND duplicaat_groep IS NOT NULL`
   ).all(...ids).map(r => r.duplicaat_groep);
 
-  const gpsVelden = [gps_stad || null, gps_land || null, gps_lat || null, gps_lon || null, gps_land_code || null, gps_adres || null];
+  const gpsFields = [gps_stad || null, gps_land || null, gps_lat || null, gps_lon || null, gps_land_code || null, gps_adres || null];
 
   const updateById = db.prepare('UPDATE fotos SET gps_stad=?, gps_land=?, gps_lat=?, gps_lon=?, gps_land_code=?, gps_adres=? WHERE id=?');
-  const updateDuplicaten = groepen.length > 0
-    ? db.prepare(`UPDATE fotos SET gps_stad=?, gps_land=?, gps_lat=?, gps_lon=?, gps_land_code=?, gps_adres=? WHERE duplicaat_groep IN (${groepen.map(() => '?').join(',')})`)
+  const updateDuplicates = groups.length > 0
+    ? db.prepare(`UPDATE fotos SET gps_stad=?, gps_land=?, gps_lat=?, gps_lon=?, gps_land_code=?, gps_adres=? WHERE duplicaat_groep IN (${groups.map(() => '?').join(',')})`)
     : null;
 
   const updateAll = db.transaction(() => {
-    // Wijs toe aan opgegeven foto's
-    for (const id of ids) updateById.run(...gpsVelden, id);
-    // Propageer naar alle duplicaten in dezelfde groepen
-    if (updateDuplicaten) updateDuplicaten.run(...gpsVelden, ...groepen);
+    // Assign to the given photos
+    for (const id of ids) updateById.run(...gpsFields, id);
+    // Propagate to all duplicates in the same groups
+    if (updateDuplicates) updateDuplicates.run(...gpsFields, ...groups);
   });
 
   updateAll();
-  // Tel totaal bijgewerkte records (directe + duplicaten)
-  const totaal = db.prepare(`SELECT COUNT(*) as n FROM fotos WHERE id IN (${placeholders})${groepen.length ? ` OR duplicaat_groep IN (${groepen.map(() => '?').join(',')})` : ''}`).get(...ids, ...groepen).n;
+  // Count the total updated records (direct + duplicates)
+  const total = db.prepare(`SELECT COUNT(*) as n FROM fotos WHERE id IN (${placeholders})${groups.length ? ` OR duplicaat_groep IN (${groups.map(() => '?').join(',')})` : ''}`).get(...ids, ...groups).n;
   db.close();
-  res.json({ bijgewerkt: totaal, duplicaten_bijgewerkt: groepen.length > 0 });
+  res.json({ bijgewerkt: total, duplicaten_bijgewerkt: groups.length > 0 });
 });
 
-// === FASE ===
+// === PHASE ===
 
 router.get('/fase', (req, res) => {
   const db = getDb();
-  const rij = db.prepare("SELECT waarde FROM instellingen WHERE sleutel = 'fase'").get();
+  const row = db.prepare("SELECT waarde FROM instellingen WHERE sleutel = 'fase'").get();
   db.close();
-  res.json({ fase: parseInt(rij?.waarde || '1') });
+  res.json({ fase: parseInt(row?.waarde || '1') });
 });
 
 router.post('/fase', (req, res) => {
   const { fase } = req.body;
-  if (![1, 2, 3].includes(fase)) return res.status(400).json({ fout: 'fase moet 1, 2 of 3 zijn' });
+  if (![1, 2, 3].includes(fase)) return res.status(400).json({ fout: 'phase must be 1, 2 or 3' });
   const db = getDb();
   db.prepare("INSERT OR REPLACE INTO instellingen (sleutel, waarde) VALUES ('fase', ?)").run(String(fase));
   db.close();
   res.json({ fase });
 });
 
-// Markeer foto als "locatie onbekend" (en propageer naar duplicaten)
+// Mark a photo as "location unknown" (and propagate to duplicates)
 router.post('/fotos/:id/locatie-onbekend', (req, res) => {
   const db = getDb();
-  const foto = db.prepare('SELECT * FROM fotos WHERE id = ?').get(req.params.id);
-  if (!foto) { db.close(); return res.status(404).json({ fout: 'niet gevonden' }); }
-  db.prepare('UPDATE fotos SET locatie_onbekend = 1 WHERE id = ?').run(foto.id);
-  if (foto.duplicaat_groep) {
-    db.prepare('UPDATE fotos SET locatie_onbekend = 1 WHERE duplicaat_groep = ?').run(foto.duplicaat_groep);
+  const photo = db.prepare('SELECT * FROM fotos WHERE id = ?').get(req.params.id);
+  if (!photo) { db.close(); return res.status(404).json({ fout: 'not found' }); }
+  db.prepare('UPDATE fotos SET locatie_onbekend = 1 WHERE id = ?').run(photo.id);
+  if (photo.duplicaat_groep) {
+    db.prepare('UPDATE fotos SET locatie_onbekend = 1 WHERE duplicaat_groep = ?').run(photo.duplicaat_groep);
   }
   db.close();
   res.json({ ok: true });
 });
 
-// Markeer foto als genegeerd (fase 2) — cascadeert naar alle duplicaten in dezelfde groep
+// Mark a photo as ignored (phase 2) — cascades to all duplicates in the same group
 router.post('/fotos/:id/negeer', (req, res) => {
   const db = getDb();
-  const foto = db.prepare('SELECT * FROM fotos WHERE id = ?').get(req.params.id);
-  if (!foto) { db.close(); return res.status(404).json({ fout: 'niet gevonden' }); }
-  const waarde = req.body.genegeerd !== false ? 1 : 0;
+  const photo = db.prepare('SELECT * FROM fotos WHERE id = ?').get(req.params.id);
+  if (!photo) { db.close(); return res.status(404).json({ fout: 'not found' }); }
+  const value = req.body.genegeerd !== false ? 1 : 0;
 
-  // Zet altijd de aangeklikte foto
-  db.prepare('UPDATE fotos SET genegeerd = ? WHERE id = ?').run(waarde, foto.id);
+  // Always set the clicked photo
+  db.prepare('UPDATE fotos SET genegeerd = ? WHERE id = ?').run(value, photo.id);
 
-  // Als de foto deel uitmaakt van een duplicaatgroep: cascade naar alle groepsleden
-  let aantalGewijzigd = 1;
-  if (foto.duplicaat_groep) {
+  // If the photo is part of a duplicate group: cascade to all group members
+  let changedCount = 1;
+  if (photo.duplicaat_groep) {
     const result = db.prepare(
       'UPDATE fotos SET genegeerd = ? WHERE duplicaat_groep = ? AND id != ?'
-    ).run(waarde, foto.duplicaat_groep, foto.id);
-    aantalGewijzigd += result.changes;
+    ).run(value, photo.duplicaat_groep, photo.id);
+    changedCount += result.changes;
   }
 
   db.close();
-  res.json({ ok: true, genegeerd: waarde === 1, aantalGewijzigd });
+  res.json({ ok: true, genegeerd: value === 1, aantalGewijzigd: changedCount });
 });
 
-// Bulk: markeer meerdere foto's tegelijk als genegeerd / niet-genegeerd (fase C batch).
-// Body: { ids: [..], genegeerd: true|false }. Cascadeert per foto over de duplicaatgroep,
-// zodat een hele groep consistent mee-genegeerd wordt (zelfde regel als /fotos/:id/negeer).
+// Bulk: mark multiple photos at once as ignored / not ignored (phase C batch).
+// Body: { ids: [..], genegeerd: true|false }. Cascades per photo over the duplicate
+// group, so an entire group is consistently ignored along (same rule as /fotos/:id/negeer).
 router.post('/fotos/negeer-bulk', (req, res) => {
   const db = getDb();
   try {
     const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number).filter(Boolean) : [];
-    if (ids.length === 0) { return res.status(400).json({ fout: 'geen ids' }); }
-    const waarde = req.body.genegeerd !== false ? 1 : 0;
+    if (ids.length === 0) { return res.status(400).json({ fout: 'no ids' }); }
+    const value = req.body.genegeerd !== false ? 1 : 0;
 
-    const zetFoto   = db.prepare('UPDATE fotos SET genegeerd = ? WHERE id = ?');
-    const zetGroep  = db.prepare('UPDATE fotos SET genegeerd = ? WHERE duplicaat_groep = ? AND id != ?');
-    const haalFoto  = db.prepare('SELECT id, duplicaat_groep FROM fotos WHERE id = ?');
+    const setPhoto = db.prepare('UPDATE fotos SET genegeerd = ? WHERE id = ?');
+    const setGroup = db.prepare('UPDATE fotos SET genegeerd = ? WHERE duplicaat_groep = ? AND id != ?');
+    const getPhoto = db.prepare('SELECT id, duplicaat_groep FROM fotos WHERE id = ?');
 
-    let aantalGewijzigd = 0;
+    let changedCount = 0;
     const tx = db.transaction(() => {
       for (const id of ids) {
-        const foto = haalFoto.get(id);
-        if (!foto) continue;
-        zetFoto.run(waarde, foto.id);
-        aantalGewijzigd += 1;
-        if (foto.duplicaat_groep) {
-          aantalGewijzigd += zetGroep.run(waarde, foto.duplicaat_groep, foto.id).changes;
+        const photo = getPhoto.get(id);
+        if (!photo) continue;
+        setPhoto.run(value, photo.id);
+        changedCount += 1;
+        if (photo.duplicaat_groep) {
+          changedCount += setGroup.run(value, photo.duplicaat_groep, photo.id).changes;
         }
       }
     });
     tx();
 
-    res.json({ ok: true, genegeerd: waarde === 1, aantalGevraagd: ids.length, aantalGewijzigd });
+    res.json({ ok: true, genegeerd: value === 1, aantalGevraagd: ids.length, aantalGewijzigd: changedCount });
   } finally {
     db.close();
   }
 });
 
-// Verwijder ALLE genegeerde foto's definitief: naar prullenbak + uit database
-// - selecteert alle genegeerd=1 foto's
-// - cascade: hele duplicaatgroep van elke genegeerde foto wordt meegenomen
-// - bestanden gaan naar de systeem-prullenbak (herstelbaar), niet permanent gewist
-// - DB-records worden verwijderd zodat ze niet opnieuw gescand worden
+// Permanently remove ALL ignored photos: to trash + out of the database
+// - selects all genegeerd=1 photos
+// - cascade: the entire duplicate group of every ignored photo is included
+// - files go to the system trash (recoverable), not permanently deleted
+// - DB records are removed so they won't be scanned again
 router.post('/genegeerd/verwijder', async (req, res) => {
   const db = getDb();
   try {
-    // 1. Alle genegeerde foto's
-    const genegeerd = db.prepare('SELECT id, volledig_pad, duplicaat_groep FROM fotos WHERE genegeerd = 1').all();
+    // 1. All ignored photos
+    const ignored = db.prepare('SELECT id, volledig_pad, duplicaat_groep FROM fotos WHERE genegeerd = 1').all();
 
-    // 2. Cascade: voeg alle leden van betrokken duplicaatgroepen toe
-    const groepen = [...new Set(genegeerd.map(f => f.duplicaat_groep).filter(Boolean))];
+    // 2. Cascade: add all members of the affected duplicate groups
+    const groups = [...new Set(ignored.map(f => f.duplicaat_groep).filter(Boolean))];
     const idMap = new Map();
-    for (const f of genegeerd) idMap.set(f.id, f);
-    if (groepen.length) {
-      const ph = groepen.map(() => '?').join(',');
-      const leden = db.prepare(
+    for (const f of ignored) idMap.set(f.id, f);
+    if (groups.length) {
+      const ph = groups.map(() => '?').join(',');
+      const members = db.prepare(
         `SELECT id, volledig_pad, duplicaat_groep FROM fotos WHERE duplicaat_groep IN (${ph})`
-      ).all(...groepen);
-      for (const f of leden) idMap.set(f.id, f);
+      ).all(...groups);
+      for (const f of members) idMap.set(f.id, f);
     }
 
-    const alle = [...idMap.values()];
-    if (alle.length === 0) {
+    const all = [...idMap.values()];
+    if (all.length === 0) {
       db.close();
       return res.json({ ok: true, verwijderd: 0, naarPrullenbak: 0, ontbrak: 0 });
     }
 
-    // 3. Splits in bestanden die nog bestaan vs. al ontbrekend
-    const bestaande = [];
-    const ontbrekendeIds = [];
-    for (const f of alle) {
-      if (f.volledig_pad && fs.existsSync(f.volledig_pad)) bestaande.push(f);
-      else ontbrekendeIds.push(f.id);
+    // 3. Split into files that still exist vs. already missing
+    const existing = [];
+    const missingIds = [];
+    for (const f of all) {
+      if (f.volledig_pad && fs.existsSync(f.volledig_pad)) existing.push(f);
+      else missingIds.push(f.id);
     }
 
-    // 4. Verplaats bestaande bestanden naar de prullenbak
+    // 4. Move existing files to the trash
     let trash;
     try {
       trash = require('trash');
     } catch (e) {
       db.close();
-      return res.status(500).json({ fout: 'prullenbak-module niet beschikbaar', detail: e.message });
+      return res.status(500).json({ fout: 'trash module not available', detail: e.message });
     }
 
-    const naarPrullenbakIds = [];
-    const mislukt = [];
-    if (bestaande.length) {
+    const trashedIds = [];
+    const failed = [];
+    if (existing.length) {
       try {
-        // Batch: alles in één keer naar de prullenbak
-        await trash(bestaande.map(f => f.volledig_pad));
-        for (const f of bestaande) naarPrullenbakIds.push(f.id);
+        // Batch: everything to the trash in one go
+        await trash(existing.map(f => f.volledig_pad));
+        for (const f of existing) trashedIds.push(f.id);
       } catch (batchErr) {
-        // Fallback: bestand voor bestand, zo verliezen we niet alles bij één fout
-        for (const f of bestaande) {
-          try { await trash(f.volledig_pad); naarPrullenbakIds.push(f.id); }
-          catch (e) { mislukt.push({ id: f.id, pad: f.volledig_pad, fout: e.message }); }
+        // Fallback: file by file, so one error doesn't lose everything
+        for (const f of existing) {
+          try { await trash(f.volledig_pad); trashedIds.push(f.id); }
+          catch (e) { failed.push({ id: f.id, pad: f.volledig_pad, fout: e.message }); }
         }
       }
     }
 
-    // 5. Verwijder DB-records: alles wat naar prullenbak ging + alles wat al ontbrak
-    const teVerwijderen = [...naarPrullenbakIds, ...ontbrekendeIds];
-    if (teVerwijderen.length) {
-      const ph = teVerwijderen.map(() => '?').join(',');
-      db.prepare(`DELETE FROM fotos WHERE id IN (${ph})`).run(...teVerwijderen);
+    // 5. Remove DB records: everything trashed + everything already missing
+    const toRemove = [...trashedIds, ...missingIds];
+    if (toRemove.length) {
+      const ph = toRemove.map(() => '?').join(',');
+      db.prepare(`DELETE FROM fotos WHERE id IN (${ph})`).run(...toRemove);
     }
 
-    // Eventuele restanten van betrokken groepen opschonen (bv. bij mislukte trash)
-    schoonDuplicaatGroepenOp(db, groepen);
+    // Clean up any leftovers of the affected groups (e.g. after a failed trash)
+    cleanupDuplicateGroups(db, groups);
 
     db.close();
     res.json({
       ok: true,
-      verwijderd: teVerwijderen.length,
-      naarPrullenbak: naarPrullenbakIds.length,
-      ontbrak: ontbrekendeIds.length,
-      mislukt
+      verwijderd: toRemove.length,
+      naarPrullenbak: trashedIds.length,
+      ontbrak: missingIds.length,
+      mislukt: failed
     });
   } catch (e) {
     try { db.close(); } catch (_) {}
-    res.status(500).json({ fout: 'verwijderen mislukt', detail: e.message });
+    res.status(500).json({ fout: 'delete failed', detail: e.message });
   }
 });
 
-// Verwijder ÉÉN foto definitief: bestand naar prullenbak + DB-record weg
-// (herstelbaar via systeem-prullenbak, niet permanent gewist)
+// Permanently remove ONE photo: file to trash + DB record gone
+// (recoverable via the system trash, not permanently deleted)
 router.post('/fotos/:id/verwijder', async (req, res) => {
   const db = getDb();
   try {
-    const foto = db.prepare('SELECT id, volledig_pad, duplicaat_groep FROM fotos WHERE id = ?').get(req.params.id);
-    if (!foto) { db.close(); return res.status(404).json({ fout: 'niet gevonden' }); }
+    const photo = db.prepare('SELECT id, volledig_pad, duplicaat_groep FROM fotos WHERE id = ?').get(req.params.id);
+    if (!photo) { db.close(); return res.status(404).json({ fout: 'not found' }); }
 
-    let naarPrullenbak = false;
-    if (foto.volledig_pad && fs.existsSync(foto.volledig_pad)) {
+    let trashed = false;
+    if (photo.volledig_pad && fs.existsSync(photo.volledig_pad)) {
       let trash;
       try { trash = require('trash'); }
-      catch (e) { db.close(); return res.status(500).json({ fout: 'prullenbak-module niet beschikbaar', detail: e.message }); }
-      try { await trash(foto.volledig_pad); naarPrullenbak = true; }
-      catch (e) { db.close(); return res.status(500).json({ fout: 'kon bestand niet naar prullenbak verplaatsen', detail: e.message }); }
+      catch (e) { db.close(); return res.status(500).json({ fout: 'trash module not available', detail: e.message }); }
+      try { await trash(photo.volledig_pad); trashed = true; }
+      catch (e) { db.close(); return res.status(500).json({ fout: 'could not move file to trash', detail: e.message }); }
     }
 
-    db.prepare('DELETE FROM fotos WHERE id = ?').run(foto.id);
-    // Restant van de duplicaatgroep opschonen: 1 over = geen duplicaat meer
-    if (foto.duplicaat_groep) schoonDuplicaatGroepenOp(db, [foto.duplicaat_groep]);
+    db.prepare('DELETE FROM fotos WHERE id = ?').run(photo.id);
+    // Clean up the remainder of the duplicate group: 1 left = no longer a duplicate
+    if (photo.duplicaat_groep) cleanupDuplicateGroups(db, [photo.duplicaat_groep]);
     db.close();
-    res.json({ ok: true, naarPrullenbak, ontbrak: !naarPrullenbak });
+    res.json({ ok: true, naarPrullenbak: trashed, ontbrak: !trashed });
   } catch (e) {
     try { db.close(); } catch (_) {}
-    res.status(500).json({ fout: 'verwijderen mislukt', detail: e.message });
+    res.status(500).json({ fout: 'delete failed', detail: e.message });
   }
 });
 
-// Verwijder een LIJST foto's definitief in één keer: bestanden naar prullenbak + DB-records weg
-// Gebruikt o.a. door de GPS-toewijzen-pagina om een hele groep slechte foto's ineens te wissen.
-// - cascade: hele duplicaatgroep van elke foto wordt meegenomen (zelfde regel als /genegeerd/verwijder)
-// - bestanden gaan naar de systeem-prullenbak (herstelbaar), nooit permanent gewist
-// - DB-records worden verwijderd zodat ze niet opnieuw gescand worden
+// Permanently remove a LIST of photos in one go: files to trash + DB records gone
+// Used a.o. by the GPS-assign page to delete a whole group of bad photos at once.
+// - cascade: the entire duplicate group of every photo is included (same rule as /genegeerd/verwijder)
+// - files go to the system trash (recoverable), never permanently deleted
+// - DB records are removed so they won't be scanned again
 router.post('/fotos/verwijder-bulk', async (req, res) => {
   const ids = Array.isArray(req.body && req.body.ids) ? req.body.ids : [];
-  if (!ids.length) return res.status(400).json({ fout: 'geen ids opgegeven' });
+  if (!ids.length) return res.status(400).json({ fout: 'no ids provided' });
 
   const db = getDb();
   try {
-    // 1. De opgegeven foto's ophalen
+    // 1. Fetch the requested photos
     const ph0 = ids.map(() => '?').join(',');
-    const gevraagd = db.prepare(
+    const requested = db.prepare(
       `SELECT id, volledig_pad, duplicaat_groep FROM fotos WHERE id IN (${ph0})`
     ).all(...ids);
 
-    // 2. Cascade: voeg alle leden van betrokken duplicaatgroepen toe
-    const groepen = [...new Set(gevraagd.map(f => f.duplicaat_groep).filter(Boolean))];
+    // 2. Cascade: add all members of the affected duplicate groups
+    const groups = [...new Set(requested.map(f => f.duplicaat_groep).filter(Boolean))];
     const idMap = new Map();
-    for (const f of gevraagd) idMap.set(f.id, f);
-    if (groepen.length) {
-      const ph = groepen.map(() => '?').join(',');
-      const leden = db.prepare(
+    for (const f of requested) idMap.set(f.id, f);
+    if (groups.length) {
+      const ph = groups.map(() => '?').join(',');
+      const members = db.prepare(
         `SELECT id, volledig_pad, duplicaat_groep FROM fotos WHERE duplicaat_groep IN (${ph})`
-      ).all(...groepen);
-      for (const f of leden) idMap.set(f.id, f);
+      ).all(...groups);
+      for (const f of members) idMap.set(f.id, f);
     }
 
-    const alle = [...idMap.values()];
-    if (alle.length === 0) {
+    const all = [...idMap.values()];
+    if (all.length === 0) {
       db.close();
       return res.json({ ok: true, verwijderd: 0, naarPrullenbak: 0, ontbrak: 0 });
     }
 
-    // 3. Splits in bestanden die nog bestaan vs. al ontbrekend
-    const bestaande = [];
-    const ontbrekendeIds = [];
-    for (const f of alle) {
-      if (f.volledig_pad && fs.existsSync(f.volledig_pad)) bestaande.push(f);
-      else ontbrekendeIds.push(f.id);
+    // 3. Split into files that still exist vs. already missing
+    const existing = [];
+    const missingIds = [];
+    for (const f of all) {
+      if (f.volledig_pad && fs.existsSync(f.volledig_pad)) existing.push(f);
+      else missingIds.push(f.id);
     }
 
-    // 4. Verplaats bestaande bestanden naar de prullenbak
+    // 4. Move existing files to the trash
     let trash;
     try {
       trash = require('trash');
     } catch (e) {
       db.close();
-      return res.status(500).json({ fout: 'prullenbak-module niet beschikbaar', detail: e.message });
+      return res.status(500).json({ fout: 'trash module not available', detail: e.message });
     }
 
-    const naarPrullenbakIds = [];
-    const mislukt = [];
-    if (bestaande.length) {
+    const trashedIds = [];
+    const failed = [];
+    if (existing.length) {
       try {
-        await trash(bestaande.map(f => f.volledig_pad));
-        for (const f of bestaande) naarPrullenbakIds.push(f.id);
+        await trash(existing.map(f => f.volledig_pad));
+        for (const f of existing) trashedIds.push(f.id);
       } catch (batchErr) {
-        for (const f of bestaande) {
-          try { await trash(f.volledig_pad); naarPrullenbakIds.push(f.id); }
-          catch (e) { mislukt.push({ id: f.id, pad: f.volledig_pad, fout: e.message }); }
+        for (const f of existing) {
+          try { await trash(f.volledig_pad); trashedIds.push(f.id); }
+          catch (e) { failed.push({ id: f.id, pad: f.volledig_pad, fout: e.message }); }
         }
       }
     }
 
-    // 5. Verwijder DB-records: alles wat naar prullenbak ging + alles wat al ontbrak
-    const teVerwijderen = [...naarPrullenbakIds, ...ontbrekendeIds];
-    if (teVerwijderen.length) {
-      const ph = teVerwijderen.map(() => '?').join(',');
-      db.prepare(`DELETE FROM fotos WHERE id IN (${ph})`).run(...teVerwijderen);
+    // 5. Remove DB records: everything trashed + everything already missing
+    const toRemove = [...trashedIds, ...missingIds];
+    if (toRemove.length) {
+      const ph = toRemove.map(() => '?').join(',');
+      db.prepare(`DELETE FROM fotos WHERE id IN (${ph})`).run(...toRemove);
     }
 
-    // Eventuele restanten van betrokken groepen opschonen
-    schoonDuplicaatGroepenOp(db, groepen);
+    // Clean up any leftovers of the affected groups
+    cleanupDuplicateGroups(db, groups);
 
     db.close();
     res.json({
       ok: true,
-      verwijderd: teVerwijderen.length,
-      naarPrullenbak: naarPrullenbakIds.length,
-      ontbrak: ontbrekendeIds.length,
-      mislukt
+      verwijderd: toRemove.length,
+      naarPrullenbak: trashedIds.length,
+      ontbrak: missingIds.length,
+      mislukt: failed
     });
   } catch (e) {
     try { db.close(); } catch (_) {}
-    res.status(500).json({ fout: 'verwijderen mislukt', detail: e.message });
+    res.status(500).json({ fout: 'delete failed', detail: e.message });
   }
 });
 
-// Stats voor fase 1 todo
+// Stats for the phase 1 todo
 router.get('/fase1/todo', (req, res) => {
   const db = getDb();
   const zonderLocatie = db.prepare(`
@@ -1511,23 +1514,23 @@ router.get('/fase1/todo', (req, res) => {
   res.json({ zonderLocatie });
 });
 
-// === FASE 3: EXPORT ===
+// === PHASE 3: EXPORT ===
 
-// Bereken wat er geëxporteerd gaat worden (preview)
+// Calculate what will be exported (preview)
 router.get('/export/preview', (req, res) => {
   const doelmap = req.query.doelmap || '';
   try {
-    const preview = berekenPreview(doelmap || null);
+    const preview = calculatePreview(doelmap || null);
     res.json(preview);
   } catch (err) {
     res.status(500).json({ fout: err.message });
   }
 });
 
-// Start de export
+// Start the export
 router.post('/export/start', async (req, res) => {
   const { doelmap } = req.body;
-  if (!doelmap) return res.status(400).json({ fout: 'doelmap is verplicht' });
+  if (!doelmap) return res.status(400).json({ fout: 'target folder is required' });
   try {
     const result = await startExport(doelmap);
     if (result.fout) return res.status(409).json(result);
@@ -1537,17 +1540,17 @@ router.post('/export/start', async (req, res) => {
   }
 });
 
-// Exportstatus opvragen (polling)
+// Fetch the export status (polling)
 router.get('/export/status', (req, res) => {
   res.json(getExportStatus());
 });
 
-// Export stoppen
+// Stop the export
 router.post('/export/stop', (req, res) => {
   res.json(stopExport());
 });
 
-// Export resetten (na afloop of fout)
+// Reset the export (after completion or an error)
 router.post('/export/reset', (req, res) => {
   res.json(resetExport());
 });

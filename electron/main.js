@@ -4,53 +4,53 @@ const { app, BrowserWindow, dialog, shell, Menu, nativeImage } = require('electr
 const path = require('path');
 const fs   = require('fs');
 
-// ── Data-locatie PINNEN (vóór een eventuele naamswijziging) ──────────────────
-// Electron bepaalt userData op basis van de app-naam. Als we hieronder de naam
-// veranderen voor het taakbalk-icoon, zou de databasemap meeverhuizen en lijkt
-// alles leeg. Daarom pinnen we userData expliciet op de oorspronkelijke locatie
-// (~/.config/fotoapp) zodat de bestaande database altijd gevonden wordt.
+// ── PIN the data location (before any name change) ──────────────────────────
+// Electron derives userData from the app name. If we change the name below for
+// the taskbar icon, the database folder would move along and everything would
+// look empty. So we pin userData explicitly to the original location
+// (~/.config/fotoapp) so the existing database is always found.
 app.setPath('userData', path.join(app.getPath('appData'), 'fotoapp'));
 
-// ── App-naam + Linux WM-class ────────────────────────────────────────────────
-// Op Linux (GNOME/Wayland) koppelt de vensterbeheerder het taakbalk-icoon aan de
-// WM_CLASS van het venster. Zonder dit toont Electron in dev-modus het generieke
-// Electron-icoon. Naam zetten NÁ het pinnen van userData (zie hierboven).
-// setName regelt het Wayland app_id; --class regelt de X11 WM_CLASS. Samen met
-// het geïnstalleerde FotoApp.desktop (zie start-electron.sh) koppelt GNOME zo het
-// venster aan het juiste taakbalk-icoon, ook in dev-modus.
+// ── App name + Linux WM class ────────────────────────────────────────────────
+// On Linux (GNOME/Wayland) the window manager links the taskbar icon to the
+// WM_CLASS of the window. Without this, Electron shows the generic Electron
+// icon in dev mode. Set the name AFTER pinning userData (see above).
+// setName handles the Wayland app_id; --class handles the X11 WM_CLASS. Together
+// with the installed FotoApp.desktop (see start-electron.sh) GNOME links the
+// window to the right taskbar icon, also in dev mode.
 app.setName('FotoApp');
 app.commandLine.appendSwitch('class', 'FotoApp');
 
-// ── Linux GTK-crash voorkomen (#1 oorzaak van SIGTRAP bij map kiezen) ────────
-// Electron 30+ koos op recente Ubuntu standaard GTK4. De native map-kiezer
-// (GtkFileChooser) onder GTK4 veroorzaakt een vloed van
-// "GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT' failed" en laat de app
-// crashen met SIGTRAP — precies wat gebeurde bij het kiezen van een map om te
-// scannen. GTK3 forceren is de gangbare, stabiele oplossing.
+// ── Prevent Linux GTK crash (#1 cause of SIGTRAP when picking a folder) ─────
+// Electron 30+ defaulted to GTK4 on recent Ubuntu. The native folder picker
+// (GtkFileChooser) under GTK4 causes a flood of
+// "GLib-GObject: g_object_ref: assertion 'G_IS_OBJECT' failed" and crashes the
+// app with SIGTRAP — exactly what happened when picking a folder to scan.
+// Forcing GTK3 is the common, stable fix.
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('gtk-version', '3');
 }
 
-// ── Geheugenplafond ─────────────────────────────────────────────────────────
-// De scan draait in dit (main) proces. Begrens de V8-heap zodat een zware scan
-// nooit zoveel geheugen pakt dat Ubuntu een OOM-kill doet op andere apps.
-// (De native sharp/libvips-piek wordt apart beperkt via sharp.cache/concurrency
-// in src/scanner.js — dit plafond dekt de JS-kant af.)
+// ── Memory ceiling ──────────────────────────────────────────────────────────
+// The scan runs in this (main) process. Cap the V8 heap so a heavy scan never
+// grabs so much memory that Ubuntu OOM-kills other apps.
+// (The native sharp/libvips peak is limited separately via sharp.cache/concurrency
+// in src/scanner.js — this ceiling covers the JS side.)
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=1024');
 
-// ── Data-map instellen vóór de server laadt ─────────────────────────────────
-// In de gepackagede app is de installatiemap read-only; gebruik userData.
+// ── Set the data folder before the server loads ─────────────────────────────
+// In the packaged app the install folder is read-only; use userData.
 const dataDir = path.join(app.getPath('userData'), 'fotoapp-data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 process.env.DB_PATH       = path.join(dataDir, 'fotos.db');
-process.env.FOTOAPP_DATA  = dataDir;        // scanner gebruikt dit voor temp-bestanden
-process.env.ELECTRON_RUN  = '1';             // vlag voor index.js
+process.env.FOTOAPP_DATA  = dataDir;        // scanner uses this for temp files
+process.env.ELECTRON_RUN  = '1';             // flag for index.js
 
-// ── Server starten ──────────────────────────────────────────────────────────
+// ── Start the server ────────────────────────────────────────────────────────
 let serverReady = false;
 let serverPort  = 3000;
-let serverError = null;   // bewaart de oorzaak als de server niet startte
+let serverError = null;   // keeps the cause if the server failed to start
 
 function startServer() {
   try {
@@ -58,20 +58,22 @@ function startServer() {
     serverReady = true;
   } catch (e) {
     serverError = e;
-    console.error('Server kon niet starten:', e);
-    logFout(e);
+    console.error('Server could not start:', e);
+    logError(e);
   }
 }
 
-// Vang ook asynchrone fouten op (bv. native module die later faalt)
-process.on('uncaughtException',  (e) => { if (!serverReady) { serverError = serverError || e; logFout(e); } });
-process.on('unhandledRejection', (e) => { if (!serverReady) { serverError = serverError || e; logFout(e); } });
+// Also catch asynchronous errors (e.g. a native module failing later)
+process.on('uncaughtException',  (e) => { if (!serverReady) { serverError = serverError || e; logError(e); } });
+process.on('unhandledRejection', (e) => { if (!serverReady) { serverError = serverError || e; logError(e); } });
 
-// ── Fout-diagnose: vertaal technische fouten naar begrijpelijke uitleg ───────
-function diagnoseFout(err) {
+// ── Error diagnosis: translate technical errors into understandable help ─────
+// The returned object keys (titel/uitleg/oplossingen/tekst/cmd/details) and the
+// Dutch strings are read and shown by electron/error.html — keep until phase B.
+function diagnoseError(err) {
   const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err || '');
 
-  // 1) Native module gebouwd voor verkeerde Node/Electron-versie
+  // 1) Native module built for the wrong Node/Electron version
   if (/NODE_MODULE_VERSION|ERR_DLOPEN_FAILED|did not self-register|compiled against a different/i.test(msg)) {
     return {
       titel: 'De database-module moet opnieuw gebouwd worden',
@@ -85,7 +87,7 @@ function diagnoseFout(err) {
     };
   }
 
-  // 2) Poort al in gebruik
+  // 2) Port already in use
   if (/EADDRINUSE/i.test(msg)) {
     return {
       titel: 'Poort 3000 is al in gebruik',
@@ -99,7 +101,7 @@ function diagnoseFout(err) {
     };
   }
 
-  // 3) Algemeen (server reageerde niet op tijd)
+  // 3) Generic (server did not respond in time)
   return {
     titel: 'Kan de app-server niet bereiken',
     uitleg: err
@@ -114,34 +116,34 @@ function diagnoseFout(err) {
   };
 }
 
-function logFout(err) {
+function logError(err) {
   try {
-    const logPad = path.join(process.env.FOTOAPP_DATA || __dirname, 'electron-fout.log');
+    const logPath = path.join(process.env.FOTOAPP_DATA || __dirname, 'electron-fout.log');
     const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
-    fs.appendFileSync(logPad, `\n[${new Date().toISOString()}]\n${msg}\n`);
-  } catch (_) { /* logging mag nooit zelf crashen */ }
+    fs.appendFileSync(logPath, `\n[${new Date().toISOString()}]\n${msg}\n`);
+  } catch (_) { /* logging must never crash itself */ }
 }
 
-// ── Electron folder-dialog (vervangt zenity) ────────────────────────────────
-// index.js importeert deze functie als het in Electron draait.
-global.electronPickFolder = async function(startPad) {
+// ── Electron folder dialog (replaces zenity) ────────────────────────────────
+// index.js imports this function when running inside Electron.
+global.electronPickFolder = async function(startPath) {
   if (!mainWindow) return null;
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory', 'createDirectory'],
     title: 'Kies een map om te scannen',
-    defaultPath: startPad || app.getPath('home'),
+    defaultPath: startPath || app.getPath('home'),
   });
   return result.canceled ? null : result.filePaths[0];
 };
 
-// ── Bestand openen in systeemspeler ────────────────────────────────────────
-global.electronOpenExtern = async function(bestandsPad) {
-  return shell.openPath(bestandsPad);
+// ── Open a file in the system player ────────────────────────────────────────
+global.electronOpenExternal = async function(filePath) {
+  return shell.openPath(filePath);
 };
 
-// ── Bestand tonen in bestandsbeheerder (map openen + bestand selecteren) ─────
-global.electronRevealInFolder = function(bestandsPad) {
-  shell.showItemInFolder(bestandsPad);
+// ── Show a file in the file manager (open folder + select file) ──────────────
+global.electronRevealInFolder = function(filePath) {
+  shell.showItemInFolder(filePath);
   return true;
 };
 
@@ -149,7 +151,7 @@ global.electronRevealInFolder = function(bestandsPad) {
 let mainWindow = null;
 
 function createWindow() {
-  // nativeImage is op Linux betrouwbaarder dan een pad-string voor het taakbalk-icoon.
+  // On Linux, nativeImage is more reliable than a path string for the taskbar icon.
   const appIcon = nativeImage.createFromPath(path.join(__dirname, '..', 'build', 'icon.png'));
 
   mainWindow = new BrowserWindow({
@@ -166,54 +168,54 @@ function createWindow() {
     },
   });
 
-  // Extra zekerheid op Linux: icoon nogmaals expliciet zetten na constructie.
+  // Extra safety on Linux: set the icon explicitly once more after construction.
   if (process.platform === 'linux' && !appIcon.isEmpty()) {
     mainWindow.setIcon(appIcon);
   }
 
-  // Verberg standaard menu (optioneel: houd voor dev-tools)
+  // Hide the default menu (optional: keep for dev tools)
   if (app.isPackaged) {
     Menu.setApplicationMenu(null);
   }
 
-  // Toon de foutpagina met begrijpelijke uitleg + oplossingen
-  const toonFout = (err) => {
-    const info = diagnoseFout(err);
+  // Show the error page with understandable explanation + solutions
+  const showError = (err) => {
+    const info = diagnoseError(err);
     const hash = encodeURIComponent(JSON.stringify(info));
     mainWindow.loadFile(path.join(__dirname, 'error.html'), { hash });
   };
 
-  // Laad de app — probeer opnieuw als de server nog niet klaar is
+  // Load the app — retry if the server is not ready yet
   const loadApp = (retries = 20) => {
-    // Server is al gecrasht? Direct de foutpagina tonen, niet 6s wachten.
-    if (serverError) { toonFout(serverError); return; }
+    // Server already crashed? Show the error page right away, don't wait 6s.
+    if (serverError) { showError(serverError); return; }
     mainWindow.loadURL(`http://localhost:${serverPort}`).catch(() => {
-      if (serverError) { toonFout(serverError); return; }
+      if (serverError) { showError(serverError); return; }
       if (retries > 0) setTimeout(() => loadApp(retries - 1), 300);
-      else toonFout(null);
+      else showError(null);
     });
   };
 
-  // Geef de server 500ms om te starten voor de eerste poging
+  // Give the server 500ms to start before the first attempt
   setTimeout(() => loadApp(), 500);
 
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-// ── Crash-monitoring: leg vast WÁT er sneuvelt + of er gescand werd ──────────
-// Als de app onverwacht crasht (zoals de GTK4-SIGTRAP), schrijven we de echte
-// oorzaak naar electron-fout.log i.p.v. enkel een ruwe GLib-vloed in de terminal.
-// Zo zien we bij een volgende crash meteen of het de renderer, het GPU-proces of
-// een ander subproces was — en wanneer (handig om met scan-activiteit te matchen).
+// ── Crash monitoring: record WHAT died + whether a scan was running ──────────
+// If the app crashes unexpectedly (like the GTK4 SIGTRAP), we write the real
+// cause to electron-fout.log instead of just a raw GLib flood in the terminal.
+// That way the next crash immediately shows whether it was the renderer, the
+// GPU process or another subprocess — and when (handy to match scan activity).
 app.on('render-process-gone', (_e, _wc, details) => {
-  logFout(new Error(
-    `Renderer gestopt — reason=${details.reason}, exitCode=${details.exitCode}`
+  logError(new Error(
+    `Renderer gone — reason=${details.reason}, exitCode=${details.exitCode}`
   ));
 });
 app.on('child-process-gone', (_e, details) => {
-  // type kan zijn: GPU, Utility, Zygote, Sandbox helper, ... → reden helpt diagnose
-  logFout(new Error(
-    `Subproces gestopt — type=${details.type}, name=${details.name || '-'}, ` +
+  // type can be: GPU, Utility, Zygote, Sandbox helper, ... → reason helps diagnosis
+  logError(new Error(
+    `Subprocess gone — type=${details.type}, name=${details.name || '-'}, ` +
     `reason=${details.reason}, exitCode=${details.exitCode}`
   ));
 });

@@ -64,8 +64,8 @@ module.exports = async function testScanner() {
     if (!scannerCode.includes('node_modules')) throw new Error('node_modules niet in skip lijst');
   });
 
-  test('scanStoppen check aanwezig in vindAlleFotos', () => {
-    if (!scannerCode.includes('if (scanStoppen) return')) throw new Error('Stop check ontbreekt in vindAlleFotos');
+  test('scanStopRequested check aanwezig in findAllPhotos', () => {
+    if (!scannerCode.includes('if (scanStopRequested) return')) throw new Error('Stop check ontbreekt in findAllPhotos');
   });
 
   // ─── GPS & GEOCODING ──────────────────────────────────────────────────────
@@ -74,8 +74,8 @@ module.exports = async function testScanner() {
     if (!scannerCode.includes('accept-language=en')) throw new Error('Engelse landnamen niet geconfigureerd');
   });
 
-  test('haalGpsAdresOp functie aanwezig', () => {
-    if (!scannerCode.includes('async function haalGpsAdresOp')) throw new Error('haalGpsAdresOp niet gevonden');
+  test('fetchGpsAddress functie aanwezig', () => {
+    if (!scannerCode.includes('async function fetchGpsAddress')) throw new Error('fetchGpsAddress niet gevonden');
   });
 
   test('GPS cache aanwezig (voorkomt dubbele Nominatim-calls)', () => {
@@ -105,7 +105,7 @@ module.exports = async function testScanner() {
   // ─── DUPLICATEN ───────────────────────────────────────────────────────────
 
   test('Duplicate detectie aanwezig', () => {
-    if (!scannerCode.includes('detecteerDuplicaten')) throw new Error('detecteerDuplicaten functie niet gevonden');
+    if (!scannerCode.includes('detectDuplicates')) throw new Error('detectDuplicates functie niet gevonden');
   });
 
   // ─── THUMBNAILS ───────────────────────────────────────────────────────────
@@ -128,34 +128,34 @@ module.exports = async function testScanner() {
 
   test('EXIF heeft voorrang boven Google JSON (datum)', () => {
     // Keten: EXIF → Google JSON → bestandsnaam → birthtime → mtime
-    if (!scannerCode.includes("datumBron = 'EXIF'")) throw new Error('EXIF datum-prioriteit niet geïmplementeerd');
-    if (!scannerCode.includes("datumBron = 'Google Takeout'")) throw new Error('Google Takeout datum-fallback ontbreekt');
+    if (!scannerCode.includes("dateSource = 'EXIF'")) throw new Error('EXIF datum-prioriteit niet geïmplementeerd');
+    if (!scannerCode.includes("dateSource = 'Google Takeout'")) throw new Error('Google Takeout datum-fallback ontbreekt');
   });
 
   test('datum_bron wordt opgeslagen in database', () => {
-    if (!scannerCode.includes('datum_bron: datumBron')) throw new Error('datum_bron wordt niet opgeslagen');
+    if (!scannerCode.includes('datum_bron: dateSource')) throw new Error('datum_bron wordt niet opgeslagen');
   });
 
-  test('parseDatumUitBestandsnaam functie aanwezig', () => {
-    if (!scannerCode.includes('function parseDatumUitBestandsnaam')) throw new Error('parseDatumUitBestandsnaam niet gevonden');
+  test('parseDateFromFilename functie aanwezig', () => {
+    if (!scannerCode.includes('function parseDateFromFilename')) throw new Error('parseDateFromFilename niet gevonden');
   });
 
   test('Datum uit bestandsnaam als fallback gebruikt', () => {
-    if (!scannerCode.includes("datumBron = 'Bestandsnaam'")) throw new Error('Bestandsnaam datum-fallback ontbreekt');
+    if (!scannerCode.includes("dateSource = 'Bestandsnaam'")) throw new Error('Bestandsnaam datum-fallback ontbreekt');
   });
 
   test('Aanmaakdatum (birthtime) als fallback gebruikt', () => {
-    if (!scannerCode.includes("datumBron = 'Aanmaakdatum'")) throw new Error('birthtime fallback ontbreekt');
+    if (!scannerCode.includes("dateSource = 'Aanmaakdatum'")) throw new Error('birthtime fallback ontbreekt');
   });
 
   test('Wijzigingsdatum (mtime) als laatste fallback', () => {
-    if (!scannerCode.includes("datumBron = 'Wijzigingsdatum'")) throw new Error('mtime fallback ontbreekt');
+    if (!scannerCode.includes("dateSource = 'Wijzigingsdatum'")) throw new Error('mtime fallback ontbreekt');
   });
 
   // ─── GOOGLE TAKEOUT ───────────────────────────────────────────────────────
 
-  test('leesGoogleJson functie aanwezig', () => {
-    if (!scannerCode.includes('function leesGoogleJson')) throw new Error('leesGoogleJson functie niet gevonden');
+  test('readGoogleJson functie aanwezig', () => {
+    if (!scannerCode.includes('function readGoogleJson')) throw new Error('readGoogleJson functie niet gevonden');
   });
 
   test('Google JSON leest photoTakenTime.timestamp', () => {
@@ -282,7 +282,7 @@ module.exports = async function testScanner() {
     if (!utilsCode.includes('LAND_CODES')) throw new Error('LAND_CODES niet gevonden in utils.js');
   });
 
-  test('Utils: parseDatumUitBestandsnaam klopt voor YYYYMMDD patroon', () => {
+  test('Utils: parseDateFromFilename klopt voor YYYYMMDD patroon', () => {
     // Directe regex test zonder de module te laden
     const match = 'IMG-20250728-WA0010.jpg'.match(/(\d{4})[_\-]?(\d{2})[_\-]?(\d{2})/);
     if (!match) throw new Error('Regex herkent YYYYMMDD patroon niet');
@@ -346,41 +346,41 @@ module.exports = async function testScanner() {
 
   test('API: GPS groepen filtert duplicaten — toont alleen originelen', () => {
     const groepBlok = apiCode.slice(apiCode.indexOf("'/gps/groepen'"));
-    if (!groepBlok.includes('origineelFilter') && !groepBlok.includes('MIN(id)')) {
+    if (!groepBlok.includes('originalFilter') && !groepBlok.includes('MIN(id)')) {
       throw new Error('/gps/groepen filtert duplicaten niet — toont alle kopieën in GPS bulk pagina');
     }
   });
 
   // ─── GPS PROPAGATIE BINNEN DUPLICAATGROEPEN ────────────────────────────────
 
-  test('Scanner: propageerGpsInGroepen() als aparte functie aanwezig', () => {
-    if (!scannerCode.includes('function propageerGpsInGroepen')) {
-      throw new Error('propageerGpsInGroepen() niet gevonden als aparte functie in scanner.js');
+  test('Scanner: propagateGpsInGroups() als aparte functie aanwezig', () => {
+    if (!scannerCode.includes('function propagateGpsInGroups')) {
+      throw new Error('propagateGpsInGroups() niet gevonden als aparte functie in scanner.js');
     }
   });
 
-  test('Scanner: propageerGpsInGroepen() geëxporteerd', () => {
-    if (!scannerCode.includes('propageerGpsInGroepen')) {
-      throw new Error('propageerGpsInGroepen niet geëxporteerd in module.exports');
+  test('Scanner: propagateGpsInGroups() geëxporteerd', () => {
+    if (!scannerCode.includes('propagateGpsInGroups')) {
+      throw new Error('propagateGpsInGroups niet geëxporteerd in module.exports');
     }
     const exportRegel = scannerCode.match(/module\.exports\s*=\s*\{([^}]+)\}/)?.[1] || '';
-    if (!exportRegel.includes('propageerGpsInGroepen')) {
-      throw new Error('propageerGpsInGroepen ontbreekt in module.exports');
+    if (!exportRegel.includes('propagateGpsInGroups')) {
+      throw new Error('propagateGpsInGroups ontbreekt in module.exports');
     }
   });
 
-  test('Scanner: GPS propagatie loopt ook als locaties.length === 0', () => {
-    const vroegReturn = scannerCode.match(/locaties\.length === 0[\s\S]{0,200}return/);
-    if (!vroegReturn) throw new Error('Vroege return bij locaties.length === 0 niet gevonden');
-    if (!vroegReturn[0].includes('propageerGpsInGroepen')) {
-      throw new Error('propageerGpsInGroepen() wordt niet aangeroepen bij vroege return (locaties.length === 0)');
+  test('Scanner: GPS propagatie loopt ook als locations.length === 0', () => {
+    const vroegReturn = scannerCode.match(/locations\.length === 0[\s\S]{0,200}return/);
+    if (!vroegReturn) throw new Error('Vroege return bij locations.length === 0 niet gevonden');
+    if (!vroegReturn[0].includes('propagateGpsInGroups')) {
+      throw new Error('propagateGpsInGroups() wordt niet aangeroepen bij vroege return (locations.length === 0)');
     }
   });
 
   test('Scanner: GPS propagatie omvat gps_land_code', () => {
-    const propageerBlok = scannerCode.slice(scannerCode.indexOf('function propageerGpsInGroepen'));
+    const propageerBlok = scannerCode.slice(scannerCode.indexOf('function propagateGpsInGroups'));
     if (!propageerBlok.includes('land_code')) {
-      throw new Error('gps_land_code wordt niet meegenomen bij GPS propagatie in propageerGpsInGroepen()');
+      throw new Error('gps_land_code wordt niet meegenomen bij GPS propagatie in propagateGpsInGroups()');
     }
   });
 
@@ -390,12 +390,12 @@ module.exports = async function testScanner() {
     }
   });
 
-  test('API: propageerGpsInGroepen geïmporteerd in api.js', () => {
+  test('API: propagateGpsInGroups geïmporteerd in api.js', () => {
     const importRegel = apiCode.match(/require\('\.\/scanner'\)/)?.[0];
     if (!importRegel) throw new Error('scanner niet geïmporteerd in api.js');
     const destructure = apiCode.match(/const\s*\{([^}]+)\}\s*=\s*require\('\.\/scanner'\)/)?.[1] || '';
-    if (!destructure.includes('propageerGpsInGroepen')) {
-      throw new Error('propageerGpsInGroepen niet geïmporteerd uit scanner in api.js');
+    if (!destructure.includes('propagateGpsInGroups')) {
+      throw new Error('propagateGpsInGroups niet geïmporteerd uit scanner in api.js');
     }
   });
 
@@ -407,8 +407,8 @@ module.exports = async function testScanner() {
 
   test('API: zonder_kopien subquery past land filter toe zodat origineel+land filter correct samenwerken', () => {
     const subqueryBlok = apiCode.slice(apiCode.indexOf('zonder_kopien'));
-    if (!subqueryBlok.includes('landSubquery')) {
-      throw new Error('zonder_kopien subquery gebruikt geen landSubquery — combinatie met land filter werkt incorrect');
+    if (!subqueryBlok.includes('countrySubquery')) {
+      throw new Error('zonder_kopien subquery gebruikt geen countrySubquery — combinatie met land filter werkt incorrect');
     }
     if (!subqueryBlok.includes('f2.gps_land = ?')) {
       throw new Error('f2.gps_land ontbreekt in zonder_kopien subquery');
@@ -417,7 +417,7 @@ module.exports = async function testScanner() {
 
   test('API: zonder_kopien subquery past camera_merk filter toe', () => {
     const subqueryBlok = apiCode.slice(apiCode.indexOf('zonder_kopien'));
-    if (!subqueryBlok.includes('merkSubquery') || !subqueryBlok.includes('f2.camera_merk = ?')) {
+    if (!subqueryBlok.includes('brandSubquery') || !subqueryBlok.includes('f2.camera_merk = ?')) {
       throw new Error('camera_merk filter ontbreekt in zonder_kopien subquery');
     }
   });
@@ -729,8 +729,8 @@ module.exports = async function testScanner() {
     if (!putBlok.includes('duplicaat_groep')) {
       throw new Error('PUT /fotos/:id controleert duplicaat_groep niet — GPS wordt niet gepropageerd naar duplicaten');
     }
-    if (!putBlok.includes('heeftGpsUpdate')) {
-      throw new Error('heeftGpsUpdate check ontbreekt in PUT /fotos/:id');
+    if (!putBlok.includes('hasGpsUpdate')) {
+      throw new Error('hasGpsUpdate check ontbreekt in PUT /fotos/:id');
     }
   });
 
@@ -988,9 +988,9 @@ module.exports = async function testScanner() {
     if (!blok.includes('DELETE FROM fotos')) throw new Error('duplicaten-wis verwijdert geen DB-records');
   });
 
-  test('API: bepaalOrigineel keeper-logica (prioriteit, handmatig, keuze nodig)', () => {
+  test('API: determineOriginal keeper-logica (prioriteit, handmatig, keuze nodig)', () => {
     const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
-    if (!apiCode.includes('function bepaalOrigineel')) throw new Error('bepaalOrigineel() ontbreekt');
+    if (!apiCode.includes('function determineOriginal')) throw new Error('determineOriginal() ontbreekt');
     if (!apiCode.includes('bronVolgorde')) throw new Error('prioriteit (bronVolgorde) wordt niet gebruikt');
     if (!apiCode.includes('return null')) throw new Error('keuze-nodig (null) tak ontbreekt');
   });
@@ -1032,10 +1032,10 @@ module.exports = async function testScanner() {
 
   test('API: keeper opschonen na wissen (geen verweesde DUP-restant)', () => {
     const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
-    if (!apiCode.includes('function schoonDuplicaatGroepenOp')) throw new Error('opschoon-helper ontbreekt');
+    if (!apiCode.includes('function cleanupDuplicateGroups')) throw new Error('opschoon-helper ontbreekt');
     if (!apiCode.includes('is_duplicaat = 0, duplicaat_groep = NULL')) throw new Error('keeper wordt niet ontmarkeerd');
     // De drie wis-routes moeten de opschoning aanroepen
-    const aantal = (apiCode.match(/schoonDuplicaatGroepenOp\(db,/g) || []).length;
+    const aantal = (apiCode.match(/cleanupDuplicateGroups\(db,/g) || []).length;
     if (aantal < 3) throw new Error('opschoning niet overal aangeroepen (verwacht >= 3)');
   });
 
@@ -1051,56 +1051,56 @@ module.exports = async function testScanner() {
     const p = path.join(__dirname, '../src/keeper.js');
     if (!fs.existsSync(p)) throw new Error('src/keeper.js niet gevonden');
     const keeper = require('../src/keeper');
-    for (const fn of ['leesPrioriteit', 'schrijfPrioriteit', 'bepaalKeeper', 'keeperIds']) {
+    for (const fn of ['readPriority', 'writePriority', 'determineKeeper', 'keeperIds']) {
       if (typeof keeper[fn] !== 'function') throw new Error(`keeper.${fn} ontbreekt`);
     }
   });
 
   test('Keeper: handmatige keuze wint boven bron-prioriteit', () => {
-    const { bepaalKeeper } = require('../src/keeper');
+    const { determineKeeper } = require('../src/keeper');
     const fotos = [{ id: 1, bron_id: 10 }, { id: 2, bron_id: 20 }, { id: 3, bron_id: 30 }];
     // bron 30 is hoogst gerangschikt, maar handmatig kiest id 1
-    if (bepaalKeeper(fotos, [30, 20, 10], 1) !== 1) throw new Error('handmatige override genegeerd');
+    if (determineKeeper(fotos, [30, 20, 10], 1) !== 1) throw new Error('handmatige override genegeerd');
   });
 
   test('Keeper: hoogst gerangschikte bron wint (gelijkspel → laagste id)', () => {
-    const { bepaalKeeper } = require('../src/keeper');
+    const { determineKeeper } = require('../src/keeper');
     const fotos = [{ id: 5, bron_id: 10 }, { id: 2, bron_id: 20 }, { id: 9, bron_id: 20 }];
     // bron 20 staat eerst in de volgorde → twee kandidaten id 2 en 9 → laagste id wint = 2
-    if (bepaalKeeper(fotos, [20, 10]) !== 2) throw new Error('bron-prioriteit/gelijkspel verkeerd');
+    if (determineKeeper(fotos, [20, 10]) !== 2) throw new Error('bron-prioriteit/gelijkspel verkeerd');
   });
 
-  test('Keeper: verplicht=true valt terug op laagste id als niets gerangschikt is', () => {
-    const { bepaalKeeper } = require('../src/keeper');
+  test('Keeper: required=true valt terug op laagste id als niets gerangschikt is', () => {
+    const { determineKeeper } = require('../src/keeper');
     const fotos = [{ id: 7, bron_id: 99 }, { id: 3, bron_id: 88 }];
-    if (bepaalKeeper(fotos, [], undefined, { verplicht: true }) !== 3) {
+    if (determineKeeper(fotos, [], undefined, { required: true }) !== 3) {
       throw new Error('export-fallback (laagste id) werkt niet');
     }
   });
 
-  test('Keeper: verplicht=false geeft null ("keuze nodig") als niets gerangschikt is', () => {
-    const { bepaalKeeper } = require('../src/keeper');
+  test('Keeper: required=false geeft null ("keuze nodig") als niets gerangschikt is', () => {
+    const { determineKeeper } = require('../src/keeper');
     const fotos = [{ id: 7, bron_id: 99 }, { id: 3, bron_id: 88 }];
-    if (bepaalKeeper(fotos, [], undefined, { verplicht: false }) !== null) {
+    if (determineKeeper(fotos, [], undefined, { required: false }) !== null) {
       throw new Error('wis-flow geeft geen "keuze nodig" terug');
     }
   });
 
   test('Keeper: één-bron-groep zonder prioriteit lost vanzelf op (laagste id, geen keuze nodig)', () => {
-    const { bepaalKeeper } = require('../src/keeper');
-    // Alle kopieën uit dezelfde bron, geen prioriteit gezet, wis-flow (verplicht=false):
+    const { determineKeeper } = require('../src/keeper');
+    // Alle kopieën uit dezelfde bron, geen prioriteit gezet, wis-flow (required=false):
     // er valt niets te kiezen → behoud laagste id i.p.v. null.
     const fotos = [{ id: 8, bron_id: 5 }, { id: 3, bron_id: 5 }, { id: 6, bron_id: 5 }];
-    if (bepaalKeeper(fotos, [], undefined, { verplicht: false }) !== 3) {
+    if (determineKeeper(fotos, [], undefined, { required: false }) !== 3) {
       throw new Error('één-bron-groep blijft hangen op "keuze nodig" i.p.v. laagste id');
     }
   });
 
   test('Keeper: meerdere bronnen zonder prioriteit blijft "keuze nodig" (veiligheid intact)', () => {
-    const { bepaalKeeper } = require('../src/keeper');
+    const { determineKeeper } = require('../src/keeper');
     // Kopieën verspreid over verschillende bronnen → de gebruiker moet kiezen.
     const fotos = [{ id: 1, bron_id: 5 }, { id: 2, bron_id: 9 }];
-    if (bepaalKeeper(fotos, [], undefined, { verplicht: false }) !== null) {
+    if (determineKeeper(fotos, [], undefined, { required: false }) !== null) {
       throw new Error('cross-bron-groep mag niet stilzwijgend een keeper kiezen');
     }
   });
@@ -1120,15 +1120,15 @@ module.exports = async function testScanner() {
     try { db = new (require('better-sqlite3'))(':memory:'); }
     catch (_) { return; } // omgeving zonder werkende native module → overslaan
     db.exec('CREATE TABLE instellingen (sleutel TEXT PRIMARY KEY, waarde TEXT)');
-    const { leesPrioriteit, schrijfPrioriteit } = require('../src/keeper');
+    const { readPriority, writePriority } = require('../src/keeper');
 
     // Leeg = veilige defaults
-    const leeg = leesPrioriteit(db);
+    const leeg = readPriority(db);
     if (!Array.isArray(leeg.bronVolgorde) || typeof leeg.handmatig !== 'object') {
       throw new Error('defaults niet correct bij lege instellingen');
     }
-    schrijfPrioriteit(db, [3, 1, 2], { 'abc': 42 });
-    const terug = leesPrioriteit(db);
+    writePriority(db, [3, 1, 2], { 'abc': 42 });
+    const terug = readPriority(db);
     if (JSON.stringify(terug.bronVolgorde) !== '[3,1,2]') throw new Error('bronVolgorde niet bewaard');
     if (terug.handmatig.abc !== 42) throw new Error('handmatige keuze niet bewaard');
     db.close();
@@ -1143,8 +1143,8 @@ module.exports = async function testScanner() {
       CREATE TABLE fotos (id INTEGER PRIMARY KEY, bron_id INTEGER, duplicaat_groep TEXT);
       INSERT INTO fotos VALUES (1, 10, 'h1'), (2, 20, 'h1'), (3, 30, NULL), (4, 10, 'h2'), (5, 20, 'h2');
     `);
-    const { keeperIds, schrijfPrioriteit } = require('../src/keeper');
-    schrijfPrioriteit(db, [20, 10], {}); // bron 20 voorrang
+    const { keeperIds, writePriority } = require('../src/keeper');
+    writePriority(db, [20, 10], {}); // bron 20 voorrang
     const ids = keeperIds(db);
     // groep h1: bron 20 = id 2; groep h2: bron 20 = id 5; foto 3 is geen duplicaat → niet in set
     if (!ids.has(2) || !ids.has(5)) throw new Error('keeper per groep ontbreekt');
@@ -1158,17 +1158,17 @@ module.exports = async function testScanner() {
     if (!apiCode.includes("router.get('/duplicaten/prioriteit'")) throw new Error('GET prioriteit ontbreekt');
     if (!apiCode.includes("router.post('/duplicaten/prioriteit'")) throw new Error('POST prioriteit ontbreekt');
     if (!apiCode.includes("require('./keeper')")) throw new Error('keeper-module niet geïmporteerd in api.js');
-    // bepaalOrigineel delegeert nu naar de gedeelde bepaalKeeper
-    if (!apiCode.includes('bepaalKeeper(fotos, bronVolgorde, handmatigId')) {
-      throw new Error('bepaalOrigineel delegeert niet naar gedeelde bepaalKeeper');
+    // determineOriginal delegeert nu naar de gedeelde determineKeeper
+    if (!apiCode.includes('determineKeeper(fotos, bronVolgorde, handmatigId')) {
+      throw new Error('determineOriginal delegeert niet naar gedeelde determineKeeper');
     }
   });
 
-  test('Export: selecteerFotos neemt keeper per groep mee (niet langer is_duplicaat=0 filter)', () => {
+  test('Export: selectPhotos neemt keeper per groep mee (niet langer is_duplicaat=0 filter)', () => {
     const exportCode = fs.readFileSync(path.join(__dirname, '../src/export.js'), 'utf8');
     if (!exportCode.includes("require('./keeper')")) throw new Error('export importeert keeper niet');
     if (!exportCode.includes('keeperIds')) throw new Error('export gebruikt keeperIds niet');
-    const blok = exportCode.slice(exportCode.indexOf('function selecteerFotos'));
+    const blok = exportCode.slice(exportCode.indexOf('function selectPhotos'));
     if (/AND\s*\(is_duplicaat\s*=\s*0/.test(blok)) {
       throw new Error('export filtert nog steeds alle duplicaten weg (is_duplicaat=0) — keeper valt buiten export');
     }
@@ -1178,8 +1178,8 @@ module.exports = async function testScanner() {
   test('API: detailvenster bepaalt keeper via gedeelde logica (niet hardcoded pc/gsm subquery)', () => {
     const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
     const blok = apiCode.slice(apiCode.indexOf("router.get('/fotos/:id'"), apiCode.indexOf("router.get('/fotos/:id'") + 1400);
-    if (!blok.includes('bepaalKeeper')) throw new Error('detailvenster gebruikt gedeelde keeper niet');
-    if (!blok.includes('leesPrioriteit')) throw new Error('detailvenster leest opgeslagen prioriteit niet');
+    if (!blok.includes('determineKeeper')) throw new Error('detailvenster gebruikt gedeelde keeper niet');
+    if (!blok.includes('readPriority')) throw new Error('detailvenster leest opgeslagen prioriteit niet');
   });
 
   test('Duplicaten JS: prioriteit gesynct met server (API i.p.v. alleen localStorage)', () => {
@@ -1209,7 +1209,7 @@ module.exports = async function testScanner() {
     const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
     if (!apiCode.includes("'/opschoon/overzicht'")) throw new Error('opschoon-overzicht endpoint ontbreekt');
     const blok = apiCode.slice(apiCode.indexOf("'/opschoon/overzicht'"), apiCode.indexOf("'/opschoon/overzicht'") + 900);
-    if (!blok.includes('verzamelDuplicaatPlan')) throw new Error('opschoon gebruikt het keeper-plan niet');
+    if (!blok.includes('collectDuplicatePlan')) throw new Error('opschoon gebruikt het keeper-plan niet');
     if (!blok.includes('genegeerd = 1')) throw new Error('genegeerde bestanden niet meegeteld');
     if (!blok.includes('totaalVrijTeMaken')) throw new Error('totaal vrij te maken ontbreekt');
   });
@@ -1309,10 +1309,10 @@ module.exports = async function testScanner() {
   });
 
   // ── Fase D: robuustheid ───────────────────────────────────────────
-  test('Robuust: berekenHash streamt en geeft null bij 0-byte', () => {
+  test('Robuust: computeHash streamt en geeft null bij 0-byte', () => {
     let scanner;
     try { scanner = require('../src/scanner'); } catch (_) { return; } // native module mist in sandbox
-    if (typeof scanner.berekenHash !== 'function') throw new Error('berekenHash niet geëxporteerd');
+    if (typeof scanner.computeHash !== 'function') throw new Error('computeHash niet geëxporteerd');
     const os = require('os');
     const tmp = path.join(os.tmpdir(), 'fa_hash_' + Date.now());
     const leeg = tmp + '_leeg.bin';
@@ -1320,8 +1320,8 @@ module.exports = async function testScanner() {
     fs.writeFileSync(leeg, '');
     fs.writeFileSync(vol, 'hallo wereld');
     try {
-      if (scanner.berekenHash(leeg) !== null) throw new Error('0-byte bestand moet null geven (geen lege-MD5)');
-      const h = scanner.berekenHash(vol);
+      if (scanner.computeHash(leeg) !== null) throw new Error('0-byte bestand moet null geven (geen lege-MD5)');
+      const h = scanner.computeHash(vol);
       const crypto = require('crypto');
       const verwacht = crypto.createHash('md5').update('hallo wereld').digest('hex');
       if (h !== verwacht) throw new Error('streaming-hash komt niet overeen met md5');
@@ -1331,28 +1331,28 @@ module.exports = async function testScanner() {
     }
   });
 
-  test('Robuust: berekenHash gebruikt streaming (geen readFileSync hele bestand)', () => {
+  test('Robuust: computeHash gebruikt streaming (geen readFileSync hele bestand)', () => {
     const code = fs.readFileSync(path.join(__dirname, '../src/scanner.js'), 'utf8');
-    const blok = code.slice(code.indexOf('function berekenHash'), code.indexOf('function berekenHash') + 800);
-    if (!blok.includes('readSync')) throw new Error('berekenHash streamt niet (readSync ontbreekt)');
-    if (!blok.includes('stat.size')) throw new Error('berekenHash controleert 0-byte niet');
-    if (blok.includes('readFileSync')) throw new Error('berekenHash laadt nog hele bestand in geheugen');
+    const blok = code.slice(code.indexOf('function computeHash'), code.indexOf('function computeHash') + 800);
+    if (!blok.includes('readSync')) throw new Error('computeHash streamt niet (readSync ontbreekt)');
+    if (!blok.includes('stat.size')) throw new Error('computeHash controleert 0-byte niet');
+    if (blok.includes('readFileSync')) throw new Error('computeHash laadt nog hele bestand in geheugen');
   });
 
   test('Robuust: geocode cachet geen lege/429-resultaten', () => {
     const code = fs.readFileSync(path.join(__dirname, '../src/scanner.js'), 'utf8');
-    const blok = code.slice(code.indexOf('async function haalGpsAdresOp'), code.indexOf('async function haalGpsAdresOp') + 3000);
+    const blok = code.slice(code.indexOf('async function fetchGpsAddress'), code.indexOf('async function fetchGpsAddress') + 3000);
     if (!blok.includes('429')) throw new Error('429-afhandeling ontbreekt');
-    if (!blok.includes('if (resultaat && resultaat.gps_land)')) throw new Error('lege resultaten worden nog gecachet');
+    if (!blok.includes('if (result && result.gps_land)')) throw new Error('lege resultaten worden nog gecachet');
   });
 
   test('Robuust: aparte geocode stop-vlag (los van scan)', () => {
     const code = fs.readFileSync(path.join(__dirname, '../src/scanner.js'), 'utf8');
-    if (!code.includes('let geocodeStoppen')) throw new Error('geocodeStoppen vlag ontbreekt');
+    if (!code.includes('let geocodeStopRequested')) throw new Error('geocodeStopRequested vlag ontbreekt');
     if (!code.includes('function stopGeocode')) throw new Error('stopGeocode functie ontbreekt');
     // De geocode-lus moet de eigen vlag gebruiken, niet de scan-vlag
-    const lus = code.slice(code.indexOf('for (const loc of locaties)'), code.indexOf('for (const loc of locaties)') + 120);
-    if (!lus.includes('geocodeStoppen')) throw new Error('geocode-lus gebruikt eigen stop-vlag niet');
+    const lus = code.slice(code.indexOf('for (const loc of locations)'), code.indexOf('for (const loc of locations)') + 120);
+    if (!lus.includes('geocodeStopRequested')) throw new Error('geocode-lus gebruikt eigen stop-vlag niet');
   });
 
   test('Robuust: stop-geocode endpoint + export aanwezig', () => {
@@ -1365,10 +1365,10 @@ module.exports = async function testScanner() {
 
   test('Robuust: db.close in try/finally bij geocode-helpers', () => {
     const code = fs.readFileSync(path.join(__dirname, '../src/scanner.js'), 'utf8');
-    const prop = code.slice(code.indexOf('function propageerGpsInGroepen'), code.indexOf('function propageerGpsInGroepen') + 1400);
-    if (!prop.includes('finally')) throw new Error('propageerGpsInGroepen sluit db niet in finally');
-    const upd = code.slice(code.indexOf('const updateLocatie'), code.indexOf('const updateLocatie') + 700);
-    if (!upd.includes('finally')) throw new Error('updateLocatie sluit db2 niet in finally');
+    const prop = code.slice(code.indexOf('function propagateGpsInGroups'), code.indexOf('function propagateGpsInGroups') + 1400);
+    if (!prop.includes('finally')) throw new Error('propagateGpsInGroups sluit db niet in finally');
+    const upd = code.slice(code.indexOf('const updateLocation'), code.indexOf('const updateLocation') + 700);
+    if (!upd.includes('finally')) throw new Error('updateLocation sluit db2 niet in finally');
   });
 
   test('API: toon-in-map endpoint (bestandsbeheerder, cross-platform)', () => {
@@ -1771,7 +1771,7 @@ module.exports = async function testScanner() {
     const importMatch = apiCode.match(/const \{([^}]*)\} = require\('\.\/keeper'\)/);
     if (!importMatch) throw new Error("api.js importeert ./keeper niet via destructuring");
     const geimporteerd = importMatch[1].split(',').map(s => s.trim());
-    for (const fn of ['leesPrioriteit', 'schrijfPrioriteit', 'bepaalKeeper', 'keeperIds']) {
+    for (const fn of ['readPriority', 'writePriority', 'determineKeeper', 'keeperIds']) {
       // Alleen eisen dat het geïmporteerd is als api.js het ook daadwerkelijk aanroept
       const wordtGebruikt = new RegExp('[^.\\w]' + fn + '\\s*\\(').test(apiCode);
       if (wordtGebruikt && !geimporteerd.includes(fn)) {
@@ -1789,24 +1789,24 @@ module.exports = async function testScanner() {
     }
   });
 
-  test('Verborgen mappen: scanner slaat dot-mappen standaard over (optie verborgenMeenemen)', () => {
-    if (!/function vindAlleFotos\(startPad, opties/.test(scannerCode)) {
-      throw new Error('vindAlleFotos accepteert geen opties');
+  test('Verborgen mappen: scanner slaat dot-mappen standaard over (optie includeHidden)', () => {
+    if (!/function findAllPhotos\(startPath, options/.test(scannerCode)) {
+      throw new Error('findAllPhotos accepteert geen opties');
     }
     if (!scannerCode.includes("item.name.startsWith('.')")) {
       throw new Error('scanner controleert verborgen mappen (naam begint met punt) niet');
     }
-    if (!scannerCode.includes('verborgenMeenemen')) {
-      throw new Error('scanner kent geen verborgenMeenemen-optie');
+    if (!scannerCode.includes('includeHidden')) {
+      throw new Error('scanner kent geen includeHidden-optie');
     }
-    // De skip mag NIET gebeuren als verborgenMeenemen aan staat
+    // De skip mag NIET gebeuren als includeHidden aan staat
     const i = scannerCode.indexOf("item.name.startsWith('.')");
     const regel = scannerCode.slice(scannerCode.lastIndexOf('\n', i), scannerCode.indexOf('\n', i));
-    if (!regel.includes('!verborgenMeenemen')) {
+    if (!regel.includes('!includeHidden')) {
       throw new Error('verborgen mappen worden ook overgeslagen als de optie aan staat');
     }
     // Standaard valt de wachtrij terug op de per-bron instelling
-    if (!scannerCode.includes('bron.verborgen_meenemen')) {
+    if (!scannerCode.includes('source.verborgen_meenemen')) {
       throw new Error('scanner gebruikt de per-bron instelling verborgen_meenemen niet als standaard');
     }
   });
@@ -1871,14 +1871,14 @@ module.exports = async function testScanner() {
   test('Geheugen: achtergrond-passes draaien serieel, niet gestapeld', () => {
     // Niet meer drie losse setTimeouts die geocode + thumbnails + GPS vlak na
     // elkaar starten — dat stapelde geheugen. Eén serie die op elkaar wacht.
-    if (!scannerCode.includes('draaiAchtergrondPasses')) {
-      throw new Error('scanner.js heeft geen draaiAchtergrondPasses-serializer');
+    if (!scannerCode.includes('runBackgroundPasses')) {
+      throw new Error('scanner.js heeft geen runBackgroundPasses-serializer');
     }
     // De serializer moet de passes echt awaiten
     if (!/await startGeocodePass\(\)/.test(scannerCode) ||
         !/await startVideoThumbnailPass\(\)/.test(scannerCode) ||
         !/await startVideoGpsPass\(\)/.test(scannerCode)) {
-      throw new Error('draaiAchtergrondPasses await de passes niet allemaal');
+      throw new Error('runBackgroundPasses await de passes niet allemaal');
     }
     // De pass-functies moeten hun inner-promise teruggeven zodat await werkt
     if ((scannerCode.match(/return \(async \(\) => \{/g) || []).length < 2) {
@@ -1886,24 +1886,24 @@ module.exports = async function testScanner() {
     }
   });
 
-  test('Geheugen: leesMetadata sluit file descriptor expliciet (geen DEP0137-lek)', () => {
+  test('Geheugen: readMetadata sluit file descriptor expliciet (geen DEP0137-lek)', () => {
     // exifr een pad geven opent intern een FileHandle die soms pas bij garbage
     // collection sluit (Node DEP0137 "Closing file descriptor N on garbage
     // collection"). Bij 22.000+ foto's stapelen die descriptors op. We lezen
     // het bestand daarom zelf in een buffer en sluiten de fd in een finally.
     const metaBlok = scannerCode.slice(
-      scannerCode.indexOf('async function leesMetadata'),
-      scannerCode.indexOf('async function leesMetadata') + 1200
+      scannerCode.indexOf('async function readMetadata'),
+      scannerCode.indexOf('async function readMetadata') + 1200
     );
     if (!/fs\.openSync\(/.test(metaBlok) || !/fs\.closeSync\(/.test(metaBlok)) {
-      throw new Error('leesMetadata opent/sluit de file descriptor niet expliciet');
+      throw new Error('readMetadata opent/sluit de file descriptor niet expliciet');
     }
     if (!/finally\s*\{[\s\S]*fs\.closeSync/.test(metaBlok)) {
-      throw new Error('leesMetadata sluit de fd niet in een finally-blok');
+      throw new Error('readMetadata sluit de fd niet in een finally-blok');
     }
     // Te grote bestanden (RAW/video) niet volledig inlezen → grens aanwezig
     if (!/META_MAX_BUFFER_BYTES/.test(scannerCode)) {
-      throw new Error('leesMetadata heeft geen buffer-groottegrens (grote bestanden via pad)');
+      throw new Error('readMetadata heeft geen buffer-groottegrens (grote bestanden via pad)');
     }
   });
 
@@ -1981,17 +1981,17 @@ module.exports = async function testScanner() {
       throw new Error('scanner.js heeft geen async subprocess-helper (runCmd/execFile)');
     }
     // De zware video-lezers moeten async zijn en runCmd gebruiken (niet spawnSync)
-    if (!/async function leesVideoDuur/.test(scannerCode) ||
-        !/async function leesGpsUitVideo/.test(scannerCode)) {
-      throw new Error('leesVideoDuur/leesGpsUitVideo zijn niet async gemaakt');
+    if (!/async function readVideoDuration/.test(scannerCode) ||
+        !/async function readGpsFromVideo/.test(scannerCode)) {
+      throw new Error('readVideoDuration/readGpsFromVideo zijn niet async gemaakt');
     }
     // Geen synchrone exiftool/ffmpeg-aanroepen meer in scanner.js
     if (/spawnSync\(\s*['"](?:exiftool|ffmpeg)['"]/.test(scannerCode)) {
       throw new Error('scanner.js gebruikt nog blokkerende spawnSync voor exiftool/ffmpeg');
     }
     // Call sites moeten awaiten
-    if (!scannerCode.includes('await leesGpsUitVideo') ||
-        !scannerCode.includes('await leesVideoDuur')) {
+    if (!scannerCode.includes('await readGpsFromVideo') ||
+        !scannerCode.includes('await readVideoDuration')) {
       throw new Error('async video-functies worden niet ge-await op de aanroepplekken');
     }
   });
@@ -2046,40 +2046,40 @@ module.exports = async function testScanner() {
     }
   });
 
-  test('Responsief: vindAlleFotos is async en geeft de event-loop lucht (setImmediate)', () => {
+  test('Responsief: findAllPhotos is async en geeft de event-loop lucht (setImmediate)', () => {
     // De synchrone readdirSync-inventarisatie blokkeerde het main-proces → "reageert
     // niet". Nu async met periodieke setImmediate-yields.
-    if (!/async function vindAlleFotos/.test(scannerCode)) {
-      throw new Error('vindAlleFotos is niet async gemaakt');
+    if (!/async function findAllPhotos/.test(scannerCode)) {
+      throw new Error('findAllPhotos is niet async gemaakt');
     }
     const blok = scannerCode.slice(
-      scannerCode.indexOf('async function vindAlleFotos'),
-      scannerCode.indexOf('async function vindAlleFotos') + 1400
+      scannerCode.indexOf('async function findAllPhotos'),
+      scannerCode.indexOf('async function findAllPhotos') + 1400
     );
     if (!/fs\.promises\.readdir/.test(blok)) {
-      throw new Error('vindAlleFotos leest mappen niet asynchroon (fs.promises.readdir)');
+      throw new Error('findAllPhotos leest mappen niet asynchroon (fs.promises.readdir)');
     }
     if (!/setImmediate/.test(blok)) {
-      throw new Error('vindAlleFotos geeft de event-loop geen lucht (setImmediate ontbreekt)');
+      throw new Error('findAllPhotos geeft de event-loop geen lucht (setImmediate ontbreekt)');
     }
-    if (!/await vindAlleFotos\(/.test(scannerCode)) {
-      throw new Error('de aanroep van vindAlleFotos wordt niet ge-await');
+    if (!/await findAllPhotos\(/.test(scannerCode)) {
+      throw new Error('de aanroep van findAllPhotos wordt niet ge-await');
     }
   });
 
-  test('Responsief: detecteerDuplicaten is async en yield per N groepen', () => {
-    if (!/async function detecteerDuplicaten/.test(scannerCode)) {
-      throw new Error('detecteerDuplicaten is niet async gemaakt');
+  test('Responsief: detectDuplicates is async en yield per N groepen', () => {
+    if (!/async function detectDuplicates/.test(scannerCode)) {
+      throw new Error('detectDuplicates is niet async gemaakt');
     }
     const blok = scannerCode.slice(
-      scannerCode.indexOf('async function detecteerDuplicaten'),
-      scannerCode.indexOf('async function detecteerDuplicaten') + 1200
+      scannerCode.indexOf('async function detectDuplicates'),
+      scannerCode.indexOf('async function detectDuplicates') + 1200
     );
     if (!/setImmediate/.test(blok)) {
-      throw new Error('detecteerDuplicaten geeft de event-loop geen lucht (setImmediate)');
+      throw new Error('detectDuplicates geeft de event-loop geen lucht (setImmediate)');
     }
-    if (!/await detecteerDuplicaten\(/.test(scannerCode)) {
-      throw new Error('de aanroep van detecteerDuplicaten wordt niet ge-await');
+    if (!/await detectDuplicates\(/.test(scannerCode)) {
+      throw new Error('de aanroep van detectDuplicates wordt niet ge-await');
     }
   });
 
@@ -2242,9 +2242,9 @@ module.exports = async function testScanner() {
     // Beide moeten naar de foutlog schrijven zodat we de oorzaak terugvinden
     const rpg = mainCode.indexOf('render-process-gone');
     const cpg = mainCode.indexOf('child-process-gone');
-    if (!/logFout\(/.test(mainCode.slice(rpg, rpg + 200)) ||
-        !/logFout\(/.test(mainCode.slice(cpg, cpg + 250))) {
-      throw new Error('crash-handlers schrijven niet naar logFout (electron-fout.log)');
+    if (!/logError\(/.test(mainCode.slice(rpg, rpg + 200)) ||
+        !/logError\(/.test(mainCode.slice(cpg, cpg + 250))) {
+      throw new Error('crash-handlers schrijven niet naar logError (electron-fout.log)');
     }
   });
 

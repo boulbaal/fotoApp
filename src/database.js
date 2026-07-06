@@ -14,11 +14,11 @@ function getDb() {
   return db;
 }
 
-// Eén gedeelde, langlevende verbinding voor hoog-frequente leesacties
-// (zoals het thumbnail-endpoint dat per pagina ~50 keer wordt aangeroepen).
-// Telkens een nieuwe verbinding openen blokkeerde de synchrone better-sqlite3
-// event-loop en deed de app vastlopen bij snel bladeren. WAL zorgt dat deze
-// lezer steeds de laatst weggeschreven data ziet. Nooit sluiten.
+// One shared, long-lived connection for high-frequency reads (such as the
+// thumbnail endpoint, which is called ~50 times per page). Opening a fresh
+// connection every time blocked the synchronous better-sqlite3 event loop and
+// froze the app while browsing quickly. WAL ensures this reader always sees
+// the most recently written data. Never close it.
 let sharedDb = null;
 function getSharedDb() {
   if (!sharedDb || !sharedDb.open) {
@@ -118,62 +118,63 @@ function initDb() {
     CREATE INDEX IF NOT EXISTS idx_fotos_duplicaat ON fotos(duplicaat_groep);
   `);
 
-  // Migratie: kolommen toevoegen aan bestaande databases
-  const kolommen = db.prepare("PRAGMA table_info(fotos)").all().map(k => k.name);
-  if (!kolommen.includes('google_description')) {
+  // Migration: add columns to existing databases
+  const columns = db.prepare("PRAGMA table_info(fotos)").all().map(k => k.name);
+  if (!columns.includes('google_description')) {
     db.exec("ALTER TABLE fotos ADD COLUMN google_description TEXT");
-    console.log('✅ Migratie: google_description kolom toegevoegd');
+    console.log('✅ Migration: google_description column added');
   }
-  if (!kolommen.includes('google_device_type')) {
+  if (!columns.includes('google_device_type')) {
     db.exec("ALTER TABLE fotos ADD COLUMN google_device_type TEXT");
-    console.log('✅ Migratie: google_device_type kolom toegevoegd');
+    console.log('✅ Migration: google_device_type column added');
   }
-  if (!kolommen.includes('gps_land_code')) {
+  if (!columns.includes('gps_land_code')) {
     db.exec("ALTER TABLE fotos ADD COLUMN gps_land_code TEXT");
-    console.log('✅ Migratie: gps_land_code kolom toegevoegd');
+    console.log('✅ Migration: gps_land_code column added');
   }
-  if (!kolommen.includes('datum_bron')) {
+  if (!columns.includes('datum_bron')) {
     db.exec("ALTER TABLE fotos ADD COLUMN datum_bron TEXT");
-    console.log('✅ Migratie: datum_bron kolom toegevoegd');
+    console.log('✅ Migration: datum_bron column added');
   }
-  if (!kolommen.includes('locatie_onbekend')) {
+  if (!columns.includes('locatie_onbekend')) {
     db.exec("ALTER TABLE fotos ADD COLUMN locatie_onbekend INTEGER DEFAULT 0");
-    console.log('✅ Migratie: locatie_onbekend kolom toegevoegd');
+    console.log('✅ Migration: locatie_onbekend column added');
   }
-  if (!kolommen.includes('genegeerd')) {
+  if (!columns.includes('genegeerd')) {
     db.exec("ALTER TABLE fotos ADD COLUMN genegeerd INTEGER DEFAULT 0");
-    console.log('✅ Migratie: genegeerd kolom toegevoegd');
+    console.log('✅ Migration: genegeerd column added');
   }
-  if (!kolommen.includes('geexporteerd')) {
+  if (!columns.includes('geexporteerd')) {
     db.exec("ALTER TABLE fotos ADD COLUMN geexporteerd INTEGER DEFAULT 0");
-    console.log('✅ Migratie: geexporteerd kolom toegevoegd');
+    console.log('✅ Migration: geexporteerd column added');
   }
-  if (!kolommen.includes('duur')) {
+  if (!columns.includes('duur')) {
     db.exec("ALTER TABLE fotos ADD COLUMN duur INTEGER DEFAULT NULL");
-    console.log('✅ Migratie: duur kolom toegevoegd (voor video\'s)');
+    console.log('✅ Migration: duur column added (for videos)');
   }
-  if (!kolommen.includes('is_video')) {
+  if (!columns.includes('is_video')) {
     db.exec("ALTER TABLE fotos ADD COLUMN is_video INTEGER DEFAULT 0");
-    console.log('✅ Migratie: is_video kolom toegevoegd');
+    console.log('✅ Migration: is_video column added');
   }
 
-  // Migratie: per-bron instelling of verborgen mappen (naam begint met '.')
-  // meegescand worden. Standaard 0 = overslaan (app-/systeembestanden, geen foto's).
-  const bronKolommen = db.prepare("PRAGMA table_info(bronnen)").all().map(k => k.name);
-  if (!bronKolommen.includes('verborgen_meenemen')) {
+  // Migration: per-source setting whether hidden folders (name starts with '.')
+  // are scanned too. Default 0 = skip (app/system files, no photos).
+  const sourceColumns = db.prepare("PRAGMA table_info(bronnen)").all().map(k => k.name);
+  if (!sourceColumns.includes('verborgen_meenemen')) {
     db.exec("ALTER TABLE bronnen ADD COLUMN verborgen_meenemen INTEGER DEFAULT 0");
-    console.log('✅ Migratie: verborgen_meenemen kolom toegevoegd aan bronnen');
+    console.log('✅ Migration: verborgen_meenemen column added to bronnen');
   }
 
-  // Samengestelde index voor snelle gesorteerde paginering: de galerij filtert
-  // op is_video en sorteert op datum_foto. Maakt ook diep bladeren (laatste
-  // pagina, grote OFFSET) snel.
+  // Composite index for fast sorted pagination: the gallery filters on
+  // is_video and sorts on datum_foto. Also makes deep paging (last page,
+  // large OFFSET) fast.
   db.exec("CREATE INDEX IF NOT EXISTS idx_fotos_video_datum ON fotos(is_video, datum_foto)");
 
-  // Opschoning: verweesde duplicaat-restanten herstellen.
-  // Na het wissen van een duplicaatgroep kan er een enkele foto overblijven
-  // die nog is_duplicaat=1 en een duplicaat_groep had. Die is geen duplicaat meer.
-  const verweesd = db.prepare(`
+  // Cleanup: repair orphaned duplicate leftovers.
+  // After wiping a duplicate group a single photo may remain that still has
+  // is_duplicaat=1 and a duplicaat_groep. It is no longer a duplicate.
+  // (verweesde duplicaat-restanten)
+  const orphaned = db.prepare(`
     UPDATE fotos SET is_duplicaat = 0, duplicaat_groep = NULL
     WHERE duplicaat_groep IN (
       SELECT duplicaat_groep FROM fotos
@@ -181,15 +182,15 @@ function initDb() {
       GROUP BY duplicaat_groep HAVING COUNT(*) <= 1
     )
   `).run();
-  if (verweesd.changes > 0) {
-    console.log(`✅ Migratie: ${verweesd.changes} verweesde duplicaat-restant(en) opgeschoond`);
+  if (orphaned.changes > 0) {
+    console.log(`✅ Migration: cleaned up ${orphaned.changes} orphaned duplicate leftover(s)`);
   }
 
-  // Standaard fase instellen
+  // Set default phase
   db.prepare("INSERT OR IGNORE INTO instellingen (sleutel, waarde) VALUES ('fase', '1')").run();
 
   db.close();
-  console.log('✅ Database geïnitialiseerd:', getDbPath());
+  console.log('✅ Database initialized:', getDbPath());
 }
 
 module.exports = { getDb, getSharedDb, initDb };

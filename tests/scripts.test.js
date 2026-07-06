@@ -134,8 +134,8 @@ module.exports = async function testScripts() {
     if (!mainJs.includes('serverError')) throw new Error('serverError ontbreekt');
   });
 
-  test('electron/main.js classificeert fouten (diagnoseFout)', () => {
-    if (!mainJs.includes('diagnoseFout')) throw new Error('diagnoseFout ontbreekt');
+  test('electron/main.js classificeert fouten (diagnoseError)', () => {
+    if (!mainJs.includes('diagnoseError')) throw new Error('diagnoseError ontbreekt');
   });
 
   test('electron/main.js herkent native-module mismatch', () => {
@@ -155,7 +155,7 @@ module.exports = async function testScripts() {
   });
 
   test('electron/main.js schrijft foutlog', () => {
-    if (!mainJs.includes('logFout') || !mainJs.includes('electron-fout.log')) {
+    if (!mainJs.includes('logError') || !mainJs.includes('electron-fout.log')) {
       throw new Error('foutlog ontbreekt');
     }
   });
