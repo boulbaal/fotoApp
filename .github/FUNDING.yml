@@ -3,7 +3,7 @@
 
 # PayPal werkt meteen op e-mailadres, geen extra account vereist:
 custom:
-  - "https://www.paypal.com/donate?business=aboulbahaiem%40gmail.com&currency_code=EUR&item_name=FotoApp+ondersteunen"
+  - "https://www.paypal.com/paypalme/ABoullbahaiem"
 
 # GitHub Sponsors: pas zichtbaar nadat je je hebt aangemeld op
 # https://github.com/sponsors — laat staan, doet geen kwaad.
