@@ -82,6 +82,6 @@ Dank je voor je interesse in FotoApp! Bijdragen zijn welkom, maar alle wijziging
 
 ## 📬 Contact
 
-Questions? Open an [Issue](https://github.com/boulbaal/fotoApp/issues) or contact Ali via [aboulbahaiem@gmail.com](mailto:aboulbahaiem@gmail.com).
+Questions? Open an [Issue](https://github.com/boulbaal/fotoApp/issues).
 
 > **Note:** All pull requests require explicit approval from Ali before merging. This is not automatic — please be patient.

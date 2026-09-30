@@ -305,7 +305,7 @@ git commit -m "type: korte beschrijving
 
 **Regels:**
 - **Na elke taak altijd committen én pushen** (zie de testregel bovenaan) — `git push` timed out in de sandbox, dus pushen via `python3 /tmp/github_push.py`
-- Git config is ingesteld: `Ali <aboulbahaiem@gmail.com>`
+- Contact loopt alleen via GitHub issues; zet nooit een persoonlijk e-mailadres in bestanden van deze repo
 - Eén commit per logische wijziging — niet alles samenvoegen
 
 ---
