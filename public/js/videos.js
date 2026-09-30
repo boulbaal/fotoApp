@@ -144,7 +144,7 @@ async function laadVideos(page = 1) {
   const data = await fetch('/api/photos?' + params).then(r => r.json());
 
   const teller = document.getElementById('videosTeller');
-  if (teller) teller.textContent = `${data.total.toLocaleString()} video${data.total === 1 ? '' : "'s"}`;
+  if (teller) teller.textContent = `${data.total.toLocaleString()} video${data.total === 1 ? '' : 's'}`;
 
   const grid = document.getElementById('videoGrid');
   if (!grid) return;

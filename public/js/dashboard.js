@@ -123,7 +123,7 @@ function tekenBalk(containerId, data, labelVeld, aantalVeld, onClick, extraInfo,
   el.innerHTML = rijen.map(rij => {
     const extra = extraInfo ? extraInfo(rij) : '';
     return `
-    <div class="bar-rij ${onClick ? 'klikbaar' : ''}" title="${onClick ? 'Klik om foto\'s te zien' : ''}">
+    <div class="bar-rij ${onClick ? 'klikbaar' : ''}" title="${onClick ? 'Click to see the photos' : ''}">
       <div class="bar-label">${escapeHtml(rij[labelVeld] || '?')}</div>
       <div class="bar-wrap">
         <div class="bar-fill" style="width:${max > 0 ? (rij[aantalVeld]/max*100) : 0}%">

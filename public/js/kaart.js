@@ -247,11 +247,11 @@ async function laadPanelFotos() {
 
   let infoTekst = '';
   if (aantalFotos > 0 && aantalVideos > 0) {
-    infoTekst = `📷 ${aantalFotos} foto${aantalFotos !== 1 ? "'s" : ''} · 🎬 ${aantalVideos} video${aantalVideos !== 1 ? "'s" : ''} · ${jaarTekst}`;
+    infoTekst = `📷 ${aantalFotos} photo${aantalFotos !== 1 ? 's' : ''} · 🎬 ${aantalVideos} video${aantalVideos !== 1 ? 's' : ''} · ${jaarTekst}`;
   } else if (aantalVideos > 0) {
-    infoTekst = `🎬 ${aantalVideos} video${aantalVideos !== 1 ? "'s" : ''} · ${jaarTekst}`;
+    infoTekst = `🎬 ${aantalVideos} video${aantalVideos !== 1 ? 's' : ''} · ${jaarTekst}`;
   } else {
-    infoTekst = `📷 ${photos.length.toLocaleString()} foto${photos.length !== 1 ? "'s" : ''} · ${jaarTekst}`;
+    infoTekst = `📷 ${photos.length.toLocaleString()} photo${photos.length !== 1 ? 's' : ''} · ${jaarTekst}`;
   }
   document.getElementById('kaartPanelInfo').textContent = infoTekst;
 

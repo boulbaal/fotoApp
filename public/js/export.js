@@ -18,7 +18,7 @@ async function laadExportPreview() {
   const data = await fetch('/api/export/preview?' + params).then(r => r.json());
 
   document.getElementById('prevFotos').textContent =
-    data.nogTeDoen.toLocaleString() + ' foto\'s';
+    data.nogTeDoen.toLocaleString() + ' photos';
   document.getElementById('prevGrootte').textContent =
     formatGrootte(data.totaalBytes);
 
@@ -125,7 +125,7 @@ function toonExportKlaar(status) {
   document.getElementById('exportKlaar').style.display = 'block';
 
   document.getElementById('klaarGedaan').textContent =
-    status.done.toLocaleString() + ' foto\'s';
+    status.done.toLocaleString() + ' photos';
   document.getElementById('klaarFouten').textContent =
     status.errors === 0 ? '0 ✅' : status.errors + ' ⚠';
   document.getElementById('klaarLocatie').textContent = status.target_folder;

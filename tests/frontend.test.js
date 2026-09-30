@@ -92,7 +92,7 @@ module.exports = async function testFrontend() {
     // v1.0.4 verving Nederlandse woorden ook ín zichtbare teksten ("Vul name en path in",
     // "12 new_files", "assigned aan"). Deze patronen mogen niet terugkomen.
     const kapot = [/\$\{status\.new_files\} new_files/, /Vul name en path/, /\bassigned aan\b/, /Onbekende date/,
-      /Ongeldige date/, /zonder location/i];
+      /Ongeldige date/, /zonder location/i, /(foto|video)\$\{[^}]*"'s"/, /' foto\\'s'/];
     const hits = [];
     for (const [file, src] of Object.entries(js)) for (const re of kapot) if (re.test(src)) hits.push(`${re} (${file})`);
     if (hits.length) throw new Error('half vertaalde tekst: ' + hits.join(', '));

@@ -233,7 +233,7 @@ async function laadFotos(page = 1) {
   console.log('[laadFotos] URL:', '/api/photos?' + params.toString());
 
   const data = await fetch('/api/photos?' + params).then(r => r.json());
-  document.getElementById('fotosTeller').textContent = `${data.total.toLocaleString()} foto${data.total === 1 ? '' : "'s"}`;
+  document.getElementById('fotosTeller').textContent = `${data.total.toLocaleString()} photo${data.total === 1 ? '' : 's'}`;
 
   const grid = document.getElementById('fotoGrid');
   if (data.photos.length === 0) {
