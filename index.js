@@ -5,12 +5,15 @@ const { WebSocketServer } = require('ws');
 const { execFile } = require('child_process');
 const { initDb } = require('./src/database');
 const api = require('./src/api');
+const { isLocalRequest, expressGuard } = require('./src/localguard');
 
 const app    = express();
 const server = http.createServer(app);
-const wss    = new WebSocketServer({ server });
 const PORT   = 3000;
+// Only accept WebSocket handshakes from the app itself (see src/localguard.js)
+const wss    = new WebSocketServer({ server, verifyClient: (info) => isLocalRequest(info.req.headers, PORT) });
 
+app.use(expressGuard(PORT));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', api);
@@ -72,6 +75,7 @@ wss.on('connection', (ws) => {
 
 // Start
 initDb();
-server.listen(PORT, () => {
+// Listen on the loopback interface only: never reachable from other devices.
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`\n🖼️  FotoApp running at http://localhost:${PORT}\n`);
 });
