@@ -1299,7 +1299,7 @@ module.exports = async function testScanner() {
     if (!html.includes('bulkNegeer(true)')) throw new Error('ignore-knop ontbreekt');
     const css = fs.readFileSync(path.join(__dirname, '../public/css/style.css'), 'utf8');
     if (!css.includes('.selectie-balk')) throw new Error('selectie-balk CSS ontbreekt');
-    if (!css.includes('.foto-item.geselecteerd')) throw new Error('geselecteerd-stijl ontbreekt');
+    if (!css.includes('.foto-item.selected')) throw new Error('selected-stijl ontbreekt');
   });
 
   test('Batch: selectie i18n-keys aanwezig in alle 4 talen', () => {

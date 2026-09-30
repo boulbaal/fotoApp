@@ -40,6 +40,32 @@ module.exports = async function testFrontend() {
     if (missing.length) throw new Error('geen pagina-container voor: ' + missing.join(', '));
   });
 
+  // ─── CSS ──────────────────────────────────────────────────────────────────
+
+  test('CSS: elke klasse die de JS via classList/className zet, bestaat in style.css', () => {
+    // Een klasse die alleen aan één kant hernoemd is, geeft geen fout maar
+    // verbergt stil de visuele staat (bv. geselecteerde foto zonder markering).
+    const css = fs.readFileSync(path.join(publicDir, 'css/style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const cssClasses = new Set([...css.matchAll(/\.(-?[a-zA-Z_][\w-]*)/g)].map(m => m[1]));
+    const missing = [];
+    for (const [file, src] of Object.entries(js)) {
+      for (const m of src.matchAll(/classList\.(?:add|remove|toggle|contains)\(([^)]*)\)/g)) {
+        for (const c of m[1].matchAll(/['"]([\w-]+)['"]/g)) if (!cssClasses.has(c[1])) missing.push(`${c[1]} (${file})`);
+      }
+      for (const m of src.matchAll(/\.className\s*=\s*[`'"]([^`'"]*)[`'"]/g)) {
+        for (const c of m[1].split(/\s+/)) if (c && !c.includes('$') && !cssClasses.has(c)) missing.push(`${c} (${file})`);
+      }
+    }
+    if (missing.length) throw new Error('klassen zonder CSS: ' + [...new Set(missing)].join(', '));
+  });
+
+  test('CSS: selectie-markering gebruikt dezelfde klasse als fotos.js en gpsbulk.js', () => {
+    const css = fs.readFileSync(path.join(publicDir, 'css/style.css'), 'utf8');
+    if (!/classList\.toggle\('selected'/.test(js['fotos.js'])) throw new Error("fotos.js zet 'selected' niet meer — pas deze test aan");
+    if (!css.includes('.foto-item.selected')) throw new Error('.foto-item.selected ontbreekt in style.css');
+    if (!/' selected'/.test(js['gpsbulk.js']) || !css.includes('.bulk-thumb.selected')) throw new Error('.bulk-thumb.selected ontbreekt of wordt niet gezet');
+  });
+
   // ─── I18N ─────────────────────────────────────────────────────────────────
 
   test('i18n: navigatie-knoppen worden vertaald (data-page + alle pagina-namen)', () => {
