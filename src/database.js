@@ -108,6 +108,10 @@ function migrateDutchSchema(db) {
     if (tables.includes('photos')) {
       db.exec("UPDATE photos SET status='new_files' WHERE status='nieuw'");
     }
+    if (tables.includes('sources')) {
+      // Source type option value was renamed extern → external in the UI
+      db.exec("UPDATE sources SET type='external' WHERE type='extern'");
+    }
     if (tables.includes('settings')) {
       db.exec(`
         UPDATE settings SET key='phase'            WHERE key='fase'              AND NOT EXISTS (SELECT 1 FROM settings WHERE key='phase');
