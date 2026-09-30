@@ -43,7 +43,9 @@ app.commandLine.appendSwitch('js-flags', '--max-old-space-size=1024');
 const dataDir = path.join(app.getPath('userData'), 'fotoapp-data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-process.env.DB_PATH       = path.join(dataDir, 'photos.db');
+// File name stays fotos.db (pre-v1.0.4 name): renaming it would hide every
+// existing user's library behind a fresh, empty database after the update.
+process.env.DB_PATH       = path.join(dataDir, 'fotos.db');
 process.env.FOTOAPP_DATA  = dataDir;        // scanner uses this for temp files
 process.env.ELECTRON_RUN  = '1';             // flag for index.js
 

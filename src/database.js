@@ -1,7 +1,10 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const DEFAULT_DB_PATH = path.join(__dirname, '../data/photos.db');
+// Keep the original file name: existing installs have their library in
+// fotos.db. Renaming it would open a fresh, empty database on upgrade (and the
+// Dutch→English schema migration below would never see the user's data).
+const DEFAULT_DB_PATH = path.join(__dirname, '../data/fotos.db');
 
 function getDbPath() {
   return process.env.DB_PATH || DEFAULT_DB_PATH;

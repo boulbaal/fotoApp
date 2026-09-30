@@ -13,6 +13,15 @@ module.exports = async function testDatabase() {
     }
   }
 
+  // Statisch (werkt ook als better-sqlite3 niet laadt): de bestandsnaam van de
+  // database mag niet veranderen, anders opent een update een lege database.
+  test('Database-bestand blijft fotos.db (bestaande installaties vinden hun data terug)', () => {
+    const dbCode = fs.readFileSync(path.join(__dirname, '../src/database.js'), 'utf8');
+    const mainCode = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
+    if (!dbCode.includes("path.join(__dirname, '../data/fotos.db')")) throw new Error('standaardpad in src/database.js is niet meer data/fotos.db');
+    if (!/DB_PATH\s*=\s*path\.join\(dataDir, 'fotos\.db'\)/.test(mainCode)) throw new Error('electron/main.js zet DB_PATH niet meer op fotoapp-data/fotos.db');
+  });
+
   // Laad database module pas hier (niet bij require van dit bestand)
   let initDb, getDb;
   try {
@@ -23,7 +32,7 @@ module.exports = async function testDatabase() {
     initDb = mod.initDb;
     getDb  = mod.getDb;
   } catch (e) {
-    return [{
+    return [...resultaten, {
       name: 'Database module laden',
       ok: false,
       waarschuwing: true,   // niet-fataal — werkt wel op productie-machine
