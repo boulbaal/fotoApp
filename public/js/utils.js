@@ -18,16 +18,23 @@ function formatGrootte(bytes) {
   return (bytes / 1e3).toFixed(0) + ' KB';
 }
 
+// Datums in de taal van de UI (was vast nl-BE → "02 mei 2024" in de Engelse UI)
+const DATUM_LOCALES = { nl: 'nl-BE', en: 'en-GB', fr: 'fr-BE', de: 'de-DE' };
+function datumLocale() {
+  const lang = window.i18n ? window.i18n.getLang() : 'en';
+  return DATUM_LOCALES[lang] || 'en-GB';
+}
+
 function formatDatum(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('nl-BE', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(d).toLocaleDateString(datumLocale(), { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function formatDatumTijd(d) {
   if (!d) return '—';
   const dt = new Date(d);
-  return dt.toLocaleDateString('nl-BE', { day: '2-digit', month: 'short', year: 'numeric' })
-    + ' om ' + dt.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
+  return dt.toLocaleDateString(datumLocale(), { day: '2-digit', month: 'short', year: 'numeric' })
+    + ' · ' + dt.toLocaleTimeString(datumLocale(), { hour: '2-digit', minute: '2-digit' });
 }
 
 function formatDuur(seconden) {

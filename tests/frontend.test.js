@@ -98,6 +98,19 @@ module.exports = async function testFrontend() {
     if (hits.length) throw new Error('half vertaalde tekst: ' + hits.join(', '));
   });
 
+  test('i18n: datums volgen de UI-taal (geen "02 mei 2024" in de Engelse UI)', () => {
+    const vm = require('vm');
+    const fmt = (lang) => {
+      const ctx = { window: { i18n: { getLang: () => lang } }, console };
+      vm.runInNewContext(js['utils.js'], ctx);
+      return [ctx.formatDatum('2024-05-02T12:00:00Z'), ctx.formatDatumTijd('2024-05-02T12:00:00Z')];
+    };
+    const [en, enTijd] = fmt('en');
+    const [nl] = fmt('nl');
+    if (!/May/.test(en) || / om /.test(enTijd)) throw new Error(`Engels: "${en}" / "${enTijd}"`);
+    if (!/mei/.test(nl)) throw new Error(`Nederlands: "${nl}"`);
+  });
+
   test('i18n: taalwissel overschrijft de scan-indicator niet tijdens een scan', () => {
     const cls = (js['scanner.js'].match(/ind\.className = 'scan-indicator (\w+)'/) || [])[1];
     if (!cls) throw new Error('scan-indicator klasse niet gevonden in scanner.js');
