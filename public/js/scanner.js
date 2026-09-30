@@ -9,7 +9,7 @@ let vorigeBericht  = '';   // voorkom dubbele log-regels
 // en er zijn meerdere sources, dan vragen we die éénmalig via de priority-modal
 // en starten de scan pas nadat de gebruiker heeft opgeslagen.
 async function startScan(sourceId, sourceName) {
-  logClient(`🖱 Klik: Start scan — ${sourceName || 'bron #' + sourceId}`);
+  logClient(`${tr('scan_klik_start', '🖱 Click: Start scan')} — ${sourceName || 'source #' + sourceId}`);
 
   if (await prioriteitNodigVoorScan()) {
     logClient('🏷 First set which source counts as the original for duplicates...');
@@ -42,13 +42,13 @@ async function echtStartScan(sourceId, sourceName) {
     const knop = kaart.querySelector('.btn-groot');
     if (knop) {
       knop.disabled = true;
-      knop.innerHTML = '⏳ Verzenden...';
+      knop.textContent = tr('scan_verzenden', '⏳ Sending...');
       knop.style.background = '#4b5563';
       knop.style.cursor = 'not-allowed';
     }
   }
 
-  logClient(`📤 Verzoek verzonden naar server...`);
+  logClient(tr('scan_verzoek_verzonden', '📤 Request sent to server...'));
 
   try {
     const r = await fetch('/api/scan/' + sourceId, { method: 'POST' });
@@ -59,7 +59,7 @@ async function echtStartScan(sourceId, sourceName) {
       return;
     }
 
-    logClient(`📨 Server antwoord ontvangen`);
+    logClient(tr('scan_antwoord', '📨 Server response received'));
 
     if (data.running && data.source_id === sourceId) {
       logClient(`▶ Scan started for ${sourceName}`);
@@ -72,16 +72,16 @@ async function echtStartScan(sourceId, sourceName) {
     startScanPolling();
     laadBronnen();
   } catch (e) {
-    logClient(`❌ Verbindingsfout: ${e.message}`);
+    logClient(`${tr('scan_verbindingsfout', '❌ Connection error')}: ${e.message}`);
   }
 }
 
 // === STOP SCAN ===
 async function stopScan() {
-  logClient(`🖱 Klik: Stop scan`);
-  logClient(`📤 Stop-verzoek verzonden naar server...`);
+  logClient(tr('scan_klik_stop', '🖱 Click: Stop scan'));
+  logClient(tr('scan_stop_verzonden', '📤 Stop request sent to server...'));
 
-  setScanBalkStatus('stopping', 'Verzoek verzonden...');
+  setScanBalkStatus('stopping', tr('scan_stop_verzoek', 'Request sent...'));
 
   try {
     await fetch('/api/scan/stop', { method: 'POST' });
@@ -91,14 +91,14 @@ async function stopScan() {
     for (let i = 0; i < 40; i++) {
       await new Promise(r => setTimeout(r, 500));
       const status = await fetch('/api/scan/status').then(r => r.json());
-      setScanBalkStatus('stopping', `Stoppen... (${Math.round((i+1)*0.5)}s)`);
+      setScanBalkStatus('stopping', `${tr('scan_stoppen', 'Stopping...')} (${Math.round((i+1)*0.5)}s)`);
       if (!status.running) {
         logClient(`✅ Scan stopped`);
         break;
       }
     }
   } catch (e) {
-    logClient(`❌ Fout bij stoppen: ${e.message}`);
+    logClient(`${tr('scan_fout_stoppen', '❌ Error while stopping')}: ${e.message}`);
   }
 
   clearInterval(scanInterval);
@@ -165,7 +165,7 @@ function startScanPolling() {
             logClient(`⚙️  Processed: ${status.processed.toLocaleString()} / ${status.total.toLocaleString()} — ${status.current_file}`);
           }
         } else if (vorigeBericht !== 'ready' && vorigeBericht !== '') {
-          logClient(`✅ Scan completed — polling stopt`);
+          logClient(`✅ Scan completed — polling stopped`);
           clearInterval(scanInterval);
           stopTicker();
           scanInterval = null;
@@ -226,7 +226,7 @@ function setScanBalk(status) {
       fill.style.width   = '0%';
     }
     dot.className        = 'scan-dot ready';
-    titel.textContent    = window.i18n ? window.i18n.t('stat_ready') : 'Klaar';
+    titel.textContent    = tr('stat_ready', 'Ready');
     sub.textContent      = '';
     mid.textContent      = '';
     teller.textContent   = '';
@@ -255,7 +255,7 @@ function setScanBalk(status) {
 
   teller.innerHTML = status.total > 0
     ? `<span style="color:#a78bf7">${pct}%</span> &nbsp;${status.processed.toLocaleString()} / ${status.total.toLocaleString()}`
-    : `<span style="color:#888">inventariseren...</span>`;
+    : `<span style="color:#888">${tr('scan_inventariseren', 'counting files...')}</span>`;
 
   ind.className = 'scan-indicator running';
   ind.innerHTML = `<div class="pulse"></div> ${pct > 0 ? pct + '%' : '...'}`;
@@ -270,7 +270,7 @@ function toonGeocodeBalk(geocode) {
   if (geocode.running && geocode.total > 0) {
     const pct = Math.round(geocode.done / geocode.total * 100);
     el.style.display = 'flex';
-    el.innerHTML = `<span style="color:#34d399">🌍 Locaties ophalen</span> &nbsp;
+    el.innerHTML = `<span style="color:#34d399">${tr('geocode_bezig', '🌍 Looking up locations')}</span> &nbsp;
       <span style="color:#6b7280;font-size:12px">${geocode.done}/${geocode.total}
       ${geocode.current_country ? '— ' + escapeHtml(geocode.current_country) : ''}</span>
       <span style="margin-left:auto;color:#a78bf7;font-size:12px">${pct}%</span>`;

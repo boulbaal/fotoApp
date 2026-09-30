@@ -136,6 +136,47 @@ module.exports = async function testFrontend() {
     if (!/mei/.test(nl)) throw new Error(`Nederlands: "${nl}"`);
   });
 
+  test('i18n: elke gebruikte vertaalsleutel bestaat in alle talen (nl/en/fr/de)', () => {
+    const T = new Function(js['i18n.js'].replace(/window\.i18n = [\s\S]*$/, '') + '; return APP_TRANSLATIONS;')();
+    const talen = Object.keys(T);
+    if (talen.join(',') !== 'nl,en,fr,de') throw new Error('talen veranderd: ' + talen.join(','));
+    const gebruikt = new Map();
+    for (const [file, src] of Object.entries(js)) {
+      for (const m of src.matchAll(/\b(?:tr|tt|t|i18n\.t)\(\s*'([a-z0-9_]+)'/g)) gebruikt.set(m[1], file);
+    }
+    for (const m of html.matchAll(/data-i18n(?:-html|-placeholder|-title)?="([a-z0-9_]+)"/g)) gebruikt.set(m[1], 'index.html');
+    gebruikt.delete('key'); // generieke code in i18n.js/utils.js
+    const ontbreekt = [];
+    for (const [k, file] of gebruikt) {
+      const mis = talen.filter(l => !(k in T[l]));
+      if (mis.length) ontbreekt.push(`${k} [${mis.join(',')}] (${file})`);
+    }
+    if (ontbreekt.length) throw new Error('sleutels ontbreken: ' + ontbreekt.join('; '));
+  });
+
+  test('i18n: geen hardgecodeerde Nederlandse UI-teksten buiten i18n.js', () => {
+    // Deze teksten stonden hardgecodeerd in het Nederlands in de (Engelse) UI; ze lopen nu via i18n.
+    const nl = /(['"`>])\s*(NEGEREN|MEENEMEN|BEHOUDEN|Behoud|Kopie|↩ Herstellen|🚫 Negeren|⏳ Verzenden|Verzoek verzonden|Stoppen\.\.\.|Kopiëren\.\.\.|inventariseren|🌍 Locaties ophalen|🌍 Locatie ophalen|🌍 Adres ophalen|⏳ Opslaan|✅ Opgeslagen|❌ Fout|Fout bij|Zoeken\.\.\.|📍 GPS opslaan|🖱 Klik:|Datum<|Wis volledige database|Onbekend'|Klaar'|LET OP|prullenbak|onopgeslagen)/;
+    const hits = [];
+    for (const [file, src] of Object.entries(js)) {
+      if (file === 'i18n.js') continue;
+      src.split('\n').forEach((l, i) => {
+        if (/^\s*\/\//.test(l)) return;
+        const m = l.match(nl);
+        if (m) hits.push(`${file}:${i + 1} ${m[2]}`);
+      });
+    }
+    // Zichtbare HTML-teksten zonder data-i18n
+    for (const t of ['>Klaar<', '>Selecteren<', '🚫 Negeren<', '📋 Genegeerd<', 'Externe schijf<', '0 geselecteerd', 'Doneer via PayPal</a>', 'placeholder="Naam van de bron"', '💾 Opslaan<', '>Annuleren<', 'title="Sleep om']) {
+      if (html.includes(t)) hits.push('index.html ' + t);
+    }
+    if (hits.length) throw new Error('Nederlandse tekst: ' + hits.join(', '));
+  });
+
+  test('i18n: invoerveld "Naam" van een bron gebruikt geen zoek-placeholder', () => {
+    if (/id="sourceName"[^>]*data-i18n-placeholder="zoek_ph"/.test(html)) throw new Error('sourceName toont "🔍 Zoeken..." als placeholder');
+  });
+
   test('i18n: taalwissel overschrijft de scan-indicator niet tijdens een scan', () => {
     const cls = (js['scanner.js'].match(/ind\.className = 'scan-indicator (\w+)'/) || [])[1];
     if (!cls) throw new Error('scan-indicator klasse niet gevonden in scanner.js');

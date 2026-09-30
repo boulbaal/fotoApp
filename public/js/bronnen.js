@@ -154,11 +154,11 @@ async function herstelDatums() {
     const data = await fetch('/api/photos/restore-date', { method: 'POST' }).then(r => r.json());
     knop.textContent = `✅ ${data.updated} photos updated`;
     setTimeout(() => {
-      knop.textContent = '📅 Herstel date (filename / aanmaakdatum)';
+      knop.textContent = '📅 Restore date (file name / creation date)';
       knop.disabled = false;
     }, 4000);
   } catch {
-    knop.textContent = '❌ Fout';
+    knop.textContent = '❌ ' + tr('fout_label', 'Error');
     knop.disabled = false;
   }
 }
@@ -178,7 +178,7 @@ function wisDatabase() {
     // Reset na 5 seconden
     wisTimer = setTimeout(() => {
       wisBevestigStap = 0;
-      knop.textContent = '🗑️ Wis volledige database';
+      knop.textContent = tr('bron_wis_knop', '🗑️ Wipe photo records');
       knop.style.background = '';
     }, 5000);
     return;
@@ -211,8 +211,8 @@ async function propageerGps() {
     const data = await r.json();
     status.textContent = data.updated > 0
       ? `✅ ${data.updated} photos updated — reload the photos page to see the result`
-      : '✅ Niets te updaten — GPS-data is al volledig gedeeld';
+      : '✅ Nothing to update — GPS data is already shared';
   } catch (e) {
-    status.textContent = '❌ Fout bij GPS-data share';
+    status.textContent = '❌ ' + tr('fout_label', 'Error');
   }
 }

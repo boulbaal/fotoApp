@@ -150,7 +150,7 @@ function thumbEl(groupId, fotoId) {
     class="bulk-thumb${isGeselecteerd ? ' selected' : ''}"
     draggable="true"
     data-group="${groupId}" data-foto="${fotoId}"
-    title="Klik om te selecteren, sleep om te verplaatsen"
+    title="${escapeHtml(tr('gpsbulk_thumb_titel', 'Click to select, drag to move'))}"
     onerror="this.style.display='none'">`;
 }
 
@@ -394,7 +394,7 @@ function zoekBulkLocatie(groupId) {
   const q = document.getElementById(`search-${groupId}`).value.trim();
   const resEl = document.getElementById(`res-${groupId}`);
   if (q.length < 2) { resEl.innerHTML = ''; return; }
-  resEl.innerHTML = '<div style="padding:8px;color:#9ca3af;font-size:13px">Zoeken...</div>';
+  resEl.innerHTML = `<div style="padding:8px;color:#9ca3af;font-size:13px">${tr('status_zoeken', 'Searching...')}</div>`;
 
   gpsBulkZoekTimers[groupId] = setTimeout(async () => {
     try {
@@ -410,7 +410,7 @@ function zoekBulkLocatie(groupId) {
         `<div class="bulk-resultaat" onclick="kiesLocatie('${groupId}', ${i})">${escapeHtml(r.display_name)}</div>`
       ).join('');
     } catch (e) {
-      resEl.innerHTML = '<div style="color:#f87171;padding:8px;font-size:13px">Fout bij zoeken</div>';
+      resEl.innerHTML = `<div style="color:#f87171;padding:8px;font-size:13px">${tr('status_fout_zoeken', 'Search failed')}</div>`;
     }
   }, 450);
 }
@@ -558,7 +558,7 @@ function openBulkKaart(groupId) {
 
 async function onBulkKaartKlik(e) {
   const { lat, lng } = e.latlng;
-  document.getElementById('bulkKaartStatus').textContent = '🌍 Locatie ophalen...';
+  document.getElementById('bulkKaartStatus').textContent = tr('status_locatie_ophalen', '🌍 Looking up location...');
   document.getElementById('bulkKaartOpslaanKnop').disabled = true;
 
   if (bulkKaartMarker) bulkKaartMarker.setLatLng([lat, lng]);
@@ -598,7 +598,7 @@ function zoekBulkKaartLocatie() {
   const q = document.getElementById('bulkKaartZoek').value.trim();
   const resEl = document.getElementById('bulkKaartZoekResultaten');
   if (q.length < 2) { resEl.innerHTML = ''; resEl.classList.remove('open'); return; }
-  resEl.innerHTML = '<div style="padding:6px 12px;color:#9ca3af;font-size:13px">Zoeken...</div>';
+  resEl.innerHTML = `<div style="padding:6px 12px;color:#9ca3af;font-size:13px">${tr('status_zoeken', 'Searching...')}</div>`;
   resEl.classList.add('open'); // .gps-search-resultaten is display:none zonder .open
 
   bulkKaartZoekTimer = setTimeout(async () => {

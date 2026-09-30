@@ -384,7 +384,7 @@ function renderModal(f) {
           ${locs.map(d => {
             const padEsc = escapeHtml(d.full_path);
             const badge = d.is_original
-              ? '<span class="dup-origineel-badge">BEHOUDEN</span>'
+              ? `<span class="dup-origineel-badge">${escapeHtml(tr('dup_origineel', 'KEPT'))}</span>`
               : '';
             return `<div class="dup-location">
               <div style="display:flex;align-items:center;gap:6px">
@@ -404,7 +404,7 @@ function renderModal(f) {
   // Bewerkformulier — in tabelstijl, consistent met metadata
   const datumRij = !f.photo_date ? `
     <tr class="bewerk-tr">
-      <td>Datum</td>
+      <td>${escapeHtml(tr('foto_datum', 'Date'))}</td>
       <td><input id="bewerkDatum" type="text" placeholder="dd/mm/yyyy"
         maxlength="10" oninput="formateerDatumInput(this)" class="meta-input"></td>
     </tr>` : `<input type="hidden" id="bewerkDatum" value="${datumNaarDdMmYyyy(f.photo_date)}">`;
@@ -438,7 +438,7 @@ function renderModal(f) {
   // Als GPS coördinaten bestaan maar city/country ontbreekt → auto-geocode
   if (f.gps_lat && f.gps_lon && !f.gps_city && !f.gps_country) {
     const status = document.getElementById('bewerkStatus');
-    status.textContent = '🌍 Locatie ophalen...';
+    status.textContent = tr('status_locatie_ophalen', '🌍 Looking up location...');
     fetch(`https://nominatim.openstreetmap.org/reverse?lat=${f.gps_lat}&lon=${f.gps_lon}&format=json&accept-language=en`)
       .then(r => r.json())
       .then(data => {
@@ -447,7 +447,7 @@ function renderModal(f) {
         const country = addr.country || '';
         if (city) document.getElementById('bewerkStad').value = city;
         if (country) document.getElementById('bewerkLand').value = country;
-        status.textContent = city || country ? '📍 Locatie ingevuld — sla op om te bewaren' : '';
+        status.textContent = city || country ? tr('status_locatie_ingevuld', '📍 Location filled in — save to keep it') : '';
       })
       .catch(() => { status.textContent = ''; });
   }
@@ -468,7 +468,7 @@ async function slaaBewerkingOpFoto() {
   }
 
   const opslaanKnop = document.getElementById('opslaanKnop');
-  if (opslaanKnop) { opslaanKnop.disabled = true; opslaanKnop.textContent = '⏳ Opslaan...'; }
+  if (opslaanKnop) { opslaanKnop.disabled = true; opslaanKnop.textContent = tr('status_opslaan', '⏳ Saving...'); }
 
   // Als city én country leeg zijn → delete ook coördinaten
   const wisGps = !city && !country;
@@ -498,7 +498,7 @@ async function slaaBewerkingOpFoto() {
     }
     // Knop instellen NA renderModal (renderModal herbouwt het formulier)
     const knopNa = document.getElementById('opslaanKnop');
-    if (knopNa) { knopNa.disabled = true; knopNa.textContent = '✅ Opgeslagen'; }
+    if (knopNa) { knopNa.disabled = true; knopNa.textContent = tr('status_opgeslagen', '✅ Saved'); }
 
     // Kaart bijwerken bij elke GPS-wijziging (ook nieuwe location, niet alleen wissen)
     if (typeof herlaadLocaties === 'function') herlaadLocaties();
@@ -517,7 +517,7 @@ async function slaaBewerkingOpFoto() {
     }, 1000);
   } else {
     if (opslaanKnop) { opslaanKnop.disabled = false; opslaanKnop.textContent = '💾 Save'; }
-    status.textContent = '❌ Fout bij opslaan';
+    status.textContent = tr('status_fout_opslaan', '❌ Save failed');
   }
 }
 
@@ -530,7 +530,7 @@ function openGpsKaart(lat, lon) {
 function sluitModal(e) {
   if (!e || e.target === document.getElementById('modalOverlay')) {
     if (heeftOnopgeslagenWijzigingen()) {
-      if (!confirm('⚠️ Je hebt onopgeslagen wijzigingen.\n\nWil je toch sluiten zonder op te slaan?')) return;
+      if (!confirm(tr('foto_onopgeslagen_bevestig', '⚠️ You have unsaved changes.\n\nClose without saving anyway?'))) return;
     }
     // Stop alle video's in de modal zodat geluid niet blijft spelen
     document.querySelectorAll('#modalOverlay video').forEach(v => { v.pause(); v.src = ''; });

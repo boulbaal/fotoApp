@@ -56,7 +56,7 @@ async function plaatsMarkerEnGeocode(lat, lon) {
   // Knop uitschakelen tot geocoding ready
   const knop = document.getElementById('gpsOpslaanKnop');
   knop.disabled = true;
-  knop.textContent = '🌍 Adres ophalen...';
+  knop.textContent = tr('status_adres_ophalen', '🌍 Looking up address...');
   document.getElementById('gpsKaartStatus').textContent = `📍 ${lat.toFixed(5)}, ${lon.toFixed(5)} — fetching location...`;
   document.getElementById('gpsGekozenInfo').textContent = '';
   gpsGeocodeBezig = true;
@@ -86,7 +86,7 @@ async function plaatsMarkerEnGeocode(lat, lon) {
 
   gpsGeocodeBezig = false;
   knop.disabled = false;
-  knop.textContent = '📍 GPS opslaan';
+  knop.textContent = tr('gps_opslaan', '📍 Save GPS');
 }
 
 function zoekGpsLocatie() {
@@ -111,7 +111,7 @@ function zoekGpsLocatie() {
       `).join('');
       res.classList.add('open');
     } catch (e) {
-      res.innerHTML = '<div class="gps-search-item">Fout bij zoeken</div>';
+      res.innerHTML = `<div class="gps-search-item">${tr('status_fout_zoeken', 'Search failed')}</div>`;
       res.classList.add('open');
     }
   }, 400);
@@ -136,7 +136,7 @@ async function slaGpsOp() {
 
   const knop = document.getElementById('gpsOpslaanKnop');
   knop.disabled = true;
-  knop.textContent = '⏳ Opslaan...';
+  knop.textContent = tr('status_opslaan', '⏳ Saving...');
 
   const r = await fetch(`/api/photos/${huidigeFotoId}/gps`, {
     method: 'POST',
@@ -168,9 +168,9 @@ async function slaGpsOp() {
 
     setTimeout(() => sluitGpsKaart(), 1500);
   } else {
-    document.getElementById('gpsKaartStatus').textContent = '❌ Fout bij opslaan';
+    document.getElementById('gpsKaartStatus').textContent = tr('status_fout_opslaan', '❌ Save failed');
     knop.disabled = false;
-    knop.textContent = '📍 GPS opslaan';
+    knop.textContent = tr('gps_opslaan', '📍 Save GPS');
   }
 }
 

@@ -18,6 +18,14 @@ function formatGrootte(bytes) {
   return (bytes / 1e3).toFixed(0) + ' KB';
 }
 
+// Vertaling met terugvaltekst en {naam}-plaatshouders: tr('key', 'Fallback {n}', { n: 3 })
+function tr(key, fallback, vars) {
+  let s = window.i18n ? window.i18n.t(key, fallback) : fallback;
+  if (typeof s !== 'string') s = fallback;
+  if (vars) for (const [k, v] of Object.entries(vars)) s = s.split('{' + k + '}').join(v);
+  return s;
+}
+
 // Datums in de taal van de UI (was vast nl-BE → "02 mei 2024" in de Engelse UI)
 const DATUM_LOCALES = { nl: 'nl-BE', en: 'en-GB', fr: 'fr-BE', de: 'de-DE' };
 function datumLocale() {

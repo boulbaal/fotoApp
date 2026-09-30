@@ -30,7 +30,7 @@ async function laadNegeren(page = 1) {
       ${f.is_duplicate ? '<div class="status-badge badge-dup">DUP</div>' : ''}
       ${f.exported ? '<div class="export-badge">✓</div>' : ''}
       <div class="status-badge ${f.ignored ? 'badge-negeren' : 'badge-meenemen'}">
-        ${f.ignored ? 'NEGEREN' : 'MEENEMEN'}
+        ${f.ignored ? tr('badge_negeren', 'IGNORED') : tr('badge_meenemen', 'INCLUDED')}
       </div>
       <div class="bron-badge">${escapeHtml(f.source_icon || '💻')}</div>
       ${f.has_thumbnail
@@ -79,7 +79,7 @@ async function toggleNegeerItem(id, el) {
     const badge = el.querySelector('.badge-negeren, .badge-meenemen');
     if (badge) {
       badge.className = 'status-badge badge-meenemen';
-      badge.textContent = 'MEENEMEN';
+      badge.textContent = tr('badge_meenemen', 'INCLUDED');
     }
   }
 }
@@ -107,11 +107,11 @@ async function toggleNegeer(id, knop) {
     if (!isNuGenegeerd) {
       fotoItem.classList.add('foto-ignored');
       knop.classList.add('hersteld');
-      knop.textContent = '↩ Herstellen';
+      knop.textContent = tr('knop_herstellen', '↩ Restore');
     } else {
       fotoItem.classList.remove('foto-ignored');
       knop.classList.remove('hersteld');
-      knop.textContent = '🚫 Negeren';
+      knop.textContent = tr('knop_negeren', '🚫 Ignore');
     }
   }
 }
@@ -152,7 +152,7 @@ async function laadGenegeerd(page = 1) {
   grid.innerHTML = data.photos.map(f => `
     <div class="foto-item ignore-item foto-ignored" data-foto="${f.id}" onclick="herstelGenegeerd(${f.id}, ${page})">
       ${f.is_duplicate ? '<div class="status-badge badge-dup">DUP</div>' : ''}
-      <div class="status-badge badge-negeren">NEGEREN</div>
+      <div class="status-badge badge-negeren">${tr('badge_negeren', 'IGNORED')}</div>
       <div class="bron-badge">${escapeHtml(f.source_icon || '💻')}</div>
       ${f.has_thumbnail
         ? `<img src="/api/photos/${f.id}/thumbnail" loading="lazy" alt="${escapeHtml(f.filename)}">`
@@ -164,7 +164,7 @@ async function laadGenegeerd(page = 1) {
       </div>
       <button class="ignore-knop hersteld"
         onclick="event.stopPropagation(); herstelGenegeerd(${f.id}, ${page})">
-        ↩ Herstellen
+        ${tr('knop_herstellen', '↩ Restore')}
       </button>
     </div>
   `).join('');
@@ -180,13 +180,12 @@ async function verwijderAlleGenegeerd() {
   const teller = document.getElementById('genegeerGrid');
   const count = teller ? teller.querySelectorAll('.ignore-item').length : 0;
 
-  const bevestig = confirm(
+  const bevestig = confirm(tr('genegeerd_verwijder_bevestig',
     "WARNING — this PERMANENTLY deletes the ignored photos:\n\n" +
-    "• De bestanden gaan naar de prullenbak van je computer (herstelbaar)\n" +
+    "• The files go to your computer's trash (recoverable)\n" +
     "• They are removed from the database so they will not be rescanned\n" +
-    "• Alle duplicates in dezelfde group gaan mee\n\n" +
-    "Are you sure?"
-  );
+    "• All duplicates in the same group are included\n\n" +
+    "Are you sure?"));
   if (!bevestig) return;
 
   const knop = document.getElementById('verwijderGenegeerdKnop');

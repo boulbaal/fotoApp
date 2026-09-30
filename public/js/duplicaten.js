@@ -130,18 +130,16 @@ function huidigeDupPagina() {
 // === WISSEN ===
 
 async function wisGroep(group, copyCount) {
-  const t = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
-  if (!confirm(t('dup_wis_groep_bevestig',
-    `WARNING — ${copyCount} copy(ies) of this group will go to the trash.\n\n` +
-    `• Bestanden zijn herstelbaar via de prullenbak\n` +
-    `• They are removed from the database (not rescanned)\n` +
-    `• Het origineel blijft staan\n\nDoorgaan?`))) return;
+  if (!confirm(tr('dup_wis_groep_bevestig',
+    'WARNING — {n} copy(ies) of this group will go to the trash.\n\n' +
+    '• Files can be restored from the trash\n' +
+    '• They are removed from the database (not rescanned)\n' +
+    '• The original stays where it is\n\nContinue?', { n: copyCount }))) return;
 
   await stuurWis({ group });
 }
 
 async function wisAlleDuplicaten() {
-  const t = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
   const body = { sourceOrder: getSourceOrder(), manual: getManual() };
 
   // Preview ophalen voor een eerlijke bevestiging
@@ -151,28 +149,26 @@ async function wisAlleDuplicaten() {
 
   if (pv.bestanden === 0) {
     alert(pv.choiceNeeded > 0
-      ? t('dup_alles_keuze', `There are still ${pv.choiceNeeded} group(s) where you need to make a choice first.`)
-      : t('dup_niets', 'There are no duplicates to delete.'));
+      ? tr('dup_alles_keuze', 'There are still {n} group(s) where you need to make a choice first.', { n: pv.choiceNeeded })
+      : tr('dup_niets', 'There are no duplicates to delete.'));
     return;
   }
 
-  let waarschuwing =
-    `LET OP — ${pv.bestanden} duplicaat-bestand(en) gaan naar de prullenbak\n` +
-    `(${formatGrootte(pv.bytes)} vrijgemaakt).\n\n` +
-    `• Herstelbaar via de prullenbak\n` +
-    `• Removed from the database (not rescanned)\n` +
-    `• Alleen de originelen blijven staan`;
+  let waarschuwing = tr('dup_wis_alle_bevestig',
+    'WARNING — {n} duplicate file(s) will go to the trash\n({size} freed).\n\n' +
+    '• Recoverable from the trash\n• Removed from the database (not rescanned)\n• Only the originals remain',
+    { n: pv.bestanden, size: formatGrootte(pv.bytes) });
   if (pv.choiceNeeded > 0) {
-    waarschuwing += `\n\n⚠️ ${pv.choiceNeeded} group(s) will be SKIPPED because you have not made a choice there yet.`;
+    waarschuwing += '\n\n' + tr('dup_wis_alle_overslaan',
+      '⚠️ {n} group(s) will be SKIPPED because you have not made a choice there yet.', { n: pv.choiceNeeded });
   }
-  waarschuwing += `\n\nDoorgaan?`;
+  waarschuwing += '\n\n' + tr('doorgaan', 'Continue?');
   if (!confirm(waarschuwing)) return;
 
   await stuurWis(body);
 }
 
 async function stuurWis(body) {
-  const t = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
   try {
     const data = await fetch('/api/duplicates/delete', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
@@ -180,7 +176,7 @@ async function stuurWis(body) {
     if (!data.ok) { alert('Delete failed: ' + (data.error || 'unknown error')); return; }
 
     let message = `${data.deleted} duplicate(s) deleted`;
-    if (data.bytesVrij) message += ` · ${formatGrootte(data.bytesVrij)} vrijgemaakt`;
+    if (data.bytesVrij) message += ` · ${formatGrootte(data.bytesVrij)} ${tr('vrijgemaakt', 'freed')}`;
     if (data.skipped) message += `\n${data.skipped} group(s) skipped (choice needed)`;
     alert(message);
   } catch (e) {

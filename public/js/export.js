@@ -24,13 +24,13 @@ async function laadExportPreview() {
 
   const ruimteEl = document.getElementById('prevRuimte');
   if (data.ruimte < 0) {
-    ruimteEl.textContent = window.i18n ? window.i18n.t('export_onbekend') : 'Onbekend';
+    ruimteEl.textContent = tr('export_onbekend', 'Unknown');
     ruimteEl.style.color = '#888';
   } else if (data.ruimteOk) {
     ruimteEl.textContent = formatGrootte(data.ruimte) + '  ✅';
     ruimteEl.style.color = '#4ade80';
   } else {
-    ruimteEl.textContent = formatGrootte(data.ruimte) + '  ❌ (tekort: ' + formatGrootte(data.tekort) + ')';
+    ruimteEl.textContent = formatGrootte(data.ruimte) + '  ❌ (' + tr('export_tekort', 'short by') + ' ' + formatGrootte(data.tekort) + ')';
     ruimteEl.style.color = '#f87171';
   }
 
@@ -68,7 +68,7 @@ async function startExport() {
     body: JSON.stringify({ target_folder })
   });
   const data = await r.json();
-  if (data.error) { alert('Fout: ' + data.error); return; }
+  if (data.error) { alert(tr('fout_label', 'Error') + ': ' + data.error); return; }
 
   // Toon voortgangsscherm
   document.getElementById('exportSetup').style.display = 'none';
@@ -101,14 +101,14 @@ function updateExportVoortgang(status) {
 
   document.getElementById('exportBalk').style.width = pct + '%';
   document.getElementById('exportVoortgangTekst').textContent =
-    `Kopiëren... ${status.done.toLocaleString()} / ${status.total.toLocaleString()}  (${pct}%)`;
+    `${tr('export_kopieren', 'Copying...')} ${status.done.toLocaleString()} / ${status.total.toLocaleString()}  (${pct}%)`;
   document.getElementById('exportHuidigBestand').textContent =
     status.currentFile ? 'Working on: ' + status.currentFile : '';
 
   if (status.errors > 0) {
     const el = document.getElementById('exportFoutenTekst');
     el.style.display = '';
-    el.textContent = status.errors + ' error(en)';
+    el.textContent = tr('export_fouten_n', '{n} error(s)', { n: status.errors });
   }
 }
 
@@ -133,7 +133,7 @@ function toonExportKlaar(status) {
   if (status.foutLog && status.foutLog.length > 0) {
     const log = document.getElementById('klaarFoutLog');
     log.style.display = 'block';
-    log.innerHTML = '<strong>Fouten:</strong><br>' +
+    log.innerHTML = '<strong>' + escapeHtml(tr('export_fouten_label', 'Errors')) + ':</strong><br>' +
       status.foutLog.map(f => `${escapeHtml(f.bestand)}: ${escapeHtml(f.error)}`).join('<br>');
   }
 }

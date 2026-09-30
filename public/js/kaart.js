@@ -264,8 +264,8 @@ async function laadPanelFotos() {
   grid.innerHTML = photos.map(f => {
     const isDup  = f.is_duplicate;
     const isOrig = f.is_original;
-    const badge  = isDup && isOrig  ? '<div class="kp-badge kp-badge-orig">Behoud</div>'
-                 : isDup && !isOrig ? '<div class="kp-badge kp-badge-dup">Kopie</div>'
+    const badge  = isDup && isOrig  ? `<div class="kp-badge kp-badge-orig">${escapeHtml(tr('dup_origineel', 'KEPT'))}</div>`
+                 : isDup && !isOrig ? `<div class="kp-badge kp-badge-dup">${escapeHtml(tr('dup_kopie', 'COPY'))}</div>`
                  : '';
     const videoBadge = f.is_video
       ? `<div class="video-badge" style="top:auto;bottom:22px;">▶${f.duration ? ' ' + formatDuur(f.duration) : ''}</div>`

@@ -28,7 +28,7 @@
 <header>
   <h1><img src="/favicon.svg" alt="" class="logo-icon" width="26" height="26">Foto<span>App</span></h1>
   <div class="header-rechts">
-    <div class="scan-indicator" id="scanIndicator">Klaar</div>
+    <div class="scan-indicator" id="scanIndicator">Ready</div>
     <!-- TAAL DROPDOWN -->
     <div class="lang-switcher" id="appLangSwitcher">
       <button class="lang-btn" id="appLangBtn" title="Taal / Language">
@@ -76,11 +76,11 @@
     <div class="phase-stap-group" id="navGroep2">
       <div class="phase-stap" id="stapFase2" onclick="handleFaseKlik(2)">
         <div class="stap-cirkel" id="cirkelFase2">2</div>
-        <span class="stap-label">Selecteren</span>
+        <span class="stap-label">Select</span>
       </div>
       <div class="nav-phase-items">
-        <button data-page="negeren" class="nav-phase2" onclick="toonPagina('negeren')">🚫 Negeren</button>
-        <button data-page="ignored" class="nav-phase2" onclick="toonPagina('ignored')">📋 Genegeerd</button>
+        <button data-page="negeren" class="nav-phase2" onclick="toonPagina('negeren')">🚫 Ignore</button>
+        <button data-page="ignored" class="nav-phase2" onclick="toonPagina('ignored')">📋 Ignored</button>
       </div>
     </div>
 
@@ -201,7 +201,7 @@
       <div class="veld-group">
         <div class="veld">
           <label data-i18n="bron_naam_label">Naam</label>
-          <input id="sourceName" type="text" placeholder="bv. Linux PC, Oude GSM..." data-i18n-placeholder="zoek_ph">
+          <input id="sourceName" type="text" placeholder="e.g. Linux PC, Old phone..." data-i18n-placeholder="bron_naam_ph">
         </div>
         <div class="veld">
           <label data-i18n="bron_type_label">Type</label>
@@ -209,14 +209,14 @@
             <option value="pc">💻 PC / Laptop</option>
             <option value="gsm">📱 Smartphone</option>
             <option value="usb">💾 USB Stick</option>
-            <option value="external">🗄️ Externe schijf</option>
+            <option value="external">🗄️ External drive</option>
           </select>
         </div>
       </div>
       <div class="veld" style="margin-bottom:16px;">
         <label data-i18n="bron_map_label">Map om te scannen</label>
         <div style="display:flex; gap:8px;">
-          <input id="bronPad" type="text" placeholder="bv. /home/one/Pictures" style="flex:1;">
+          <input id="bronPad" type="text" placeholder="e.g. /home/you/Pictures" data-i18n-placeholder="bron_pad_ph" style="flex:1;">
           <button class="btn btn-secundair" onclick="openMapKiezer()" type="button" data-i18n="bron_bladeren">📁 Bladeren</button>
         </div>
       </div>
@@ -246,7 +246,7 @@
         onclick="toggleSelectieModus()" data-i18n="selectie_start">☑️ Selecteren</button>
     </div>
     <div class="selectie-balk" id="selectieBalk" style="display:none">
-      <span id="selectieTeller" class="selectie-teller">0 geselecteerd</span>
+      <span id="selectieTeller" class="selectie-teller">0 selected</span>
       <button type="button" class="btn btn-secundair" style="font-size:13px" onclick="selecteerAlleZichtbaar()" data-i18n="selectie_alle">Alles op page</button>
       <button type="button" class="btn btn-secundair" style="font-size:13px" onclick="wisSelectie()" data-i18n="selectie_wis">Wis selectie</button>
       <span style="flex:1"></span>
@@ -561,7 +561,7 @@
             </div>
           </div>
           <div class="export-doneer-knoppen">
-            <a href="https://www.paypal.com/paypalme/ABoullbahaiem" target="_blank" class="btn-doneer-paypal">💳 Doneer via PayPal</a>
+            <a href="https://www.paypal.com/paypalme/ABoullbahaiem" target="_blank" class="btn-doneer-paypal" data-i18n="export_doneer_paypal">💳 Donate via PayPal</a>
             <button class="btn btn-secundair" style="font-size:12px;" onclick="toonPagina('doneer')" data-i18n="export_doneer_meer">Meer info</button>
           </div>
         </div>
@@ -676,7 +676,7 @@
     <input type="hidden" id="bewerkId">
     <div class="veld" style="margin-bottom:14px;">
       <label data-i18n="bron_naam_label">Naam</label>
-      <input id="bewerkNaam" type="text" placeholder="Naam van de bron">
+      <input id="bewerkNaam" type="text" placeholder="Source name" data-i18n-placeholder="modal_naam_ph">
     </div>
     <div class="veld" style="margin-bottom:14px;">
       <label data-i18n="bron_type_label">Type</label>
@@ -684,13 +684,13 @@
         <option value="pc">💻 PC / Laptop</option>
         <option value="gsm">📱 Smartphone</option>
         <option value="usb">💾 USB Stick</option>
-        <option value="external">🗄️ Externe schijf</option>
+        <option value="external">🗄️ External drive</option>
       </select>
     </div>
     <div class="veld" style="margin-bottom:20px;">
       <label data-i18n="bron_map_label">Map om te scannen</label>
       <div style="display:flex; gap:8px;">
-        <input id="bewerkPad" type="text" placeholder="/home/one/..." style="flex:1;">
+        <input id="bewerkPad" type="text" placeholder="e.g. /home/you/Pictures" data-i18n-placeholder="bron_pad_ph" style="flex:1;">
         <button class="btn btn-secundair" onclick="openMapKiezer('bewerkPad')" type="button">📁</button>
       </div>
     </div>
@@ -699,8 +699,8 @@
       <span data-i18n="verborgen_label">Verborgen folders meescannen (.)</span>
     </label>
     <div style="display:flex; gap:8px;">
-      <button class="btn btn-primair" onclick="slaaBewerkingOp()" style="flex:1;">💾 Opslaan</button>
-      <button class="btn btn-secundair" onclick="sluitBewerkModal()">Annuleren</button>
+      <button class="btn btn-primair" onclick="slaaBewerkingOp()" style="flex:1;">💾 <span data-i18n="modal_opslaan">Save</span></button>
+      <button class="btn btn-secundair" onclick="sluitBewerkModal()" data-i18n="modal_annuleren">Cancel</button>
     </div>
   </div>
 </div>
@@ -723,7 +723,7 @@
 <div id="onderBalk" style="position:fixed; bottom:0; left:0; right:0; z-index:300; height:260px;">
 
 <!-- SLEEP HANDLE — trek omhoog/omlaag -->
-<div id="balkResize" title="Sleep om te vergroten/verkleinen"></div>
+<div id="balkResize" title="Drag to resize" data-i18n-title="balk_resize_titel"></div>
 
 <!-- SCAN VOORTGANGSBALK (altijd zichtbaar) -->
 <div id="scanBalk" class="scan-balk ready">
@@ -735,7 +735,7 @@
     <div class="scan-balk-links">
       <div id="scanBalkDot" class="scan-dot ready"></div>
       <div>
-        <div id="scanBalkTitel" class="scan-balk-titel">Klaar</div>
+        <div id="scanBalkTitel" class="scan-balk-titel">Ready</div>
         <div id="scanBalkBestand" class="scan-balk-bestand"></div>
       </div>
     </div>
