@@ -66,6 +66,7 @@ async function main() {
     { name: 'Scanner',   fn: require('./scanner.test.js')  },
     { name: 'Scripts',   fn: require('./scripts.test.js')  },
     { name: 'Local guard', fn: require('./localguard.test.js') },
+    { name: 'Frontend contract', fn: require('./frontend.test.js') },
   ];
 
   if (metApi) {

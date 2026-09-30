@@ -495,7 +495,7 @@ module.exports = async function testScanner() {
   test('HTML: Kaart nav-knop aanwezig', () => {
     const htmlCode = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
     if (!htmlCode.includes("toonPagina('kaart')")) throw new Error('Kaart nav-knop niet gevonden in index.html');
-    if (!htmlCode.includes('paginaKaart')) throw new Error('paginaKaart element niet gevonden in index.html');
+    if (!htmlCode.includes('id="pageKaart"')) throw new Error('pageKaart element niet gevonden in index.html');
   });
 
   test('HTML: MarkerCluster JS geladen', () => {
@@ -609,9 +609,9 @@ module.exports = async function testScanner() {
     }
   });
 
-  test('HTML: paginaGpsbulk page en nav-knop aanwezig', () => {
+  test('HTML: pageGpsbulk page en nav-knop aanwezig', () => {
     const htmlCode = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
-    if (!htmlCode.includes('paginaGpsbulk')) throw new Error('paginaGpsbulk niet gevonden in index.html');
+    if (!htmlCode.includes('id="pageGpsbulk"')) throw new Error('pageGpsbulk niet gevonden in index.html');
     if (!htmlCode.includes("toonPagina('gpsbulk')")) throw new Error('GPS bulk nav-knop niet gevonden in index.html');
   });
 
@@ -874,8 +874,8 @@ module.exports = async function testScanner() {
 
   test('HTML: phase 2 paginas aanwezig (negeren, ignored)', () => {
     const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
-    if (!html.includes('paginaNegeren')) throw new Error('paginaNegeren ontbreekt');
-    if (!html.includes('paginaGenegeerd')) throw new Error('paginaGenegeerd ontbreekt');
+    if (!html.includes('id="pageNegeren"')) throw new Error('pageNegeren ontbreekt');
+    if (!html.includes('id="pageIgnored"')) throw new Error('pageIgnored ontbreekt');
   });
 
   test('HTML: fase1Todo checklist aanwezig op dashboard', () => {
@@ -1418,9 +1418,9 @@ module.exports = async function testScanner() {
     if (!apiCode.includes('countryCount') || !apiCode.includes('busiestMonth')) throw new Error('wrapped cijfers ontbreken');
   });
 
-  test('HTML: paginaWrapped page en nav-knop aanwezig', () => {
+  test('HTML: pageWrapped page en nav-knop aanwezig', () => {
     const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
-    if (!html.includes('paginaWrapped')) throw new Error('paginaWrapped ontbreekt');
+    if (!html.includes('id="pageWrapped"')) throw new Error('pageWrapped ontbreekt');
     if (!html.includes('data-page="wrapped"')) throw new Error('wrapped nav-knop ontbreekt');
     if (!html.includes('wrapped.js')) throw new Error('wrapped.js script-tag ontbreekt');
   });

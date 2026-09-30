@@ -111,7 +111,7 @@
 <main>
 
   <!-- DASHBOARD -->
-  <div class="page actief" id="paginaDashboard">
+  <div class="page actief" id="pageDashboard">
     <!-- Manifest banner -->
     <div class="manifest-banner">
       <div class="manifest-banner-tekst">
@@ -179,7 +179,7 @@
   </div>
 
   <!-- BRONNEN -->
-  <div class="page" id="paginaBronnen">
+  <div class="page" id="pageSources">
 
     <!-- Google Photos uitleg -->
     <div class="bron-uitleg">
@@ -237,7 +237,7 @@
   </div>
 
   <!-- FOTO'S -->
-  <div class="page" id="paginaFotos">
+  <div class="page" id="pagePhotos">
     <div class="filters">
       <input type="text" id="zoekInput" placeholder="🔍 Zoeken op name, city, camera..." data-i18n-placeholder="zoek_fotos_ph" oninput="laadFotos(1)">
       <div id="actieveFilters"></div>
@@ -293,7 +293,7 @@
   </div>
 
   <!-- VIDEO'S -->
-  <div class="page" id="paginaVideos">
+  <div class="page" id="pageVideos">
     <div class="filters">
       <input type="text" id="zoekInputVideo" placeholder="🔍 Zoeken op name, city..." data-i18n-placeholder="zoek_videos_ph" oninput="laadVideos(1)">
       <span id="videosTeller" style="margin-left:auto; color:#888; font-size:13px;"></span>
@@ -347,7 +347,7 @@
   </div>
 
   <!-- KAART -->
-  <div class="page page-kaart" id="paginaKaart">
+  <div class="page page-kaart" id="pageKaart">
     <div class="kaart-toolbar">
       <div class="kaart-type-group">
         <button id="kaartTypeAlles"  class="kaart-type-btn actief" onclick="setKaartTypeFilter('')">All</button>
@@ -382,7 +382,7 @@
   </div>
 
   <!-- GPS BULK TOEWIJZEN -->
-  <div class="page" id="paginaGpsbulk">
+  <div class="page" id="pageGpsbulk">
     <div class="gpsbulk-kop">
       <h2 data-i18n="gps_titel">📍 GPS locations groepsgewijs assign</h2>
       <p data-i18n="gps_uitleg">Foto's en video's zonder GPS worden gegroepeerd op tijdstip — meer dan 2 uur verschil = nieuwe group. Wijs per group één location toe.</p>
@@ -397,7 +397,7 @@
   </div>
 
   <!-- DUPLICATEN -->
-  <div class="page" id="paginaDuplicaten">
+  <div class="page" id="pageDuplicates">
     <div class="dup-toolbar">
       <div id="dupInfo" style="color:#888; font-size:14px;"></div>
       <div class="dup-toolbar-knoppen">
@@ -438,7 +438,7 @@
   </div>
 
   <!-- FASE 2: NEGEREN -->
-  <div class="page" id="paginaNegeren">
+  <div class="page" id="pageNegeren">
     <div class="phase2-kop">
       <h2 data-i18n="negeren_titel">🚫 Foto's negeren</h2>
       <p>Choose which photos you do <strong>not</strong> want to take to your new drive. Originals and duplicates are shown separately. Ignored photos are skipped during export.</p>
@@ -456,7 +456,7 @@
   </div>
 
   <!-- FASE 2: GENEGEERD -->
-  <div class="page" id="paginaGenegeerd">
+  <div class="page" id="pageIgnored">
     <div class="phase2-kop">
       <h2 data-i18n="genegeerd_titel">📋 Genegeerde foto's</h2>
       <p>Overview of photos you excluded from the export. Click a photo to undo the choice.</p>
@@ -471,7 +471,7 @@
   </div>
 
   <!-- FASE 3: EXPORT -->
-  <div class="page" id="paginaExport">
+  <div class="page" id="pageExport">
     <div class="phase2-kop">
       <h2 data-i18n="export_titel">📦 Export</h2>
       <p>Copy your selected photos to a new archive. Originals always remain untouched.</p>
@@ -570,7 +570,7 @@
   </div>
 
   <!-- DONEER PAGINA -->
-  <div class="page" id="paginaDoneer">
+  <div class="page" id="pageDoneer">
     <div class="doneer-hero">
       <div class="doneer-hero-tekst">
         <h2 data-i18n="doneer_titel">❤️ Steun FotoApp</h2>
@@ -646,7 +646,7 @@
   </div>
 
   <!-- WRAPPED / FOTO-LEVEN PAGINA -->
-  <div class="page" id="paginaWrapped">
+  <div class="page" id="pageWrapped">
     <div class="wrapped-intro">
       <h2 data-i18n="wrapped_titel">✨ Jouw foto-leven</h2>
       <p data-i18n="wrapped_subtitel">Een overview van je hele collectie — deel het met één klik.</p>
