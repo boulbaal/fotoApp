@@ -60,7 +60,7 @@ async function voegBronToe() {
   const name = document.getElementById('sourceName').value.trim();
   const path  = document.getElementById('bronPad').value.trim();
   const type = document.getElementById('bronType').value;
-  if (!name || !path) { alert('Vul name en path in'); return; }
+  if (!name || !path) { alert('Please fill in a name and a folder'); return; }
   const icoonen = { pc: '💻', gsm: '📱', usb: '💾', external: '🗄️' };
   const include_hidden = !!document.getElementById('bronVerborgen')?.checked;
   await fetch('/api/sources', {
@@ -132,7 +132,7 @@ async function slaaBewerkingOp() {
   const name = document.getElementById('bewerkNaam').value.trim();
   const path  = document.getElementById('bewerkPad').value.trim();
   const type = document.getElementById('bewerkType').value;
-  if (!name || !path) { alert('Vul name en path in'); return; }
+  if (!name || !path) { alert('Please fill in a name and a folder'); return; }
   const icoonen = { pc: '💻', gsm: '📱', usb: '💾', external: '🗄️' };
   const include_hidden = !!document.getElementById('bewerkVerborgen')?.checked;
   await fetch('/api/sources/' + id, {

@@ -243,7 +243,7 @@ function setScanBalk(status) {
   titel.textContent    = status.source_name || 'Scanning...';
   sub.textContent      = (status.queue?.length > 0)
     ? `+${status.queue.length} in queue`
-    : (status.new_files > 0 ? `${status.new_files} new_files` : '');
+    : (status.new_files > 0 ? `${status.new_files} new` : '');
   mid.textContent      = status.current_file || '';
   fill.style.width     = pct + '%';
   stop.style.display   = 'inline-block';

@@ -83,11 +83,11 @@ async function laadFase1Todo() {
       <div class="todo-dot"></div>
       <span>${ready
         ? 'All photos have a location or are marked as unknown ✓'
-        : `${zonderLoc.toLocaleString()} foto${zonderLoc !== 1 ? '\'s' : ''} zonder location`
+        : `${zonderLoc.toLocaleString()} photo${zonderLoc !== 1 ? 's' : ''} without a location`
       }</span>
       ${!ready ? `<div class="todo-acties">
         <button class="btn btn-secundair" style="font-size:11px;padding:3px 10px" onclick="toonPagina('gpsbulk')">📍 GPS assign</button>
-        <button class="btn btn-secundair" style="font-size:11px;padding:3px 10px" onclick="toonPagina('photos', { without_gps: true, _label: '📍 Zonder location' })">Bekijken</button>
+        <button class="btn btn-secundair" style="font-size:11px;padding:3px 10px" onclick="toonPagina('photos', { without_gps: true, _label: '📍 Without location' })">View</button>
       </div>` : ''}
     </div>
   `;

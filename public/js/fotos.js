@@ -463,7 +463,7 @@ async function slaaBewerkingOpFoto() {
   let datumIso = null;
   if (datumTekst) {
     const iso = ddMmYyyyNaarIso(datumTekst);
-    if (!iso) { status.textContent = '❌ Ongeldige date (gebruik dd/mm/yyyy)'; return; }
+    if (!iso) { status.textContent = '❌ Invalid date (use dd/mm/yyyy)'; return; }
     datumIso = iso;
   }
 

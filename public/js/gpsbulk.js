@@ -101,7 +101,7 @@ function renderGroepen() {
 }
 
 function groepKaartHtml(g) {
-  const datumTekst = !g.date_start ? '📅 Onbekende date'
+  const datumTekst = !g.date_start ? '📅 Unknown date'
     : g.date_start.slice(0, 10) === (g.date_end || '').slice(0, 10)
       ? formatDatum(g.date_start)
       : `${formatDatum(g.date_start)} — ${formatDatum(g.date_end)}`;
@@ -465,7 +465,7 @@ async function bevestigBulkLocatie(groupId) {
     const dupTekst = resp.duplicaten_bijgewerkt ? ' (incl. duplicates)' : '';
     groepEl.innerHTML = `
       <div style="padding:14px 20px;color:#4ade80;font-size:14px">
-        ✅ ${resp.updated.toLocaleString()} item${resp.updated !== 1 ? 's' : ''}${dupTekst} assigned aan ${escapeHtml(naamTekst)}
+        ✅ ${resp.updated.toLocaleString()} item${resp.updated !== 1 ? 's' : ''}${dupTekst} assigned to ${escapeHtml(naamTekst)}
       </div>`;
 
     gpsBulkGroepen = gpsBulkGroepen.filter(g => g.group_id != groupId);

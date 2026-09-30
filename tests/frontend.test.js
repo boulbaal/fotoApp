@@ -88,6 +88,16 @@ module.exports = async function testFrontend() {
     if (stale.length) throw new Error('navMap bevat onbekende pagina-namen: ' + stale.join(', '));
   });
 
+  test('UI-teksten: geen half vertaalde restanten van de automatische hernoeming', () => {
+    // v1.0.4 verving Nederlandse woorden ook ín zichtbare teksten ("Vul name en path in",
+    // "12 new_files", "assigned aan"). Deze patronen mogen niet terugkomen.
+    const kapot = [/\$\{status\.new_files\} new_files/, /Vul name en path/, /\bassigned aan\b/, /Onbekende date/,
+      /Ongeldige date/, /zonder location/i];
+    const hits = [];
+    for (const [file, src] of Object.entries(js)) for (const re of kapot) if (re.test(src)) hits.push(`${re} (${file})`);
+    if (hits.length) throw new Error('half vertaalde tekst: ' + hits.join(', '));
+  });
+
   test('i18n: taalwissel overschrijft de scan-indicator niet tijdens een scan', () => {
     const cls = (js['scanner.js'].match(/ind\.className = 'scan-indicator (\w+)'/) || [])[1];
     if (!cls) throw new Error('scan-indicator klasse niet gevonden in scanner.js');
