@@ -111,22 +111,32 @@ verzamel() {
 
   # ── 9. Database & laatste scans ────────────────────────────────────────────
   sectie "9. DATABASE & LAATSTE SCANS"
-  DB="fotoapp.db"
-  [ -f "$DB" ] || DB="fotos.db"
-  if [ -f "$DB" ]; then
+  # Bronpad: data/fotos.db; desktop-app: userData/fotoapp-data/fotos.db
+  DB=""
+  for kandidaat in "data/fotos.db" "$HOME/.config/fotoapp/fotoapp-data/fotos.db" \
+                   "$HOME/Library/Application Support/fotoapp/fotoapp-data/fotos.db"; do
+    if [ -f "$kandidaat" ]; then DB="$kandidaat"; break; fi
+  done
+  if [ -n "$DB" ]; then
     echo "DB-bestand: $DB ($(du -h "$DB" | cut -f1))"
     if command -v sqlite3 >/dev/null 2>&1; then
-      echo "Aantal foto's : $(sqlite3 "$DB" 'SELECT COUNT(*) FROM fotos' 2>/dev/null)"
-      echo "Aantal video's: $(sqlite3 "$DB" 'SELECT COUNT(*) FROM fotos WHERE is_video=1' 2>/dev/null)"
-      echo ""
-      echo "Laatste 5 scans (scan_log):"
-      sqlite3 -header -column "$DB" \
-        "SELECT id,bron_id,gestart,voltooid,totaal,nieuw,fouten,status FROM scan_log ORDER BY id DESC LIMIT 5" 2>/dev/null
+      # Sinds v1.0.4 Engelse tabelnamen; een DB die nog niet door v1.0.4 geopend werd heeft nog 'fotos'
+      if [ -n "$(sqlite3 "$DB" "SELECT name FROM sqlite_master WHERE type='table' AND name='photos'" 2>/dev/null)" ]; then
+        echo "Aantal foto's : $(sqlite3 "$DB" 'SELECT COUNT(*) FROM photos WHERE COALESCE(is_video,0)=0' 2>/dev/null)"
+        echo "Aantal video's: $(sqlite3 "$DB" 'SELECT COUNT(*) FROM photos WHERE is_video=1' 2>/dev/null)"
+        echo ""
+        echo "Laatste 5 scans (scan_log):"
+        sqlite3 -header -column "$DB" \
+          "SELECT id,source_id,started,completed,total,new_files,errors,status FROM scan_log ORDER BY id DESC LIMIT 5" 2>/dev/null
+      else
+        echo "  (oud Nederlands schema — wordt bij de volgende start van FotoApp v1.0.4+ gemigreerd)"
+        echo "Aantal foto's/video's: $(sqlite3 "$DB" 'SELECT COUNT(*) FROM fotos' 2>/dev/null)"
+      fi
     else
       echo "  (sqlite3 niet geïnstalleerd — DB-details overgeslagen)"
     fi
   else
-    echo "  (geen database in projectmap; staat bij de desktop-app mogelijk in userData)"
+    echo "  (geen database gevonden in data/ of in de userData-map van de desktop-app)"
   fi
 
   sectie "KLAAR"

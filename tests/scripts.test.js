@@ -358,5 +358,13 @@ module.exports = async function testScripts() {
     if (!html.includes('&lt;img')) throw new Error('bar-label toont de naam niet als tekst');
   });
 
+  test('diagnose.sh leest de database met het Engelse schema (v1.0.4) op data/fotos.db', () => {
+    const d = lees('diagnose.sh');
+    if (!d.includes('data/fotos.db')) throw new Error('diagnose.sh zoekt de database niet op data/fotos.db');
+    if (!/FROM photos/.test(d)) throw new Error('diagnose.sh telt niet uit de tabel photos');
+    if (/SELECT id,bron_id,gestart/.test(d)) throw new Error('diagnose.sh gebruikt nog Nederlandse scan_log-kolommen');
+    if (!/source_id,started,completed,total,new_files,errors,status/.test(d)) throw new Error('scan_log-query niet bijgewerkt');
+  });
+
   return resultaten;
 };
