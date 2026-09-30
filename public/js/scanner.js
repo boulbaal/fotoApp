@@ -81,7 +81,7 @@ async function stopScan() {
   logClient(`🖱 Klik: Stop scan`);
   logClient(`📤 Stop-verzoek verzonden naar server...`);
 
-  setScanBalkStatus('stoppend', 'Verzoek verzonden...');
+  setScanBalkStatus('stopping', 'Verzoek verzonden...');
 
   try {
     await fetch('/api/scan/stop', { method: 'POST' });
@@ -91,7 +91,7 @@ async function stopScan() {
     for (let i = 0; i < 40; i++) {
       await new Promise(r => setTimeout(r, 500));
       const status = await fetch('/api/scan/status').then(r => r.json());
-      setScanBalkStatus('stoppend', `Stoppen... (${Math.round((i+1)*0.5)}s)`);
+      setScanBalkStatus('stopping', `Stoppen... (${Math.round((i+1)*0.5)}s)`);
       if (!status.running) {
         logClient(`✅ Scan stopped`);
         break;

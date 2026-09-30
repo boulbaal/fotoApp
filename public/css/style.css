@@ -1028,7 +1028,7 @@ main { flex: 1; min-width: 0; padding: 24px; max-width: 1216px; }
 }
 .scan-dot.ready  { background: #2a2a3a; }
 .scan-dot.running  { background: #7c6af7; animation: pulse 1s infinite; }
-.scan-dot.stopped { background: #f59e0b; }
+.scan-dot.stopping { background: #f59e0b; animation: pulse 1s infinite; }
 
 .scan-balk-links {
   display: flex;

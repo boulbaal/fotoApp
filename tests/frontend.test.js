@@ -59,6 +59,14 @@ module.exports = async function testFrontend() {
     if (missing.length) throw new Error('klassen zonder CSS: ' + [...new Set(missing)].join(', '));
   });
 
+  test('CSS: elke scan-balk-status (setScanBalkStatus) heeft een .scan-dot-stijl', () => {
+    const css = fs.readFileSync(path.join(publicDir, 'css/style.css'), 'utf8');
+    const staten = [...js['scanner.js'].matchAll(/setScanBalkStatus\('([\w-]+)'/g)].map(m => m[1]);
+    if (!staten.length) throw new Error('geen setScanBalkStatus-aanroepen gevonden');
+    const missing = [...new Set(staten)].filter(s => !css.includes(`.scan-dot.${s}`));
+    if (missing.length) throw new Error('scan-dot zonder stijl: ' + missing.join(', '));
+  });
+
   test('CSS: selectie-markering gebruikt dezelfde klasse als fotos.js en gpsbulk.js', () => {
     const css = fs.readFileSync(path.join(publicDir, 'css/style.css'), 'utf8');
     if (!/classList\.toggle\('selected'/.test(js['fotos.js'])) throw new Error("fotos.js zet 'selected' niet meer — pas deze test aan");
