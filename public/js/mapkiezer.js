@@ -33,7 +33,8 @@ function openMapKiezer(doelId) {
     return;
   }
 
-  const huidigPad = document.getElementById(mapDoelInput)?.value || '/home/one';
+  // Leeg = de server start in de persoonlijke map van de gebruiker (os.homedir())
+  const huidigPad = document.getElementById(mapDoelInput)?.value || '';
   mapWs.send(JSON.stringify({ type: 'choose_folder', startPath: huidigPad }));
 }
 

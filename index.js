@@ -1,5 +1,6 @@
 const express = require('express');
 const path    = require('path');
+const os      = require('os');
 const http    = require('http');
 const { WebSocketServer } = require('ws');
 const { execFile } = require('child_process');
@@ -43,7 +44,7 @@ wss.on('connection', (ws) => {
     try { msg = JSON.parse(raw); } catch { return; }
 
     if (msg.type === 'choose_folder') {
-      const startPath = msg.startPath || process.env.HOME || process.env.USERPROFILE || '/home';
+      const startPath = msg.startPath || os.homedir();
 
       if (global.electronPickFolder) {
         // Electron: use the native dialog (works on Windows, Mac AND Linux)

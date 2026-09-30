@@ -40,6 +40,14 @@ module.exports = async function testFrontend() {
     if (missing.length) throw new Error('geen pagina-container voor: ' + missing.join(', '));
   });
 
+  // ─── MAPKIEZER ────────────────────────────────────────────────────────────
+
+  test('Mapkiezer: geen hardgecodeerde startmap; server valt terug op os.homedir()', () => {
+    if (/\/home\/one/.test(js['mapkiezer.js'])) throw new Error("mapkiezer.js gebruikt nog '/home/one' als startmap");
+    const idx = fs.readFileSync(path.join(__dirname, '../index.js'), 'utf8');
+    if (!/msg\.startPath \|\| os\.homedir\(\)/.test(idx)) throw new Error('index.js valt niet terug op os.homedir()');
+  });
+
   // ─── CSS ──────────────────────────────────────────────────────────────────
 
   test('CSS: elke klasse die de JS via classList/className zet, bestaat in style.css', () => {
