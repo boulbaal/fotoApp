@@ -24,7 +24,7 @@ let exportStatus = {
 // ─── Helpers ─────────────────────────────────────────────
 
 function createFilename(foto) {
-  const country = sanitize(foto.gps_country  || 'unknown');
+  const country = sanitize(foto.gps_country  || 'onbekend');
   const city    = sanitize(foto.gps_city  || '');
   const date    = formatDateForFilename(foto.photo_date);
   const ext     = (path.extname(foto.filename) || '.jpg').toLowerCase();
@@ -36,10 +36,10 @@ function sanitize(text) {
 }
 
 function formatDateForFilename(date) {
-  if (!date) return 'unknown';
+  if (!date) return 'onbekend';
   // date can be: "2023-07-15" or "2023-07-15T..." or "2023:07:15..."
   const match = String(date).match(/(\d{4})[-:](\d{2})[-:](\d{2})/);
-  if (!match) return 'unknown';
+  if (!match) return 'onbekend';
   return `${match[3]}_${match[2]}_${match[1]}`; // dd_mm_yyyy
 }
 
@@ -60,9 +60,9 @@ function uniquePath(targetFolder, subfolder, baseName) {
 }
 
 function subfolderFromDate(date) {
-  if (!date) return 'unknown';
+  if (!date) return 'onbekend';
   const match = String(date).match(/(\d{4})[-:](\d{2})/);
-  if (!match) return 'unknown';
+  if (!match) return 'onbekend';
   return path.join(match[1], match[2]); // "2023/07"
 }
 

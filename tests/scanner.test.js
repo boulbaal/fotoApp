@@ -1175,6 +1175,22 @@ module.exports = async function testScanner() {
     if (!blok.includes('keepers.has(f.id)')) throw new Error('export selecteert keeper niet expliciet');
   });
 
+  test('Export: bestandsnamen en mappen volgen EXPORT_SPEC.md (Land_Stad_dd_mm_yyyy, jaar/maand, onbekend)', () => {
+    const { createFilename, subfolderFromDate } = require('../src/export');
+    const gevallen = [
+      [{ filename: 'PXL_20230715_093042.jpg', gps_country: 'France', gps_city: 'Paris', photo_date: '2023-07-15T09:30:42.000Z' }, 'France_Paris_15_07_2023.jpg'],
+      [{ filename: 'a.JPG', gps_country: 'Belgium', gps_city: null, photo_date: '2021-03-14' }, 'Belgium__14_03_2021.jpg'],
+      [{ filename: 'b.jpg', gps_country: null, gps_city: null, photo_date: '2020-11-22T10:00:00Z' }, 'onbekend__22_11_2020.jpg'],
+      [{ filename: 'c.jpg', gps_country: 'France', gps_city: 'Paris', photo_date: null }, 'France_Paris_onbekend.jpg'],
+    ];
+    for (const [foto, verwacht] of gevallen) {
+      const naam = createFilename(foto);
+      if (naam !== verwacht) throw new Error(`createFilename gaf ${naam}, spec zegt ${verwacht}`);
+    }
+    if (subfolderFromDate('2023-07-15T09:30:42.000Z') !== path.join('2023', '07')) throw new Error('submap niet jaar/maand');
+    if (subfolderFromDate(null) !== 'onbekend') throw new Error(`submap zonder datum is ${subfolderFromDate(null)}, spec zegt onbekend`);
+  });
+
   test('API: detailvenster bepaalt keeper via gedeelde logica (niet hardcoded pc/gsm subquery)', () => {
     const apiCode = fs.readFileSync(path.join(__dirname, '../src/api.js'), 'utf8');
     const blok = apiCode.slice(apiCode.indexOf("router.get('/photos/:id'"), apiCode.indexOf("router.get('/photos/:id'") + 1400);
