@@ -93,18 +93,18 @@ async function laadDuplicaten(page = 1) {
         <div class="dup-foto ${isKeeper ? 'is-keeper' : ''}">
           ${badge}
           <div onclick="toonDetail(${f.id})" style="cursor:pointer">
-            ${f.thumbnail ? `<img src="${f.thumbnail}" alt="${f.filename}">` : `<div class="no-img">🖼️</div>`}
+            ${f.thumbnail ? `<img src="${escapeHtml(f.thumbnail)}" alt="${escapeHtml(f.filename)}">` : `<div class="no-img">🖼️</div>`}
           </div>
-          <div class="bron">${f.source_icon || '💻'} ${f.source_name}</div>
-          <div class="path">${f.full_path}</div>
-          ${f.gps_lat ? `<div class="path" style="color:#7c6af7">📍 ${f.gps_city || ''} ${f.gps_country || ''}</div>` : ''}
-          ${isKeeper ? '' : `<button class="dup-maak-origineel" onclick="maakOrigineel('${g.duplicate_group}', ${f.id})">★ ${t('dup_maak_origineel', 'Keep this copy')}</button>`}
+          <div class="bron">${escapeHtml(f.source_icon || '💻')} ${escapeHtml(f.source_name)}</div>
+          <div class="path">${escapeHtml(f.full_path)}</div>
+          ${f.gps_lat ? `<div class="path" style="color:#7c6af7">📍 ${escapeHtml(f.gps_city || '')} ${escapeHtml(f.gps_country || '')}</div>` : ''}
+          ${isKeeper ? '' : `<button class="dup-maak-origineel" onclick="maakOrigineel(${escapeHtml(JSON.stringify(String(g.duplicate_group)))}, ${f.id})">★ ${t('dup_maak_origineel', 'Keep this copy')}</button>`}
         </div>`;
     }).join('');
 
     const groepActie = choiceNeeded
       ? `<div class="dup-group-actie dup-group-wacht">${t('dup_wacht', 'Make a choice above first to clean up this group.')}</div>`
-      : `<button class="dup-group-delete" onclick="wisGroep('${g.duplicate_group}', ${g.count - 1})">🗑️ ${t('dup_wis_groep', 'Delete duplicates of this group')} (${g.count - 1})</button>`;
+      : `<button class="dup-group-delete" onclick="wisGroep(${escapeHtml(JSON.stringify(String(g.duplicate_group)))}, ${g.count - 1})">🗑️ ${t('dup_wis_groep', 'Delete duplicates of this group')} (${g.count - 1})</button>`;
 
     return `<div class="dup-group ${choiceNeeded ? 'dup-group-keuze' : ''}">${kop}<div class="dup-photos">${fotosHtml}</div>${groepActie}</div>`;
   }).join('');
@@ -231,7 +231,7 @@ function rendePrioLijsten(gerangschikt, ongerangschikt) {
          <button class="prio-btn prio-btn-uit" title="${t('dup_prio_verwijder', 'Do not rank')}" onclick="prioNaarOngerangschikt(${id})">✕</button>`
       : `<button class="prio-btn prio-btn-in" title="${t('dup_prio_toevoegen', 'Add to ranking')}" onclick="prioNaarGerangschikt(${id})">＋</button>`;
     return `<li data-id="${id}">
-      <span class="prio-name">${inGerangschikt ? `<b>${idx + 1}.</b> ` : ''}${b.icon || '💻'} ${b.name}</span>
+      <span class="prio-name">${inGerangschikt ? `<b>${idx + 1}.</b> ` : ''}${escapeHtml(b.icon || '💻')} ${escapeHtml(b.name)}</span>
       <span class="prio-knoppen">${knoppen}</span>
     </li>`;
   };

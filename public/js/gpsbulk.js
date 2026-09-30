@@ -407,7 +407,7 @@ function zoekBulkLocatie(groupId) {
       if (!window._bulkZoekData) window._bulkZoekData = {};
       window._bulkZoekData[groupId] = data;
       resEl.innerHTML = data.map((r, i) =>
-        `<div class="bulk-resultaat" onclick="kiesLocatie('${groupId}', ${i})">${r.display_name}</div>`
+        `<div class="bulk-resultaat" onclick="kiesLocatie('${groupId}', ${i})">${escapeHtml(r.display_name)}</div>`
       ).join('');
     } catch (e) {
       resEl.innerHTML = '<div style="color:#f87171;padding:8px;font-size:13px">Fout bij zoeken</div>';
@@ -465,7 +465,7 @@ async function bevestigBulkLocatie(groupId) {
     const dupTekst = resp.duplicaten_bijgewerkt ? ' (incl. duplicates)' : '';
     groepEl.innerHTML = `
       <div style="padding:14px 20px;color:#4ade80;font-size:14px">
-        ✅ ${resp.updated.toLocaleString()} item${resp.updated !== 1 ? 's' : ''}${dupTekst} assigned aan ${naamTekst}
+        ✅ ${resp.updated.toLocaleString()} item${resp.updated !== 1 ? 's' : ''}${dupTekst} assigned aan ${escapeHtml(naamTekst)}
       </div>`;
 
     gpsBulkGroepen = gpsBulkGroepen.filter(g => g.group_id != groupId);
@@ -606,7 +606,7 @@ function zoekBulkKaartLocatie() {
       ).then(r => r.json());
       if (!data.length) { resEl.innerHTML = '<div style="padding:6px 12px;color:#9ca3af;font-size:13px">No results</div>'; return; }
       resEl.innerHTML = data.map((r, i) =>
-        `<div class="gps-search-resultaat" onclick="kiesBulkKaartResultaat(${i})" data-idx="${i}">${r.display_name}</div>`
+        `<div class="gps-search-resultaat" onclick="kiesBulkKaartResultaat(${i})" data-idx="${i}">${escapeHtml(r.display_name)}</div>`
       ).join('');
       window._bulkKaartZoekData = data;
     } catch (e) { resEl.innerHTML = ''; }

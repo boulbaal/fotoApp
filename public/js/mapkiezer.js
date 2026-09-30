@@ -96,7 +96,3 @@ function wisLog(paneel) {
   logState[paneel].ongelezen = 0;
   document.getElementById('logBadge' + suffix).style.display = 'none';
 }
-
-function escapeHtml(t) {
-  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}

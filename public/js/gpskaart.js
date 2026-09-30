@@ -3,6 +3,7 @@ let gpsMarker = null;
 let gpsGekozen = null; // { lat, lon, city, country, landCode, adres }
 let gpsGeocodeBezig = false;
 let zoekTimer = null;
+let gpsZoekItems = []; // laatste Nominatim-zoekresultaten (onclick geeft enkel de index mee)
 
 function initGpsKaart(bestaandeLat, bestaandeLon) {
   document.getElementById('gpsZoekResultaten').classList.remove('open');
@@ -102,9 +103,10 @@ function zoekGpsLocatie() {
       );
       const items = await r.json();
       if (!items.length) { res.innerHTML = '<div class="gps-search-item">No results</div>'; res.classList.add('open'); return; }
-      res.innerHTML = items.map(item => `
-        <div class="gps-search-item" onclick="kiesZoekResultaat(${item.lat}, ${item.lon}, '${encodeURIComponent(item.display_name)}')">
-          ${item.display_name}
+      gpsZoekItems = items;
+      res.innerHTML = items.map((item, i) => `
+        <div class="gps-search-item" onclick="kiesZoekResultaatIdx(${i})">
+          ${escapeHtml(item.display_name)}
         </div>
       `).join('');
       res.classList.add('open');
@@ -113,6 +115,13 @@ function zoekGpsLocatie() {
       res.classList.add('open');
     }
   }, 400);
+}
+
+// Nominatim-velden nooit in een inline onclick zetten — enkel de index
+function kiesZoekResultaatIdx(idx) {
+  const item = gpsZoekItems[idx];
+  if (!item) return;
+  kiesZoekResultaat(item.lat, item.lon, item.display_name);
 }
 
 function kiesZoekResultaat(lat, lon, displayNameEncoded) {

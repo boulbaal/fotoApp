@@ -174,5 +174,189 @@ module.exports = async function testScripts() {
     }
   });
 
+  // ─── XSS: HTML-ESCAPING IN DE FRONTEND ──────────────────────────────────────
+  // Bestandsnamen, paden, bronnamen, EXIF, Nominatim-namen … zijn onbetrouwbaar.
+  // Een bestand "\"><img src=x onerror=alert(1)>.jpg" moet overal als tekst tonen.
+
+  const vm = require('vm');
+  const XSS = '"><img src=x onerror=alert(1)>.jpg';
+  const RAUW = '<img src=x onerror=alert(1)>';
+
+  async function testAsync(name, fn) {
+    try {
+      await fn();
+      resultaten.push({ name, ok: true });
+    } catch (e) {
+      resultaten.push({ name, ok: false, error: e.message });
+    }
+  }
+
+  // Minimale nep-DOM: getElementById geeft per id een object terug dat innerHTML bijhoudt
+  function maakSandbox(fetchAntwoorden = {}) {
+    const elementen = {};
+    const maakEl = (id) => ({
+      id, innerHTML: '', textContent: '', value: '', title: '',
+      dataset: {}, style: {},
+      classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+      querySelectorAll() { return []; },
+      addEventListener() {}, appendChild() {},
+    });
+    const document = {
+      getElementById: (id) => (elementen[id] = elementen[id] || maakEl(id)),
+      querySelectorAll: () => [],
+      querySelector: () => null,
+      createElement: () => maakEl('_'),
+    };
+    const ctx = {
+      document, console: { log() {}, warn() {}, error: console.error },
+      fetch: async (url) => {
+        const sleutel = Object.keys(fetchAntwoorden).find(k => String(url).startsWith(k));
+        return { ok: true, json: async () => fetchAntwoorden[sleutel] };
+      },
+      setTimeout, clearTimeout, URLSearchParams,
+    };
+    ctx.window = ctx;
+    ctx.i18n = ctx.window.i18n = { t: (k, f) => f || k };
+    vm.createContext(ctx);
+    return { ctx, elementen, laad: (rel) => vm.runInContext(lees(rel), ctx, { filename: rel }) };
+  }
+
+  const utilsJs = lees('public/js/utils.js');
+
+  test('XSS: utils.js definieert gedeelde escapeHtml()', () => {
+    if (!/function escapeHtml\s*\(/.test(utilsJs)) throw new Error('escapeHtml ontbreekt in utils.js');
+  });
+
+  test('XSS: escapeHtml escapet & < > " \' en geeft \'\' voor null/undefined', () => {
+    const { ctx, laad } = maakSandbox();
+    laad('public/js/utils.js');
+    const e = ctx.escapeHtml;
+    const checks = [
+      [e(XSS), '&quot;&gt;&lt;img src=x onerror=alert(1)&gt;.jpg'],
+      [e(`a&b 'c' "d"`), 'a&amp;b &#39;c&#39; &quot;d&quot;'],
+      [e(null), ''],
+      [e(undefined), ''],
+      [e(0), '0'],
+      [e(42), '42'],
+      [e('gewoon.jpg'), 'gewoon.jpg'],
+      [e('📷 Canon'), '📷 Canon'],
+    ];
+    for (const [kreeg, verwacht] of checks) {
+      if (kreeg !== verwacht) throw new Error(`verwacht ${JSON.stringify(verwacht)}, kreeg ${JSON.stringify(kreeg)}`);
+    }
+  });
+
+  test('XSS: escapeHtml bestaat maar één keer (geen zwakkere kopie die utils.js overschrijft)', () => {
+    const jsDir = path.join(__dirname, '..', 'public', 'js');
+    const metDefinitie = fs.readdirSync(jsDir).filter(f => f.endsWith('.js'))
+      .filter(f => /function escapeHtml\s*\(/.test(fs.readFileSync(path.join(jsDir, f), 'utf8')));
+    if (metDefinitie.length !== 1 || metDefinitie[0] !== 'utils.js') {
+      throw new Error('escapeHtml gedefinieerd in: ' + metDefinitie.join(', '));
+    }
+  });
+
+  test('XSS: utils.js laadt vóór alle andere /js/-scripts in index.html', () => {
+    const html = lees('public/index.html');
+    const scripts = [...html.matchAll(/<script src="\/js\/([^"]+)"/g)].map(m => m[1]);
+    if (scripts[0] !== 'utils.js') throw new Error('eerste /js/-script is ' + scripts[0]);
+  });
+
+  test('XSS: bekende sinks gebruiken escapeHtml (regressie)', () => {
+    const verplicht = {
+      'public/js/fotos.js': [
+        '<div class="name">${escapeHtml(f.filename)}</div>',      // fotokaart bestandsnaam
+        'alt="${escapeHtml(f.filename)}"',
+        '${escapeHtml(b.icon)} ${escapeHtml(b.name)}</option>',     // bronfilter-opties
+        '<option value="${escapeHtml(value)}">${escapeHtml(label)}', // camerafilter
+        '<option value="${escapeHtml(r.gps_country)}">',            // landfilter
+        '<div class="filter-chip">${escapeHtml(actieveFilter.label)}', // filterchip
+        'value="${escapeHtml(f.gps_city || \'\')}"',
+        'escapeHtml(f.lens || \'—\')',
+        'escapeHtml(d.full_path)',
+      ],
+      'public/js/videos.js': [
+        '<div class="name">${escapeHtml(f.filename)}</div>',
+        '${escapeHtml(b.icon)} ${escapeHtml(b.name)}</option>',
+        '<option value="${escapeHtml(value)}">${escapeHtml(label)}',
+        '<option value="${escapeHtml(r.gps_country)}">',
+      ],
+      'public/js/negeren.js':    ['<div class="name">${escapeHtml(f.filename)}</div>'],
+      'public/js/bronnen.js':    ['${escapeHtml(b.name)}</h3>', '📁 ${escapeHtml(b.path)}'],
+      'public/js/duplicaten.js': ['${escapeHtml(f.full_path)}', '${escapeHtml(b.name)}</span>'],
+      'public/js/dashboard.js':  ['<div class="bar-label">${escapeHtml(rij[labelVeld]'],
+      'public/js/kaart.js':      ['title="${escapeHtml(f.filename)}"', '<option value="${escapeHtml(l.gps_country)}">'],
+      'public/js/gpskaart.js':   ['${escapeHtml(item.display_name)}'],
+      'public/js/gpsbulk.js':    ['${escapeHtml(r.display_name)}'],
+      'public/js/export.js':     ['${escapeHtml(f.bestand)}: ${escapeHtml(f.error)}'],
+      'public/js/scanner.js':    ['escapeHtml(geocode.current_country)'],
+      'public/js/wrapped.js':    ['${escapeHtml(l.gps_country)}'],
+    };
+    const fouten = [];
+    for (const [bestand, fragmenten] of Object.entries(verplicht)) {
+      const code = lees(bestand);
+      for (const frag of fragmenten) if (!code.includes(frag)) fouten.push(`${bestand}: ${frag}`);
+    }
+    if (fouten.length) throw new Error('niet geëscaped:\n      ' + fouten.join('\n      '));
+  });
+
+  test('XSS: geen vrije tekst in inline onclick-strings (enkel numerieke ids)', () => {
+    const bronnen = lees('public/js/bronnen.js');
+    if (/onclick="[^"]*'\$\{b\.(name|path|type)/.test(bronnen) || bronnen.includes("b.name.replace(/'/g")) {
+      throw new Error('bronnen.js zet naam/pad nog in een onclick-string');
+    }
+    const gpskaart = lees('public/js/gpskaart.js');
+    if (/onclick="[^"]*display_name/.test(gpskaart) || /onclick="kiesZoekResultaat\(\$\{item\.lat/.test(gpskaart)) {
+      throw new Error('gpskaart.js zet Nominatim-velden nog in een onclick');
+    }
+    const dup = lees('public/js/duplicaten.js');
+    if (dup.includes("'${g.duplicate_group}'")) throw new Error('duplicaten.js: duplicate_group ongeëscaped in onclick');
+  });
+
+  await testAsync('XSS: fotogalerij + filterchip renderen kwaadaardige bestandsnaam als tekst', async () => {
+    const { ctx, elementen, laad } = maakSandbox({
+      '/api/photos?': { total: 1, photos: [{ id: 7, filename: XSS, has_thumbnail: 1, gps_city: XSS, source_icon: XSS, photo_date: null }] },
+    });
+    laad('public/js/utils.js');
+    laad('public/js/fotos.js');
+    ctx.document.getElementById('actieveFilters').dataset.country = 'x';
+    ctx.document.getElementById('actieveFilters').dataset.label = XSS;
+    await vm.runInContext('laadFotos(1)', ctx);
+    const grid = elementen.fotoGrid.innerHTML, chip = elementen.actieveFilters.innerHTML;
+    for (const [naam, html] of [['fotoGrid', grid], ['filterchip', chip]]) {
+      if (html.includes(RAUW)) throw new Error(`${naam} bevat rauwe <img onerror>`);
+      if (!html.includes('&lt;img src=x onerror=alert(1)&gt;')) throw new Error(`${naam} toont de naam niet als tekst`);
+    }
+    if (!grid.includes('onclick="fotoItemKlik(7)"')) throw new Error('fotokaart-onclick onverwacht gewijzigd');
+  });
+
+  await testAsync('XSS: bron-, camera- en landfilter-opties escapen vrije tekst', async () => {
+    const { ctx, elementen, laad } = maakSandbox({
+      '/api/sources': [{ id: 1, icon: '💻', name: XSS }],
+      '/api/stats': {
+        perYear: [{ year: 2024, count: 1 }],
+        perCamera: [{ camera_make: XSS, camera_model: 'M', count: 1 }],
+        perCountry: [{ gps_country: XSS, count: 1 }],
+      },
+    });
+    laad('public/js/utils.js');
+    laad('public/js/fotos.js');
+    await vm.runInContext('laadBronnenFilter()', ctx);
+    for (const id of ['filterBron', 'filterCamera', 'filterLand']) {
+      const html = elementen[id].innerHTML;
+      if (html.includes(RAUW)) throw new Error(`${id} bevat rauwe <img onerror>`);
+      if (!html.includes('&lt;img')) throw new Error(`${id} toont de naam niet als tekst`);
+    }
+  });
+
+  test('XSS: dashboard-balklabel escapet camera-/bronnamen', () => {
+    const { ctx, elementen, laad } = maakSandbox();
+    laad('public/js/utils.js');
+    laad('public/js/dashboard.js');
+    ctx.tekenBalk('grafiekTest', [{ label: XSS, count: 3 }], 'label', 'count', null, null, null);
+    const html = elementen.grafiekTest.innerHTML;
+    if (html.includes(RAUW)) throw new Error('bar-label bevat rauwe <img onerror>');
+    if (!html.includes('&lt;img')) throw new Error('bar-label toont de naam niet als tekst');
+  });
+
   return resultaten;
 };

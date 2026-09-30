@@ -90,7 +90,7 @@ function vulLandFilter() {
   sel.innerHTML = '<option value="">All countries</option>' +
     landen.map(l => {
       const vlag = l.gps_country_code ? landVlag(l.gps_country_code) : '';
-      return `<option value="${l.gps_country}">${vlag} ${l.gps_country}</option>`;
+      return `<option value="${escapeHtml(l.gps_country)}">${vlag} ${escapeHtml(l.gps_country)}</option>`;
     }).join('');
   if (huidig) sel.value = huidig;
 }
@@ -273,15 +273,15 @@ async function laadPanelFotos() {
     const geenThumb = f.is_video ? '🎬' : '🖼️';
     const onclick = f.is_video ? `toonVideoDetail(${f.id})` : `toonDetail(${f.id})`;
     return `
-    <div class="kp-foto" onclick="${onclick}" title="${f.filename}">
+    <div class="kp-foto" onclick="${onclick}" title="${escapeHtml(f.filename)}">
       <img src="/api/photos/${f.id}/thumbnail" loading="lazy"
            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
-           alt="${f.filename}">
+           alt="${escapeHtml(f.filename)}">
       <div class="kp-foto-geen-thumb" style="display:none">${geenThumb}</div>
       ${badge}${videoBadge}
       <div class="kp-foto-info">
         <div class="kp-foto-date">${formatDatum(f.photo_date)}</div>
-        <div class="kp-foto-bron">${f.source_icon || '💻'}</div>
+        <div class="kp-foto-bron">${escapeHtml(f.source_icon || '💻')}</div>
       </div>
     </div>`;
   }).join('');

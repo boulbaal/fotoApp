@@ -76,7 +76,7 @@ async function laadBronnenFilterVideo() {
   const sel = document.getElementById('filterBronVideo');
   if (sel) {
     sel.innerHTML = `<option value="">${t('filter_alle_bronnen', 'All sources')}</option>` +
-      sources.map(b => `<option value="${b.id}">${b.icon} ${b.name}</option>`).join('');
+      sources.map(b => `<option value="${b.id}">${escapeHtml(b.icon)} ${escapeHtml(b.name)}</option>`).join('');
   }
 
   const selJaar = document.getElementById('filterJaarVideo');
@@ -95,7 +95,7 @@ async function laadBronnenFilterVideo() {
       (stats.perCameraVideo || []).map(c => {
         const label = [c.camera_make, c.camera_model].filter(Boolean).join(' ') || '?';
         const value = `${c.camera_make || ''}${CAMERA_SEP}${c.camera_model || ''}`;
-        return `<option value="${value}">${label} (${(c.count || 0).toLocaleString()})</option>`;
+        return `<option value="${escapeHtml(value)}">${escapeHtml(label)} (${(c.count || 0).toLocaleString()})</option>`;
       }).join('');
   }
 
@@ -104,7 +104,7 @@ async function laadBronnenFilterVideo() {
     selLand.innerHTML = `<option value="">${t('filter_alle_landen', 'All countries')}</option>` +
       (stats.perCountryVideo || []).map(r => {
         const vlag = r.gps_country_code ? landVlag(r.gps_country_code) : landVlagVanNaam(r.gps_country);
-        return `<option value="${r.gps_country}">${vlag ? vlag + ' ' : ''}${r.gps_country} (${(r.count || 0).toLocaleString()})</option>`;
+        return `<option value="${escapeHtml(r.gps_country)}">${vlag ? vlag + ' ' : ''}${escapeHtml(r.gps_country)} (${(r.count || 0).toLocaleString()})</option>`;
       }).join('');
   }
 }
@@ -162,13 +162,13 @@ async function laadVideos(page = 1) {
       ${f.is_duplicate ? '<div class="dup-badge">DUP</div>' : ''}
       ${f.exported ? '<div class="export-badge">✓</div>' : ''}
       <div class="video-badge">▶${f.duration ? ' ' + formatDuur(f.duration) : ''}</div>
-      <div class="bron-badge">${f.source_icon || '💻'}</div>
+      <div class="bron-badge">${escapeHtml(f.source_icon || '💻')}</div>
       ${f.has_thumbnail
-        ? `<img src="/api/photos/${f.id}/thumbnail" loading="lazy" alt="${f.filename}">`
+        ? `<img src="/api/photos/${f.id}/thumbnail" loading="lazy" alt="${escapeHtml(f.filename)}">`
         : `<div class="no-img">🎬</div>`}
       <div class="info">
-        <div class="name">${f.filename}</div>
-        <div class="date">${formatDatum(f.photo_date)}${f.gps_city ? ' · ' + f.gps_city : ''}</div>
+        <div class="name">${escapeHtml(f.filename)}</div>
+        <div class="date">${formatDatum(f.photo_date)}${f.gps_city ? ' · ' + escapeHtml(f.gps_city) : ''}</div>
       </div>
     </div>
   `).join('');
@@ -207,22 +207,23 @@ function renderVideoModal(f) {
     </div>
   `;
 
-  const padEscaped = f.full_path.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const padEscaped = escapeHtml(f.full_path);
+  // Waarden zijn HTML: vrije tekst (bron, locatie, metadata) altijd via escapeHtml
   const velden = [
-    ['Source',      f.source_icon + ' ' + f.source_name],
+    ['Source',      escapeHtml(f.source_icon + ' ' + f.source_name)],
     ['Path',       `<a href="#" class="path-link" title="Show in file manager" onclick="toonInMap(event, ${f.id})">📂 ${padEscaped}</a>`],
-    ['Date',     formatDatum(f.photo_date) + (f.date_source ? ` <span style="color:#6b7280;font-size:11px">(${f.date_source})</span>` : '')],
+    ['Date',     formatDatum(f.photo_date) + (f.date_source ? ` <span style="color:#6b7280;font-size:11px">(${escapeHtml(f.date_source)})</span>` : '')],
     ['Duration',      f.duration ? formatDuur(f.duration) : '—'],
     ['Size',   formatGrootte(f.file_size)],
     ['Resolution', f.width && f.height ? `${f.width} × ${f.height}` : '—'],
     ['Location',   (() => {
       if (!f.gps_city && !f.gps_country) return '—';
       const vlag = f.gps_country_code ? landVlag(f.gps_country_code) : landVlagVanNaam(f.gps_country);
-      return `${vlag} ${[f.gps_city, f.gps_country].filter(Boolean).join(', ')}`.trim();
+      return `${vlag} ${escapeHtml([f.gps_city, f.gps_country].filter(Boolean).join(', '))}`.trim();
     })()],
     ['GPS',       f.gps_lat ? `${f.gps_lat.toFixed(4)}, ${f.gps_lon.toFixed(4)}` : '—'],
-    ['Format',   f.file_type || '—'],
-    ['Software',  f.software || '—'],
+    ['Format',   escapeHtml(f.file_type || '—')],
+    ['Software',  escapeHtml(f.software || '—')],
   ];
 
   document.getElementById('modalMeta').innerHTML = velden
@@ -240,16 +241,16 @@ function renderVideoModal(f) {
     <table class="meta-tabel bewerk-tabel">
       <tr class="bewerk-tr">
         <td>City</td>
-        <td><input id="bewerkStad" value="${f.gps_city || ''}" placeholder="e.g. Brussels" class="meta-input"></td>
+        <td><input id="bewerkStad" value="${escapeHtml(f.gps_city || '')}" placeholder="e.g. Brussels" class="meta-input"></td>
       </tr>
       <tr class="bewerk-tr">
         <td>Country</td>
-        <td><input id="bewerkLand" value="${f.gps_country || ''}" placeholder="e.g. Belgium" class="meta-input"></td>
+        <td><input id="bewerkLand" value="${escapeHtml(f.gps_country || '')}" placeholder="e.g. Belgium" class="meta-input"></td>
       </tr>
     </table>
     <div style="display:flex;gap:8px;margin-top:12px">
       <button id="opslaanKnop" class="btn btn-primair" style="flex:1;font-size:13px" onclick="slaaBewerkingOpFoto()">💾 Save</button>
-      <button class="btn btn-secundair" style="font-size:13px" onclick="openGpsKaart(${f.gps_lat || 'null'}, ${f.gps_lon || 'null'})">📍 Pick GPS</button>
+      <button class="btn btn-secundair" style="font-size:13px" onclick="openGpsKaart(${Number(f.gps_lat) || 'null'}, ${Number(f.gps_lon) || 'null'})">📍 Pick GPS</button>
     </div>
     <div id="bewerkStatus" style="font-size:12px;color:#888;margin-top:6px"></div>
     <button id="verwijderFotoKnop" class="delete-definitief-knop" style="width:100%;margin-top:10px"

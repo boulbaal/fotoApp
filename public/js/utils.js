@@ -1,3 +1,16 @@
+// Escape tekst voor gebruik in innerHTML / template strings (ook binnen attributen).
+// Gedeelde helper — utils.js laadt als eerste, dus alle andere scripts kunnen hem gebruiken.
+// Let op: NIET voldoende binnen inline onclick="fn('${x}')" (HTML-decode gebeurt vóór JS-parse).
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function formatGrootte(bytes) {
   if (!bytes) return '—';
   if (bytes > 1e9) return (bytes / 1e9).toFixed(1) + ' GB';

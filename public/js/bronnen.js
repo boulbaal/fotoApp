@@ -1,3 +1,7 @@
+// Laatst geladen bronnen per id — zodat inline onclick-handlers enkel een numeriek id
+// meegeven (namen/paden in onclick="…'${x}'…" zijn niet veilig te escapen).
+let _bronnenOpId = new Map();
+
 async function laadBronnen() {
   const [sources, sc] = await Promise.all([
     fetch('/api/sources').then(r => r.json()),
@@ -9,6 +13,8 @@ async function laadBronnen() {
     grid.innerHTML = '<div class="leeg">No sources yet. Add a source to get started.</div>';
     return;
   }
+
+  _bronnenOpId = new Map(sources.map(b => [b.id, b]));
 
   const wachtrijIds = (sc.queue || []).map(w => w.id);
   const wachtrijPos = (id) => wachtrijIds.indexOf(id);
@@ -24,16 +30,16 @@ async function laadBronnen() {
     } else if (inWachtrij) {
       knop = `<button class="btn-groot btn-groot-stop" style="background:#6b7280" onclick="verwijderUitWachtrij(${b.id})">⏳ Queue #${position + 1} — click to remove</button>`;
     } else {
-      knop = `<button class="btn-groot btn-groot-start" onclick="startScan(${b.id}, '${b.name.replace(/'/g,"\\'")}')">▶ Start scan</button>`;
+      knop = `<button class="btn-groot btn-groot-start" onclick="startScanBron(${b.id})">▶ Start scan</button>`;
     }
 
     const duurTekst = b.scan_duur_seconden != null ? ` <span style="color:#7c6af7">⏱ ${formatDuur(b.scan_duur_seconden)}</span>` : '';
 
     return `
     <div class="bron-kaart ${isBezig ? 'running' : ''}" id="bronKaart_${b.id}">
-      <h3>${b.icon || '💻'} ${b.name}</h3>
+      <h3>${escapeHtml(b.icon || '💻')} ${escapeHtml(b.name)}</h3>
       <div class="meta">
-        <div>📁 ${b.path}</div>
+        <div>📁 ${escapeHtml(b.path)}</div>
         <div>📷 ${(b.total_photos || 0).toLocaleString()} photos</div>
         <div>🕐 ${b.last_scan ? '✓ ' + formatDatumTijd(b.last_scan) + duurTekst : 'Not scanned yet'}</div>
       </div>
@@ -43,7 +49,7 @@ async function laadBronnen() {
       </label>
       <div class="acties">
         ${knop}
-        <button class="btn btn-secundair" onclick="bewerkBron(${b.id}, '${b.name}', '${b.path}', '${b.type}', ${b.include_hidden ? 1 : 0})" title="Edit">✏️</button>
+        <button class="btn btn-secundair" onclick="bewerkBronVanId(${b.id})" title="Edit">✏️</button>
         <button class="btn btn-gevaar" onclick="verwijderBron(${b.id})" title="Delete">🗑</button>
       </div>
     </div>`;
@@ -73,6 +79,18 @@ async function verwijderBron(id) {
   if (!confirm('Delete this source and all its photo records?\n(The actual photos are NOT deleted)')) return;
   await fetch('/api/sources/' + id, { method: 'DELETE' });
   laadBronnen();
+}
+
+// onclick-helpers: zoek de bron op via numeriek id (zie _bronnenOpId)
+function startScanBron(id) {
+  const b = _bronnenOpId.get(id);
+  startScan(id, b ? b.name : undefined);
+}
+
+function bewerkBronVanId(id) {
+  const b = _bronnenOpId.get(id);
+  if (!b) return;
+  bewerkBron(b.id, b.name, b.path, b.type, b.include_hidden ? 1 : 0);
 }
 
 function bewerkBron(id, name, path, type, hidden) {

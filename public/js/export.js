@@ -134,7 +134,7 @@ function toonExportKlaar(status) {
     const log = document.getElementById('klaarFoutLog');
     log.style.display = 'block';
     log.innerHTML = '<strong>Fouten:</strong><br>' +
-      status.foutLog.map(f => `${f.bestand}: ${f.error}`).join('<br>');
+      status.foutLog.map(f => `${escapeHtml(f.bestand)}: ${escapeHtml(f.error)}`).join('<br>');
   }
 }
 

@@ -272,7 +272,7 @@ function toonGeocodeBalk(geocode) {
     el.style.display = 'flex';
     el.innerHTML = `<span style="color:#34d399">🌍 Locaties ophalen</span> &nbsp;
       <span style="color:#6b7280;font-size:12px">${geocode.done}/${geocode.total}
-      ${geocode.current_country ? '— ' + geocode.current_country : ''}</span>
+      ${geocode.current_country ? '— ' + escapeHtml(geocode.current_country) : ''}</span>
       <span style="margin-left:auto;color:#a78bf7;font-size:12px">${pct}%</span>`;
   } else {
     el.style.display = 'none';

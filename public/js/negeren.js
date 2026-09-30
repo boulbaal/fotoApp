@@ -32,14 +32,14 @@ async function laadNegeren(page = 1) {
       <div class="status-badge ${f.ignored ? 'badge-negeren' : 'badge-meenemen'}">
         ${f.ignored ? 'NEGEREN' : 'MEENEMEN'}
       </div>
-      <div class="bron-badge">${f.source_icon || '💻'}</div>
+      <div class="bron-badge">${escapeHtml(f.source_icon || '💻')}</div>
       ${f.has_thumbnail
-        ? `<img src="/api/photos/${f.id}/thumbnail" loading="lazy" alt="${f.filename}">`
+        ? `<img src="/api/photos/${f.id}/thumbnail" loading="lazy" alt="${escapeHtml(f.filename)}">`
         : `<div class="no-img">${f.is_video ? '🎬' : '🖼️'}</div>`}
       ${f.is_video ? `<div class="video-badge">▶${f.duration ? ' ' + formatDuur(f.duration) : ''}</div>` : ''}
       <div class="info">
-        <div class="name">${f.filename}</div>
-        <div class="date">${formatDatum(f.photo_date)}${f.gps_city ? ' · ' + f.gps_city : ''}</div>
+        <div class="name">${escapeHtml(f.filename)}</div>
+        <div class="date">${formatDatum(f.photo_date)}${f.gps_city ? ' · ' + escapeHtml(f.gps_city) : ''}</div>
       </div>
     </div>
   `).join('');
@@ -143,14 +143,14 @@ async function laadGenegeerd(page = 1) {
     <div class="foto-item ignore-item foto-ignored" data-foto="${f.id}">
       ${f.is_duplicate ? '<div class="status-badge badge-dup">DUP</div>' : ''}
       <div class="status-badge badge-negeren">NEGEREN</div>
-      <div class="bron-badge">${f.source_icon || '💻'}</div>
+      <div class="bron-badge">${escapeHtml(f.source_icon || '💻')}</div>
       ${f.has_thumbnail
-        ? `<img src="/api/photos/${f.id}/thumbnail" loading="lazy" alt="${f.filename}">`
+        ? `<img src="/api/photos/${f.id}/thumbnail" loading="lazy" alt="${escapeHtml(f.filename)}">`
         : `<div class="no-img">${f.is_video ? '🎬' : '🖼️'}</div>`}
       ${f.is_video ? `<div class="video-badge">▶${f.duration ? ' ' + formatDuur(f.duration) : ''}</div>` : ''}
       <div class="info">
-        <div class="name">${f.filename}</div>
-        <div class="date">${formatDatum(f.photo_date)}${f.gps_city ? ' · ' + f.gps_city : ''}</div>
+        <div class="name">${escapeHtml(f.filename)}</div>
+        <div class="date">${formatDatum(f.photo_date)}${f.gps_city ? ' · ' + escapeHtml(f.gps_city) : ''}</div>
       </div>
       <button class="ignore-knop hersteld"
         onclick="event.stopPropagation(); toggleNegeer(${f.id}, this); setTimeout(() => laadGenegeerd(${page}), 200)">

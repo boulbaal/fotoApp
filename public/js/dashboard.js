@@ -124,7 +124,7 @@ function tekenBalk(containerId, data, labelVeld, aantalVeld, onClick, extraInfo,
     const extra = extraInfo ? extraInfo(rij) : '';
     return `
     <div class="bar-rij ${onClick ? 'klikbaar' : ''}" title="${onClick ? 'Klik om foto\'s te zien' : ''}">
-      <div class="bar-label">${rij[labelVeld] || '?'}</div>
+      <div class="bar-label">${escapeHtml(rij[labelVeld] || '?')}</div>
       <div class="bar-wrap">
         <div class="bar-fill" style="width:${max > 0 ? (rij[aantalVeld]/max*100) : 0}%">
           <span>${(rij[aantalVeld] || 0).toLocaleString()}${extra}</span>

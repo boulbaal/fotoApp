@@ -40,7 +40,7 @@ async function laadWrapped() {
     : '—';
 
   const landenRijen = (d.topCountries || []).map(l =>
-    `<li><span class="wl-vlag">${wrappedVlag(l)}</span> <span class="wl-name">${l.gps_country}</span> <span class="wl-count">${wrappedGetal(l.count)}</span></li>`
+    `<li><span class="wl-vlag">${wrappedVlag(l)}</span> <span class="wl-name">${escapeHtml(l.gps_country)}</span> <span class="wl-count">${wrappedGetal(l.count)}</span></li>`
   ).join('') || '<li class="wl-leeg">No locations known yet</li>';
 
   kaart.innerHTML = `
