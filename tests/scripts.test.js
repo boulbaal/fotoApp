@@ -20,6 +20,16 @@ module.exports = async function testScripts() {
     return (st.mode & 0o111) !== 0; // minstens één execute-bit
   };
 
+  // ─── DONATIELINK ────────────────────────────────────────────────────────────
+  // paypal.me/ABoullbahaiem (twee keer l) bestaat niet: elke doneerknop liep dood.
+  test('PayPal.me-links gebruiken het bestaande profiel ABoulbahaiem', () => {
+    for (const rel of ['public/index.html', 'README.md', '.github/FUNDING.yml']) {
+      const tekst = lees(rel);
+      if (/ABoullbahaiem/i.test(tekst)) throw new Error(`${rel} bevat de foute naam ABoullbahaiem`);
+      if (!/paypalme\/ABoulbahaiem|paypal\.me\/ABoulbahaiem/.test(tekst)) throw new Error(`${rel} heeft geen PayPal.me-link`);
+    }
+  });
+
   // ─── BESTANDSSTRUCTUUR ──────────────────────────────────────────────────────
 
   test('start-electron.sh bestaat', () => {

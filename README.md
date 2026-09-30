@@ -265,7 +265,7 @@ Heeft FotoApp je een cloud-abonnement bespaard, of gewoon een hoop tijd? Dan is 
 
 > *FotoApp is free and stays free — no subscription, no cloud, no ads. If it saved you a cloud subscription or a few hours of sorting, a small contribution is hugely appreciated. Entirely optional.*
 
-**[☕ Doneer via PayPal / Donate](https://www.paypal.com/paypalme/ABoullbahaiem)** · gebruik ook de **Sponsor**-knop bovenaan deze repo.
+**[☕ Doneer via PayPal / Donate](https://www.paypal.com/paypalme/ABoulbahaiem)** · gebruik ook de **Sponsor**-knop bovenaan deze repo.
 
 Geen budget? Een **⭐ ster** of het delen van het project helpt net zo goed. / No budget? A **⭐ star** or sharing the project helps just as much.
 
