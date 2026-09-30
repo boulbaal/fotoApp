@@ -542,6 +542,7 @@ function openBulkKaart(groupId) {
   document.getElementById('bulkKaartOpslaanKnop').disabled = true;
   document.getElementById('bulkKaartZoek').value = '';
   document.getElementById('bulkKaartZoekResultaten').innerHTML = '';
+  document.getElementById('bulkKaartZoekResultaten').classList.remove('open');
   document.getElementById('bulkKaartOverlay').classList.add('open');
 
   // Init kaart (eenmalig)
@@ -596,8 +597,9 @@ function zoekBulkKaartLocatie() {
   clearTimeout(bulkKaartZoekTimer);
   const q = document.getElementById('bulkKaartZoek').value.trim();
   const resEl = document.getElementById('bulkKaartZoekResultaten');
-  if (q.length < 2) { resEl.innerHTML = ''; return; }
+  if (q.length < 2) { resEl.innerHTML = ''; resEl.classList.remove('open'); return; }
   resEl.innerHTML = '<div style="padding:6px 12px;color:#9ca3af;font-size:13px">Zoeken...</div>';
+  resEl.classList.add('open'); // .gps-search-resultaten is display:none zonder .open
 
   bulkKaartZoekTimer = setTimeout(async () => {
     try {
@@ -609,7 +611,7 @@ function zoekBulkKaartLocatie() {
         `<div class="gps-search-resultaat" onclick="kiesBulkKaartResultaat(${i})" data-idx="${i}">${escapeHtml(r.display_name)}</div>`
       ).join('');
       window._bulkKaartZoekData = data;
-    } catch (e) { resEl.innerHTML = ''; }
+    } catch (e) { resEl.innerHTML = ''; resEl.classList.remove('open'); }
   }, 450);
 }
 
@@ -622,6 +624,7 @@ function kiesBulkKaartResultaat(idx) {
   // Simuleer klik om location in te stellen
   onBulkKaartKlik({ latlng: { lat, lng } });
   document.getElementById('bulkKaartZoekResultaten').innerHTML = '';
+  document.getElementById('bulkKaartZoekResultaten').classList.remove('open');
   document.getElementById('bulkKaartZoek').value = r.display_name.split(',')[0];
 }
 

@@ -66,6 +66,13 @@ module.exports = async function testFrontend() {
     if (!/' selected'/.test(js['gpsbulk.js']) || !css.includes('.bulk-thumb.selected')) throw new Error('.bulk-thumb.selected ontbreekt of wordt niet gezet');
   });
 
+  test('CSS: zoekresultaten in de GPS-bulk-kaart worden zichtbaar gemaakt (.open)', () => {
+    // .gps-search-resultaten is display:none tot de klasse .open gezet wordt
+    if (!/id="bulkKaartZoekResultaten" class="gps-search-resultaten"/.test(html)) throw new Error('markup veranderd — pas deze test aan');
+    const fn = (js['gpsbulk.js'].match(/function zoekBulkKaartLocatie\(\) \{([\s\S]*?)\n\}/) || [])[1] || '';
+    if (!fn.includes("classList.add('open')")) throw new Error("zoekBulkKaartLocatie zet .open niet → resultaten blijven onzichtbaar");
+  });
+
   // ─── I18N ─────────────────────────────────────────────────────────────────
 
   test('i18n: navigatie-knoppen worden vertaald (data-page + alle pagina-namen)', () => {
