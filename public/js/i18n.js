@@ -810,17 +810,17 @@ window.i18n = (function() {
       if (typeof val === 'string' && val !== key) el.title = val;
     });
 
-    // 4. Nav knoppen (data-pagina)
+    // 4. Nav knoppen (data-page)
     const navMap = {
-      dashboard: t('nav_dashboard'), bronnen: t('nav_bronnen'),
-      fotos: t('nav_fotos'),         videos: t('nav_videos'),
-      duplicaten: t('nav_duplicaten'), kaart: t('nav_kaart'),
+      dashboard: t('nav_dashboard'), sources: t('nav_bronnen'),
+      photos: t('nav_fotos'),        videos: t('nav_videos'),
+      duplicates: t('nav_duplicaten'), kaart: t('nav_kaart'),
       gpsbulk: t('nav_gps'),         wrapped: t('nav_wrapped'),
-      negeren: t('nav_negeren'),     genegeerd: t('nav_genegeerd'),
+      negeren: t('nav_negeren'),     ignored: t('nav_genegeerd'),
       export: t('nav_export'),
     };
-    document.querySelectorAll('[data-pagina]').forEach(btn => {
-      const p = btn.dataset.pagina;
+    document.querySelectorAll('[data-page]').forEach(btn => {
+      const p = btn.dataset.page;
       if (navMap[p]) btn.textContent = navMap[p];
     });
 
@@ -835,7 +835,7 @@ window.i18n = (function() {
 
     // 7. Scan indicator
     const indicator = document.getElementById('scanIndicator');
-    if (indicator && !indicator.classList.contains('bezig')) {
+    if (indicator && !indicator.classList.contains('running')) {
       indicator.textContent = t('stat_ready');
     }
 

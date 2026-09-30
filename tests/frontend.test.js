@@ -40,6 +40,29 @@ module.exports = async function testFrontend() {
     if (missing.length) throw new Error('geen pagina-container voor: ' + missing.join(', '));
   });
 
+  // ─── I18N ─────────────────────────────────────────────────────────────────
+
+  test('i18n: navigatie-knoppen worden vertaald (data-page + alle pagina-namen)', () => {
+    const i18n = js['i18n.js'];
+    if (!/querySelectorAll\('\[data-page\]'\)/.test(i18n)) throw new Error("i18n.js vertaalt niet via [data-page]");
+    const mapSrc = (i18n.match(/const navMap = \{([\s\S]*?)\};/) || [])[1];
+    if (!mapSrc) throw new Error('navMap niet gevonden in i18n.js');
+    const keys = new Set([...mapSrc.matchAll(/(\w+):\s*t\(/g)].map(m => m[1]));
+    const navNames = [...html.matchAll(/<button data-page="([\w-]+)"(?![^>]*doneer-sidebar-knop)/g)].map(m => m[1]);
+    const missing = navNames.filter(n => !keys.has(n));
+    if (missing.length) throw new Error('nav-knoppen zonder vertaling: ' + missing.join(', '));
+    const stale = [...keys].filter(k => !navNames.includes(k));
+    if (stale.length) throw new Error('navMap bevat onbekende pagina-namen: ' + stale.join(', '));
+  });
+
+  test('i18n: taalwissel overschrijft de scan-indicator niet tijdens een scan', () => {
+    const cls = (js['scanner.js'].match(/ind\.className = 'scan-indicator (\w+)'/) || [])[1];
+    if (!cls) throw new Error('scan-indicator klasse niet gevonden in scanner.js');
+    if (!js['i18n.js'].includes(`indicator.classList.contains('${cls}')`)) {
+      throw new Error(`i18n.js controleert niet op de klasse '${cls}' die scanner.js zet`);
+    }
+  });
+
   // ─── API-CONTRACT ─────────────────────────────────────────────────────────
 
   // All routes the backend exposes, e.g. { method: 'POST', path: '/photos/:id/ignore' }
