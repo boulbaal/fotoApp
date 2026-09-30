@@ -116,6 +116,16 @@ async function toggleNegeer(id, knop) {
   }
 }
 
+// Genegeerd-pagina: klikken op de foto (of op ↩) neemt hem weer mee in de export
+async function herstelGenegeerd(id, page) {
+  const r = await fetch(`/api/photos/${id}/ignore`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ignored: false })
+  });
+  if (r.ok) laadGenegeerd(page);
+}
+
 async function laadGenegeerd(page = 1) {
   const params = new URLSearchParams({ page, per_page: 50, without_thumbnail: 1, ignored: '1', without_copies: 1 });
   const data = await fetch('/api/photos?' + params).then(r => r.json());
@@ -140,7 +150,7 @@ async function laadGenegeerd(page = 1) {
   if (verwijderKnop) verwijderKnop.style.display = '';
 
   grid.innerHTML = data.photos.map(f => `
-    <div class="foto-item ignore-item foto-ignored" data-foto="${f.id}">
+    <div class="foto-item ignore-item foto-ignored" data-foto="${f.id}" onclick="herstelGenegeerd(${f.id}, ${page})">
       ${f.is_duplicate ? '<div class="status-badge badge-dup">DUP</div>' : ''}
       <div class="status-badge badge-negeren">NEGEREN</div>
       <div class="bron-badge">${escapeHtml(f.source_icon || '💻')}</div>
@@ -153,7 +163,7 @@ async function laadGenegeerd(page = 1) {
         <div class="date">${formatDatum(f.photo_date)}${f.gps_city ? ' · ' + escapeHtml(f.gps_city) : ''}</div>
       </div>
       <button class="ignore-knop hersteld"
-        onclick="event.stopPropagation(); toggleNegeer(${f.id}, this); setTimeout(() => laadGenegeerd(${page}), 200)">
+        onclick="event.stopPropagation(); herstelGenegeerd(${f.id}, ${page})">
         ↩ Herstellen
       </button>
     </div>

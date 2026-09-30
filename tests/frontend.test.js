@@ -40,6 +40,15 @@ module.exports = async function testFrontend() {
     if (missing.length) throw new Error('geen pagina-container voor: ' + missing.join(', '));
   });
 
+  // ─── GENEGEERD-PAGINA ─────────────────────────────────────────────────────
+
+  test('Genegeerd-pagina: klikken op een foto herstelt hem (zoals de uitleg zegt)', () => {
+    const neg = js['negeren.js'];
+    const tpl = (neg.slice(neg.indexOf('async function laadGenegeerd')).match(/<div class="foto-item ignore-item[^>]*>/) || [])[0] || '';
+    if (!/onclick="herstelGenegeerd\(/.test(tpl)) throw new Error('foto op de Genegeerd-pagina heeft geen klik-om-te-herstellen');
+    if (!/async function herstelGenegeerd[\s\S]*?ignored: false/.test(neg)) throw new Error('herstelGenegeerd zet ignored niet op false');
+  });
+
   // ─── MAPKIEZER ────────────────────────────────────────────────────────────
 
   test('Mapkiezer: geen hardgecodeerde startmap; server valt terug op os.homedir()', () => {
