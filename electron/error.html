@@ -61,6 +61,9 @@
       p.textContent = solution.text;
       wrap.appendChild(p);
 
+      // A step can be advice only (no command): then there is nothing to copy.
+      if (!solution.cmd) return wrap;
+
       const row = document.createElement('div');
       row.className = 'cmdrow';
 

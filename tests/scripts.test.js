@@ -376,5 +376,51 @@ module.exports = async function testScripts() {
     if (!/source_id,started,completed,total,new_files,errors,status/.test(d)) throw new Error('scan_log-query niet bijgewerkt');
   });
 
+  // ── Oude machines (Ubuntu 18.04): diagnose + packaging ─────────────────
+  // Run the real diagnoseError() (cut out of main.js) instead of only looking
+  // for strings, so the classification itself is tested.
+  const diagnose = (() => {
+    const src = lees('electron/main.js');
+    const start = src.indexOf('function diagnoseError(err)');
+    const end = src.indexOf('\nfunction logError');
+    return new Function(src.slice(start, end) + '\nreturn diagnoseError;')();
+  })();
+
+  test('diagnoseError: te oude glibc geeft uitleg i.p.v. "npm run rebuild"', () => {
+    const err = new Error("Error: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.29' not found (required by better_sqlite3.node)\n    code: 'ERR_DLOPEN_FAILED'");
+    const info = diagnose(err);
+    if (!/too old/i.test(info.title)) throw new Error('verkeerde titel: ' + info.title);
+    if (!info.explanation.includes('GLIBC_2.29')) throw new Error('vereiste glibc-versie niet genoemd');
+    if (info.solutions.some(s => /npm run rebuild/.test(s.cmd))) throw new Error('raadt nog npm run rebuild aan');
+  });
+
+  test('diagnoseError: ontbrekende libvips wordt herkend als installatieprobleem', () => {
+    const err = new Error('Could not load the "sharp" module using the linux-x64 runtime\nERR_DLOPEN_FAILED: libvips-cpp.so.8.17.3: cannot open shared object file: No such file or directory');
+    const info = diagnose(err);
+    if (!/incomplete/i.test(info.title)) throw new Error('verkeerde titel: ' + info.title);
+    if (info.solutions.some(s => /npm/.test(s.cmd))) throw new Error('raadt npm-commando aan aan eindgebruiker');
+  });
+
+  test('diagnoseError: echte ABI-mismatch blijft "rebuild" aanraden', () => {
+    const info = diagnose(new Error('was compiled against a different Node.js version using NODE_MODULE_VERSION 108'));
+    if (!info.solutions.some(s => s.cmd === 'npm run rebuild')) throw new Error('rebuild-advies verdwenen voor ontwikkelaars');
+  });
+
+  test('error.html toont geen leeg kopieervak bij advies zonder commando', () => {
+    if (!errorHtml.includes('if (!solution.cmd) return wrap;')) throw new Error('lege cmd niet afgevangen');
+  });
+
+  test('package.json pakt @img (libvips voor sharp) uit het asar-archief', () => {
+    const pkg = JSON.parse(lees('package.json'));
+    if (!pkg.build.asarUnpack.includes('node_modules/@img/**')) throw new Error('node_modules/@img/** ontbreekt in asarUnpack');
+  });
+
+  test('Linux-CI bouwt better-sqlite3 voor oude glibc en controleert het resultaat', () => {
+    const wf = lees('.github/workflows/build-all.yml');
+    if (!wf.includes('scripts/build-legacy-sqlite.sh')) throw new Error('legacy sqlite-build ontbreekt in CI');
+    if (!wf.includes('scripts/check-glibc.sh')) throw new Error('glibc-controle ontbreekt in CI');
+    if (!wf.includes('npmRebuild=false')) throw new Error('electron-builder zou de legacy-module overschrijven (npmRebuild)');
+  });
+
   return resultaten;
 };

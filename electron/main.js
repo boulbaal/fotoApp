@@ -75,6 +75,37 @@ process.on('unhandledRejection', (e) => { if (!serverReady) { serverError = serv
 function diagnoseError(err) {
   const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err || '');
 
+  // 0a) Operating system too old: a native file needs a newer glibc/libstdc++
+  //     than this Linux has (e.g. Ubuntu 18.04 has glibc 2.27). Rebuilding with
+  //     npm does not help an end user here, so say what is really going on.
+  const libcMatch = msg.match(/(GLIBC(?:XX)?_[0-9.]+)'? not found/);
+  if (libcMatch) {
+    return {
+      title: 'This Linux version is too old for this FotoApp build',
+      explanation: 'A built-in part of FotoApp needs ' + libcMatch[1] + ', a newer system library than this computer has. This usually happens on older Linux versions such as Ubuntu 18.04. It is not something you did wrong, and rebuilding will not fix it.',
+      solutions: [
+        { text: 'Check your Linux version and system library version:', cmd: 'lsb_release -d; ldd --version | head -1' },
+        { text: 'Download the newest FotoApp release (builds for older systems are being worked on):', cmd: 'xdg-open https://github.com/boulbaal/fotoApp/releases/latest' },
+        { text: 'Or upgrade Linux to a supported version (for Ubuntu: 22.04 or newer) — make a backup first.', cmd: '' },
+      ],
+      details: msg,
+    };
+  }
+
+  // 0b) Image library (libvips, used by sharp for thumbnails) missing from the
+  //     installation — a packaging problem, not a user problem.
+  if (/libvips[^:\s]*\.so[^:]*: cannot open shared object file/i.test(msg)) {
+    return {
+      title: 'The installation is incomplete (image library missing)',
+      explanation: 'The image library FotoApp uses for thumbnails (libvips) could not be found inside the installation. This is a packaging problem in this FotoApp version, not something on your computer.',
+      solutions: [
+        { text: 'Download the newest FotoApp release and install it again:', cmd: 'xdg-open https://github.com/boulbaal/fotoApp/releases/latest' },
+        { text: 'If it keeps happening, please report it (include the technical details below):', cmd: 'xdg-open https://github.com/boulbaal/fotoApp/issues/new' },
+      ],
+      details: msg,
+    };
+  }
+
   // 1) Native module built for the wrong Node/Electron version
   if (/NODE_MODULE_VERSION|ERR_DLOPEN_FAILED|did not self-register|compiled against a different/i.test(msg)) {
     return {
