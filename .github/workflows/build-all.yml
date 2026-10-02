@@ -100,8 +100,22 @@ jobs:
       - name: Dependencies installeren
         run: npm install
 
-      - name: Linux bouwen en publiceren
-        run: npm run build:linux:publish
+      # Ubuntu 22.04 links better-sqlite3 against glibc 2.29, which older
+      # systems (Ubuntu 18.04 = glibc 2.27) cannot load. Build it in a
+      # manylinux2014 container (glibc 2.17) instead.
+      - name: better-sqlite3 bouwen voor oude Linux (glibc 2.17)
+        run: bash scripts/build-legacy-sqlite.sh
+
+      # npmRebuild=false: otherwise electron-builder rebuilds better-sqlite3 on
+      # this runner and overwrites the legacy build from the previous step.
+      - name: Linux bouwen (nog niet publiceren)
+        run: npx electron-builder --linux --publish never --config.npmRebuild=false
+
+      - name: Controleren dat de build op Ubuntu 18.04 draait
+        run: bash scripts/check-glibc.sh dist/linux-unpacked
+
+      - name: Linux publiceren
+        run: npx electron-builder --linux --prepackaged dist/linux-unpacked --publish always --config.npmRebuild=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
