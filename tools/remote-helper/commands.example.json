@@ -1,0 +1,4 @@
+[
+ {"titel": "Systeeminfo verzamelen (verandert niets)", "cmd": "cat /etc/os-release | head -4; uname -m; ldd --version | head -1; hostname -I; whoami"},
+ {"titel": "FotoApp-foutlog tonen", "cmd": "tail -30 ~/.config/fotoapp/fotoapp-data/electron-error.log"}
+]
